@@ -8,6 +8,7 @@ import {
 const navItems = [
   { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
+  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', managerOnly: true },
   { path: '/app/stock', icon: Boxes, label: 'Stock' },
   { path: '/app/items', icon: Package, label: 'Items' },
   { path: '/app/receive', icon: PackageCheck, label: 'Receive' },

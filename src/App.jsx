@@ -9,6 +9,8 @@ import Stock from './pages/Stock'
 import Orders from './pages/Orders'
 import OrderNew from './pages/OrderNew'
 import OrderDetail from './pages/OrderDetail'
+import Dispatch from './pages/Dispatch'
+import DispatchDetail from './pages/DispatchDetail'
 import Receive from './pages/Receive'
 import ReceiveDetail from './pages/ReceiveDetail'
 import Issue from './pages/Issue'
@@ -44,6 +46,8 @@ export default function App() {
         <Route path="orders" element={<Orders />} />
         <Route path="orders/new" element={<OrderNew />} />
         <Route path="orders/:id" element={<OrderDetail />} />
+        <Route path="dispatch" element={<Dispatch />} />
+        <Route path="dispatch/:id" element={<DispatchDetail />} />
         <Route path="receive" element={<Receive />} />
         <Route path="receive/:id" element={<ReceiveDetail />} />
         <Route path="issue" element={<Issue />} />

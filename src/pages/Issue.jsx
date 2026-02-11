@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useSelectedCamp } from '../context/AppContext'
+import { useUser, useSelectedCamp } from '../context/AppContext'
 import { issue as issueApi } from '../services/api'
 import { FileOutput, Plus, ChevronRight } from 'lucide-react'
 import Badge from '../components/ui/Badge'

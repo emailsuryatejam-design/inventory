@@ -27,6 +27,7 @@ const variants = {
   stores_rejected: 'bg-red-100 text-red-700',
   procurement_ready: 'bg-indigo-100 text-indigo-700',
   dispatching: 'bg-purple-100 text-purple-700',
+  dispatched: 'bg-purple-100 text-purple-700',
   in_transit: 'bg-violet-100 text-violet-700',
   delivered: 'bg-teal-100 text-teal-700',
   received: 'bg-green-100 text-green-700',
