@@ -1,0 +1,12 @@
+{
+  "appId": "com.karibucamps.stores",
+  "appName": "KCL Stores",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
