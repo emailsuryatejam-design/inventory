@@ -19,6 +19,8 @@ import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
 import UserManagement from './pages/UserManagement'
 import Settings from './pages/Settings'
+import POS from './pages/POS'
+import Recipes from './pages/Recipes'
 import AppLayout from './components/layout/AppLayout'
 
 function RequireAuth({ children }) {
@@ -59,6 +61,8 @@ export default function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="pos" element={<POS />} />
+        <Route path="recipes" element={<Recipes />} />
       </Route>
 
       {/* Default redirect */}

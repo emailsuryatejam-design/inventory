@@ -241,6 +241,40 @@ export const users = {
     }),
 }
 
+// ── POS (Point of Sale) ────────────────────────────
+export const pos = {
+  categories: () => request('pos.php?action=categories'),
+
+  items: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`pos.php?action=items${qs ? `&${qs}` : ''}`)
+  },
+
+  recent: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`pos.php?action=recent${qs ? `&${qs}` : ''}`)
+  },
+
+  today: () => request('pos.php?action=today'),
+
+  create: (data) =>
+    request('pos.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
+// ── Recipes (Gemini AI) ────────────────────────────
+export const recipes = {
+  generate: (data) =>
+    request('recipes.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  ingredients: () => request('recipes.php?action=ingredients'),
+}
+
 // ── Health Check ────────────────────────────────────
 export const health = {
   check: () => request('health.php'),
