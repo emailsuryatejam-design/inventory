@@ -7,7 +7,7 @@
 // In production, points to the Hostinger API domain
 const BASE_URL = import.meta.env.DEV
   ? '/api'
-  : 'https://darkblue-goshawk-672880.hostingersite.com/api'
+  : 'https://darkblue-goshawk-672880.hostingersite.com'
 
 function getToken() {
   return localStorage.getItem('kcl_token')
