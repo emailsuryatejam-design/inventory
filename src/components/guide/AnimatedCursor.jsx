@@ -1,8 +1,11 @@
 /**
  * Animated fake cursor that glides to target elements.
  * On mobile, shows a pulsing tap ring instead of cursor arrow.
+ *
+ * In coaching mode, the cursor has a more prominent "click here" animation
+ * to make it clear the user should actually click the target.
  */
-export default function AnimatedCursor({ position, visible, clicking }) {
+export default function AnimatedCursor({ position, visible, clicking, coaching = false }) {
   const isMobile = window.innerWidth <= 768
 
   if (!visible) return null
@@ -24,7 +27,9 @@ export default function AnimatedCursor({ position, visible, clicking }) {
           className="absolute inset-0 rounded-full bg-green-500/20"
           style={{
             width: 48, height: 48,
-            animation: 'guide-tap-ring 1.5s ease-out infinite',
+            animation: coaching
+              ? 'guide-coaching-tap-ring 1.2s ease-out infinite'
+              : 'guide-tap-ring 1.5s ease-out infinite',
           }}
         />
         {/* Inner dot */}
@@ -33,15 +38,17 @@ export default function AnimatedCursor({ position, visible, clicking }) {
           style={{
             width: 16, height: 16,
             left: 16, top: 16,
-            boxShadow: '0 0 8px rgba(22,163,74,0.5)',
+            boxShadow: coaching
+              ? '0 0 12px rgba(22,163,74,0.6)'
+              : '0 0 8px rgba(22,163,74,0.5)',
           }}
         />
-        {/* "Tap here" label */}
+        {/* Label */}
         <span
           className="absolute text-[10px] font-bold text-green-700 whitespace-nowrap"
-          style={{ left: 52, top: 14 }}
+          style={{ left: 52, top: 14, animation: coaching ? 'guide-coaching-dot 1s ease-in-out infinite' : undefined }}
         >
-          Tap here
+          {coaching ? 'Tap here!' : 'Tap here'}
         </span>
       </div>
     )
@@ -56,7 +63,11 @@ export default function AnimatedCursor({ position, visible, clicking }) {
         top: position.y,
         zIndex: 10000,
         transition: 'left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        animation: clicking ? 'guide-cursor-click 0.3s ease' : undefined,
+        animation: clicking
+          ? 'guide-cursor-click 0.3s ease'
+          : coaching
+            ? 'guide-coaching-cursor-bounce 1.8s ease-in-out infinite'
+            : undefined,
       }}
     >
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>
@@ -68,6 +79,18 @@ export default function AnimatedCursor({ position, visible, clicking }) {
           strokeLinejoin="round"
         />
       </svg>
+      {/* Coaching click ripple underneath cursor */}
+      {coaching && (
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 20, height: 20,
+            left: -3, top: -3,
+            animation: 'guide-coaching-click-ripple 1.8s ease-out infinite',
+            border: '2px solid rgba(22, 163, 74, 0.5)',
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,10 +1,15 @@
 import { useRef, useEffect, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, MousePointerClick } from 'lucide-react'
 import GuideProgress from './GuideProgress'
 
 /**
  * Positioned tooltip showing step instructions.
  * Auto-positions relative to target, flips if near viewport edge.
+ *
+ * In coaching mode (advanceOn: 'click'), shows:
+ *  - "Go ahead, click it!" prompt instead of Next button
+ *  - Animated coaching indicator
+ *  - Still shows Back and Exit controls
  */
 export default function GuideTooltip({
   step,
@@ -16,6 +21,7 @@ export default function GuideTooltip({
   onEnd,
   isFirst,
   isLast,
+  coaching = false,
 }) {
   const tooltipRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, arrowSide: 'top' })
@@ -82,6 +88,7 @@ export default function GuideTooltip({
         zIndex: 10001,
         animation: 'guide-tooltip-enter 0.3s ease-out',
         transition: 'top 0.35s ease, left 0.35s ease',
+        pointerEvents: 'auto', // Always interactive (tooltip itself)
       }}
     >
       {/* Arrow indicator */}
@@ -99,7 +106,17 @@ export default function GuideTooltip({
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
-          <h4 className="text-sm font-bold text-gray-900 pr-4">{step.title}</h4>
+          <div className="flex items-center gap-2 pr-4">
+            {coaching && (
+              <div
+                className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center"
+                style={{ animation: 'guide-coaching-icon 1.5s ease-in-out infinite' }}
+              >
+                <MousePointerClick size={11} className="text-green-600" />
+              </div>
+            )}
+            <h4 className="text-sm font-bold text-gray-900">{step.title}</h4>
+          </div>
           <button
             onClick={onEnd}
             className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition compact-btn"
@@ -110,6 +127,19 @@ export default function GuideTooltip({
         </div>
 
         <p className="text-xs text-gray-600 leading-relaxed mb-3">{step.description}</p>
+
+        {/* Coaching prompt for click-advance steps */}
+        {coaching && (
+          <div
+            className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-green-50 border border-green-100"
+            style={{ animation: 'guide-coaching-prompt 2s ease-in-out infinite' }}
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" style={{ animation: 'guide-coaching-dot 1s ease-in-out infinite' }} />
+            <span className="text-[11px] font-semibold text-green-700">
+              Go ahead, click it!
+            </span>
+          </div>
+        )}
 
         {/* Footer: progress + nav */}
         <div className="flex items-center justify-between">
@@ -125,29 +155,58 @@ export default function GuideTooltip({
                 <ChevronLeft size={14} />
               </button>
             )}
-            <button
-              onClick={onNext}
-              className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition"
-              style={{ minHeight: 'auto' }}
-            >
-              {isLast ? (
-                <>
-                  <Check size={12} />
-                  Done
-                </>
-              ) : (
-                <>
-                  Next
+
+            {coaching ? (
+              /* In coaching mode: show a subtle Skip button instead of prominent Next */
+              !isLast && (
+                <button
+                  onClick={onNext}
+                  className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-xs font-medium transition"
+                  style={{ minHeight: 'auto' }}
+                >
+                  Skip
                   <ChevronRight size={12} />
-                </>
-              )}
-            </button>
+                </button>
+              )
+            ) : (
+              /* Normal mode: prominent Next/Done button */
+              <button
+                onClick={onNext}
+                className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition"
+                style={{ minHeight: 'auto' }}
+              >
+                {isLast ? (
+                  <>
+                    <Check size={12} />
+                    Done
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ChevronRight size={12} />
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Always show Done button on last step, even in coaching mode */}
+            {coaching && isLast && (
+              <button
+                onClick={onEnd}
+                className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition"
+                style={{ minHeight: 'auto' }}
+              >
+                <Check size={12} />
+                Done
+              </button>
+            )}
           </div>
         </div>
 
         {/* Step counter */}
         <p className="text-[10px] text-gray-400 mt-2 text-center">
           Step {currentIndex + 1} of {totalSteps}
+          {coaching && <span className="ml-1 text-green-500">- watching your action</span>}
         </p>
       </div>
     </div>
