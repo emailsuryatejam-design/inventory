@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ShoppingCart, Boxes, Wine, FileOutput } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Boxes, Wine, GlassWater } from 'lucide-react'
 
 const tabs = [
   { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
   { path: '/app/pos', icon: Wine, label: 'POS' },
+  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu' },
   { path: '/app/stock', icon: Boxes, label: 'Stock' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue' },
 ]
 
 export default function MobileNav() {

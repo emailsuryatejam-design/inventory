@@ -275,6 +275,31 @@ export const recipes = {
   ingredients: () => request('recipes.php?action=ingredients'),
 }
 
+// ── Bar Menu ──────────────────────────────────────
+export const menu = {
+  categories: () => request('menu.php?action=categories'),
+
+  items: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`menu.php?action=items${qs ? `&${qs}` : ''}`)
+  },
+
+  item: (id) => request(`menu.php?action=item&id=${id}`),
+
+  stockStatus: () => request('menu.php?action=stock_status'),
+
+  depletion: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`menu.php?action=depletion${qs ? `&${qs}` : ''}`)
+  },
+
+  order: (data) =>
+    request('menu.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
 // ── Health Check ────────────────────────────────────
 export const health = {
   check: () => request('health.php'),
