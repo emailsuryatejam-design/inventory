@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Backend API (separate repo)
+api/
+
+# Capacitor native
+android/
+ios/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Documentation & reference files
+docs/
+database/
+Excel reports for reference/
+Hostinger-NodeJS-Deployment-Guide.md
+PROJECT-GUIDE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

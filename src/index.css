@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* KCL Stores — Karibu Camps color system */
+:root {
+  --kcl-green: #16a34a;
+  --kcl-green-dark: #15803d;
+  --kcl-green-light: #dcfce7;
+  --kcl-amber: #f59e0b;
+  --kcl-amber-light: #fef3c7;
+  --kcl-red: #ef4444;
+  --kcl-red-light: #fee2e2;
+  --kcl-blue: #3b82f6;
+  --kcl-blue-light: #dbeafe;
+  --kcl-gray: #9ca3af;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+/* Mobile: minimum 48px touch targets */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* Status badge colors */
+.status-excess { background-color: var(--kcl-blue-light); color: #1d4ed8; }
+.status-ok { background-color: var(--kcl-green-light); color: #15803d; }
+.status-low { background-color: var(--kcl-amber-light); color: #b45309; }
+.status-critical { background-color: var(--kcl-red-light); color: #dc2626; }
+.status-out { background-color: #f3f4f6; color: #6b7280; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
