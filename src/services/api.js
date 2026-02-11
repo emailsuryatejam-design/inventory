@@ -4,8 +4,10 @@
  */
 
 // In dev, Vite proxy forwards /api → localhost:8000
-// In production, this should point to the Hostinger API URL
-const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+// In production, points to the Hostinger API domain
+const BASE_URL = import.meta.env.DEV
+  ? '/api'
+  : 'https://darkblue-goshawk-672880.hostingersite.com/api'
 
 function getToken() {
   return localStorage.getItem('kcl_token')
