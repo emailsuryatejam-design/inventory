@@ -198,6 +198,24 @@ export const issue = {
     }),
 }
 
+// ── Alerts & Projections ───────────────────────────
+export const alerts = {
+  summary: (campId) =>
+    request(`alerts.php?type=summary${campId ? `&camp_id=${campId}` : ''}`),
+
+  lowStock: (campId) =>
+    request(`alerts.php?type=low_stock${campId ? `&camp_id=${campId}` : ''}`),
+
+  projections: (days = 14, campId) =>
+    request(`alerts.php?type=projections&days=${days}${campId ? `&camp_id=${campId}` : ''}`),
+
+  deadStock: (minDays = 60, campId) =>
+    request(`alerts.php?type=dead_stock&min_days=${minDays}${campId ? `&camp_id=${campId}` : ''}`),
+
+  excess: (campId) =>
+    request(`alerts.php?type=excess${campId ? `&camp_id=${campId}` : ''}`),
+}
+
 // ── Reports ─────────────────────────────────────────
 export const reports = {
   get: (type, params = {}) => {

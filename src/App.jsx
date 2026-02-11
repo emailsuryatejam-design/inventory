@@ -15,6 +15,9 @@ import Receive from './pages/Receive'
 import ReceiveDetail from './pages/ReceiveDetail'
 import Issue from './pages/Issue'
 import IssueNew from './pages/IssueNew'
+import Alerts from './pages/Alerts'
+import Reports from './pages/Reports'
+import UserManagement from './pages/UserManagement'
 import Settings from './pages/Settings'
 import AppLayout from './components/layout/AppLayout'
 
@@ -52,6 +55,9 @@ export default function App() {
         <Route path="receive/:id" element={<ReceiveDetail />} />
         <Route path="issue" element={<Issue />} />
         <Route path="issue/new" element={<IssueNew />} />
+        <Route path="alerts" element={<Alerts />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="users" element={<UserManagement />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

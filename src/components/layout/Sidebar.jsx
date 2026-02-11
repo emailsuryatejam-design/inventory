@@ -2,19 +2,31 @@ import { NavLink } from 'react-router-dom'
 import { useUser, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
-  Truck, PackageCheck, FileOutput, Settings, LogOut
+  Truck, PackageCheck, FileOutput, Bell, BarChart3,
+  Users, Settings, LogOut
 } from 'lucide-react'
 
+// Role-based nav: access = 'all' | 'manager' | roles array
 const navItems = [
-  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
-  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', managerOnly: true },
-  { path: '/app/stock', icon: Boxes, label: 'Stock' },
-  { path: '/app/items', icon: Package, label: 'Items' },
-  { path: '/app/receive', icon: PackageCheck, label: 'Receive' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue' },
-  { path: '/app/settings', icon: Settings, label: 'Settings', managerOnly: true },
+  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all' },
+  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all' },
+  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
+  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all' },
+  { path: '/app/items', icon: Package, label: 'Items', access: 'all' },
+  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all' },
+  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all' },
+  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all' },
+  { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+  { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
+  { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
 ]
+
+function canAccess(item, role) {
+  if (item.roles) return item.roles.includes(role)
+  if (item.access === 'all') return true
+  if (item.access === 'manager') return isManager(role)
+  return true
+}
 
 export default function Sidebar() {
   const user = useUser()
@@ -42,7 +54,7 @@ export default function Sidebar() {
       {/* Nav Links */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems
-          .filter(item => !item.managerOnly || isManager(user?.role))
+          .filter(item => canAccess(item, user?.role))
           .map(item => (
             <NavLink
               key={item.path}
@@ -74,7 +86,7 @@ export default function Sidebar() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
             <p className="text-xs text-gray-500 truncate">
-              {user?.camp_name || 'Head Office'} · {user?.role?.replace('_', ' ')}
+              {user?.camp_name || 'Head Office'} · {user?.role?.replace(/_/g, ' ')}
             </p>
           </div>
         </div>

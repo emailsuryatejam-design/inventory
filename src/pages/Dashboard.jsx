@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUser, useSelectedCamp, isManager } from '../context/AppContext'
-import { dashboard } from '../services/api'
+import { dashboard, alerts as alertsApi } from '../services/api'
 import {
   ShoppingCart, Boxes, AlertTriangle, PackageCheck,
-  TrendingUp, Clock, FileOutput, ArrowRight
+  TrendingUp, Clock, FileOutput, ArrowRight, Bell
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const user = useUser()
   const { campId } = useSelectedCamp()
   const [stats, setStats] = useState(null)
+  const [alertSummary, setAlertSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -24,8 +25,13 @@ export default function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const data = await dashboard.get(campId || user?.camp_id)
+      const effectiveCamp = campId || user?.camp_id
+      const [data, alertData] = await Promise.all([
+        dashboard.get(effectiveCamp),
+        alertsApi.summary(effectiveCamp).catch(() => null),
+      ])
       setStats(data)
+      if (alertData) setAlertSummary(alertData.alerts)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -95,9 +101,9 @@ export default function Dashboard() {
         <StatCard
           icon={AlertTriangle}
           label="Low Stock Items"
-          value={stats?.low_stock_items ?? 0}
+          value={alertSummary ? (alertSummary.low_stock + alertSummary.out_of_stock) : (stats?.low_stock_items ?? 0)}
           color="amber"
-          link="/app/stock"
+          link="/app/alerts"
         />
         <StatCard
           icon={PackageCheck}
@@ -129,6 +135,28 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Banner */}
+      {alertSummary && alertSummary.total_alerts > 0 && (
+        <Link
+          to="/app/alerts"
+          className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 hover:bg-amber-100 transition"
+        >
+          <Bell size={20} className="text-amber-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800">
+              {alertSummary.total_alerts} stock alerts require attention
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              {alertSummary.out_of_stock > 0 && `${alertSummary.out_of_stock} out of stock · `}
+              {alertSummary.critical > 0 && `${alertSummary.critical} critical · `}
+              {alertSummary.stockout_7days > 0 && `${alertSummary.stockout_7days} running out in 7 days · `}
+              {alertSummary.dead_stock > 0 && `${alertSummary.dead_stock} dead stock`}
+            </p>
+          </div>
+          <ArrowRight size={16} className="text-amber-400" />
+        </Link>
       )}
 
       {/* Quick Actions + Recent Activity */}
@@ -212,7 +240,7 @@ export default function Dashboard() {
               <AlertTriangle size={18} className="text-amber-500" />
               Low Stock Alerts
             </h2>
-            <Link to="/app/stock" className="text-green-600 text-sm font-medium flex items-center gap-1">
+            <Link to="/app/alerts" className="text-green-600 text-sm font-medium flex items-center gap-1">
               View all <ArrowRight size={14} />
             </Link>
           </div>
