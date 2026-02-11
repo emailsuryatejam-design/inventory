@@ -76,6 +76,7 @@ export default function Issue() {
         </div>
         <Link
           to="/app/issue/new"
+          data-guide="new-issue-btn"
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
         >
           <Plus size={18} />
@@ -84,16 +85,17 @@ export default function Issue() {
       </div>
 
       {/* Type Filter Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div data-guide="issue-type-tabs" className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
         {ISSUE_TYPES.map(tab => (
           <button
             key={tab.key}
             onClick={() => setFilters(prev => ({ ...prev, type: tab.key, page: 1 }))}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+            className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               filters.type === tab.key
-                ? 'bg-green-600 text-white'
+                ? 'bg-green-600 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
+            style={{ minHeight: 'auto' }}
           >
             {tab.label}
           </button>

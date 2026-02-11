@@ -69,16 +69,17 @@ export default function Receive() {
       </div>
 
       {/* Status Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div data-guide="receive-status-tabs" className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
         {STATUS_TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setFilters(prev => ({ ...prev, status: tab.key, page: 1 }))}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+            className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               filters.status === tab.key
-                ? 'bg-green-600 text-white'
+                ? 'bg-green-600 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
+            style={{ minHeight: 'auto' }}
           >
             {tab.label}
           </button>
@@ -107,7 +108,7 @@ export default function Receive() {
 
       {/* Receipts List */}
       {data && (
-        <div className="bg-white rounded-xl border border-gray-200">
+        <div data-guide="receive-list" className="bg-white rounded-xl border border-gray-200">
           {data.receipts.length === 0 ? (
             <EmptyState
               icon={PackageCheck}

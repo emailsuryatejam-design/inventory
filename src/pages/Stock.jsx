@@ -81,7 +81,7 @@ export default function Stock() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+        <div data-guide="stock-summary" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           <SummaryCard
             label="Total Value"
             value={`TZS ${(summary.total_value / 1000000).toFixed(1)}M`}
@@ -126,7 +126,7 @@ export default function Stock() {
       )}
 
       {/* Search + Filters */}
-      <div className="flex gap-2 mb-4">
+      <div data-guide="stock-search" className="flex gap-2 mb-4">
         <div className="flex-1">
           <SearchInput
             value={filters.search}

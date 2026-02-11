@@ -43,11 +43,12 @@ export default function Reports() {
       <h1 className="text-xl font-bold text-gray-900">Reports</h1>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div data-guide="report-filters" className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Report Type</label>
             <select
+              data-guide="report-type-select"
               value={type}
               onChange={e => setType(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -92,6 +93,7 @@ export default function Reports() {
             <button
               onClick={runReport}
               disabled={loading}
+              data-guide="report-generate-btn"
               className="w-full bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
               {loading ? 'Loading...' : 'Generate'}

@@ -68,7 +68,7 @@ export default function Items() {
       </div>
 
       {/* Search + Filter Toggle */}
-      <div className="flex gap-2 mb-4">
+      <div data-guide="items-search" className="flex gap-2 mb-4">
         <div className="flex-1">
           <SearchInput
             value={filters.search}
@@ -78,6 +78,7 @@ export default function Items() {
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
+          data-guide="items-filter-btn"
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition ${
             activeFilterCount > 0
               ? 'border-green-300 bg-green-50 text-green-700'

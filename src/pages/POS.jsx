@@ -394,6 +394,7 @@ export default function POS() {
             </div>
             <button
               onClick={loadRecent}
+              data-guide="pos-history-btn"
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-3 py-2 rounded-lg transition"
             >
               <Clock size={16} /> History
@@ -422,7 +423,7 @@ export default function POS() {
 
           {/* Service Types */}
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Select Service Type</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div data-guide="pos-service-types" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {SERVICE_TYPES.map(svc => (
               <button
                 key={svc.value}

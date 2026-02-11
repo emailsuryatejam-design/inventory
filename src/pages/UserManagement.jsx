@@ -69,6 +69,7 @@ export default function UserManagement() {
         {currentUser?.role === 'admin' && (
           <button
             onClick={() => setShowForm(!showForm)}
+            data-guide="new-user-btn"
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700"
           >
             {showForm ? 'Cancel' : '+ New User'}
@@ -82,7 +83,7 @@ export default function UserManagement() {
 
       {/* Create Form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <form onSubmit={handleCreate} data-guide="user-create-form" className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Full Name</label>

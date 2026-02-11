@@ -8,20 +8,20 @@ import {
 
 // Role-based nav: access = 'all' | 'manager' | roles array
 const navItems = [
-  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all' },
-  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all' },
-  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
-  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all' },
-  { path: '/app/items', icon: Package, label: 'Items', access: 'all' },
-  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all' },
-  { path: '/app/pos', icon: Wine, label: 'POS', access: 'all' },
-  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all' },
-  { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all' },
-  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all' },
-  { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
-  { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
-  { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
+  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', guide: 'nav-dashboard' },
+  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', guide: 'nav-orders' },
+  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager', guide: 'nav-dispatch' },
+  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', guide: 'nav-stock' },
+  { path: '/app/items', icon: Package, label: 'Items', access: 'all', guide: 'nav-items' },
+  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all', guide: 'nav-receive' },
+  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', guide: 'nav-issue' },
+  { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', guide: 'nav-pos' },
+  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', guide: 'nav-bar-menu' },
+  { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all', guide: 'nav-recipes' },
+  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', guide: 'nav-alerts' },
+  { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager', guide: 'nav-reports' },
+  { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'], guide: 'nav-users' },
+  { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager', guide: 'nav-settings' },
 ]
 
 function canAccess(item, role) {
@@ -63,6 +63,7 @@ export default function Sidebar() {
               key={item.path}
               to={item.path}
               end={item.end}
+              data-guide={item.guide}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                   isActive

@@ -79,6 +79,7 @@ export default function Orders() {
         </div>
         <Link
           to="/app/orders/new"
+          data-guide="new-order-btn"
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
         >
           <Plus size={18} />
@@ -87,23 +88,24 @@ export default function Orders() {
       </div>
 
       {/* Status Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div data-guide="order-status-tabs" className="flex gap-1.5 overflow-x-auto pb-2 mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
         {STATUS_TABS.map(tab => {
           const count = tab.key ? (data?.status_counts?.[tab.key] || 0) : data?.pagination?.total || 0
           return (
             <button
               key={tab.key}
               onClick={() => setFilters(prev => ({ ...prev, status: tab.key, page: 1 }))}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+              className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all min-h-0 ${
                 filters.status === tab.key
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-green-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
+              style={{ minHeight: 'auto' }}
             >
               {tab.label}
               {count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  filters.status === tab.key ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-600'
+                <span className={`text-[10px] leading-none px-1.5 py-0.5 rounded-full ${
+                  filters.status === tab.key ? 'bg-green-700/50 text-white' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {count}
                 </span>
@@ -114,7 +116,7 @@ export default function Orders() {
       </div>
 
       {/* Search */}
-      <div className="mb-4">
+      <div className="mb-4" data-guide="order-search">
         <SearchInput
           value={filters.search}
           onChange={(v) => setFilters(prev => ({ ...prev, search: v, page: 1 }))}
@@ -135,7 +137,7 @@ export default function Orders() {
 
       {/* Orders List */}
       {data && (
-        <div className="bg-white rounded-xl border border-gray-200">
+        <div data-guide="orders-list" className="bg-white rounded-xl border border-gray-200">
           {data.orders.length === 0 ? (
             <EmptyState
               icon={ShoppingCart}

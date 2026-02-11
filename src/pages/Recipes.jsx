@@ -124,9 +124,9 @@ export default function Recipes() {
       )}
 
       {/* Controls */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div data-guide="recipe-controls" className="bg-white rounded-xl border border-gray-200 p-4">
         {/* Drink Type Tabs */}
-        <div className="flex gap-2 mb-4">
+        <div data-guide="recipe-drink-types" className="flex gap-2 mb-4">
           {DRINK_TYPES.map(dt => (
             <button
               key={dt.value}
@@ -188,6 +188,7 @@ export default function Recipes() {
           <button
             onClick={generateRecipes}
             disabled={loading}
+            data-guide="recipe-generate-btn"
             className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-6 py-3 rounded-xl text-sm font-semibold transition"
           >
             {loading ? (

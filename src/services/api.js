@@ -29,15 +29,23 @@ async function request(endpoint, options = {}) {
   try {
     const response = await fetch(url, config)
 
-    // Handle 401 — token expired
-    if (response.status === 401) {
+    // Handle 401 — token expired (but not on login requests)
+    if (response.status === 401 && !endpoint.includes('auth-login')) {
       localStorage.removeItem('kcl_token')
       localStorage.removeItem('kcl_stores')
       window.location.hash = '#/login'
       throw new Error('Session expired. Please login again.')
     }
 
-    const data = await response.json()
+    // Safely parse JSON — handle empty or non-JSON responses
+    const text = await response.text()
+    let data
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch {
+      console.error('API response not valid JSON:', text.substring(0, 200))
+      throw new Error('Server returned an invalid response. Please try again.')
+    }
 
     if (!response.ok) {
       throw new Error(data.error || data.message || `Request failed (${response.status})`)

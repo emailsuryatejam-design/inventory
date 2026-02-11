@@ -2,11 +2,11 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, ShoppingCart, Boxes, Wine, GlassWater } from 'lucide-react'
 
 const tabs = [
-  { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
-  { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
-  { path: '/app/pos', icon: Wine, label: 'POS' },
-  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu' },
-  { path: '/app/stock', icon: Boxes, label: 'Stock' },
+  { path: '/app', icon: LayoutDashboard, label: 'Home', end: true, guide: 'nav-dashboard' },
+  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', guide: 'nav-orders' },
+  { path: '/app/pos', icon: Wine, label: 'POS', guide: 'nav-pos' },
+  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', guide: 'nav-bar-menu' },
+  { path: '/app/stock', icon: Boxes, label: 'Stock', guide: 'nav-stock' },
 ]
 
 export default function MobileNav() {
@@ -18,6 +18,7 @@ export default function MobileNav() {
             key={tab.path}
             to={tab.path}
             end={tab.end}
+            data-guide={tab.guide}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg min-w-[56px] transition ${
                 isActive

@@ -106,7 +106,7 @@ export default function Alerts() {
       )}
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-lg">
+      <div data-guide="alerts-tabs" className="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-lg">
         {TAB_CONFIG.map(t => (
           <button
             key={t.key}

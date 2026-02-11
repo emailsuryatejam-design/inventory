@@ -27,6 +27,7 @@ export default function TopBar() {
           <div className="relative">
             <button
               onClick={() => setShowCampPicker(!showCampPicker)}
+              data-guide="camp-selector"
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition text-sm font-medium text-gray-700"
             >
               {selectedCamp ? selectedCamp.name : 'All Camps'}
@@ -68,7 +69,7 @@ export default function TopBar() {
 
       {/* Right: Notifications + User */}
       <div className="flex items-center gap-3">
-        <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition">
+        <button data-guide="notifications-btn" className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition">
           <Bell size={20} />
           {/* Notification dot */}
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>

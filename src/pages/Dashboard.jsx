@@ -90,7 +90,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div data-guide="dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           icon={ShoppingCart}
           label="Pending Orders"

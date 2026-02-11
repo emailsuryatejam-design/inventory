@@ -439,6 +439,7 @@ export default function BarMenu() {
         <div className="flex gap-2">
           <button
             onClick={loadAlerts}
+            data-guide="bar-stock-alerts-btn"
             className="flex items-center gap-1.5 text-sm text-orange-700 bg-orange-50 border border-orange-200 px-3 py-2 rounded-lg hover:bg-orange-100 transition"
           >
             <TrendingDown size={16} /> Stock Alerts
@@ -465,7 +466,7 @@ export default function BarMenu() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+      <div data-guide="bar-menu-categories" className="flex gap-2 mb-3 overflow-x-auto pb-1">
         <button
           onClick={() => { setActiveCategory(null); setFilterType('') }}
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${

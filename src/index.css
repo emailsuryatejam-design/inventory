@@ -23,13 +23,16 @@ body {
   color: #111827;
 }
 
-/* Mobile: minimum 48px touch targets */
+/* Mobile: minimum 48px touch targets (override with .compact-btn or style="minHeight:auto") */
 @media (max-width: 768px) {
-  button, a, [role="button"] {
-    min-height: 48px;
-    min-width: 48px;
+  button:not(.compact-btn), a:not(.compact-btn), [role="button"]:not(.compact-btn) {
+    min-height: 36px;
   }
 }
+
+/* Hide scrollbar for horizontal tab strips */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 
 /* Status badge colors */
 .status-excess { background-color: var(--kcl-blue-light); color: #1d4ed8; }
@@ -43,3 +46,37 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── Guide Assistant Animations ──────────────────── */
+@keyframes guide-cursor-click {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.8); }
+}
+@keyframes guide-spotlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+}
+@keyframes guide-tooltip-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes guide-fab-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3); }
+  50% { box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3), 0 0 0 10px rgba(22, 163, 74, 0); }
+}
+@keyframes guide-tap-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+@keyframes guide-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes guide-slide-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes guide-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
