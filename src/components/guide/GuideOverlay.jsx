@@ -23,6 +23,14 @@ import GuideTooltip from './GuideTooltip'
  *
  * For advanceOn: 'next-button' steps:
  *   - Traditional mode — user reads info and clicks Next
+ *
+ * Fixes:
+ * - Scroll/resize listeners cleaned up properly (single memoized handler)
+ * - Longer polling timeout (5s) with user feedback
+ * - Scroll lock during guide (overflow:hidden, not touch-action:none)
+ * - Passive scroll listeners
+ * - ResizeObserver cleaned up per step
+ * - Abort flag for async runStep
  */
 export default function GuideOverlay() {
   const {
@@ -52,6 +60,7 @@ export default function GuideOverlay() {
   const routeWatchRef = useRef(null)
   const advancePendingRef = useRef(false)
   const stepRef = useRef(null)
+  const abortRef = useRef(false) // abort flag for async runStep
 
   // Track whether current step is coaching mode (click-through)
   const isCoachingStep = currentStep?.advanceOn === 'click'
@@ -63,6 +72,7 @@ export default function GuideOverlay() {
 
   // Cleanup function
   const cleanup = useCallback(() => {
+    abortRef.current = true
     if (pollRef.current) {
       clearTimeout(pollRef.current)
       pollRef.current = null
@@ -82,11 +92,23 @@ export default function GuideOverlay() {
     advancePendingRef.current = false
   }, [])
 
+  // Lock body scroll while guide is running
+  // NOTE: We use overflow:hidden instead of lockScroll() because
+  // lockScroll() sets touch-action:none which blocks tap events on the
+  // spotlight target elements. We only need to prevent background scrolling.
+  useEffect(() => {
+    if (isRunning) {
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = '' }
+    }
+  }, [isRunning])
+
   // Run step logic whenever the step changes
   useEffect(() => {
     if (!isRunning || !currentStep) return
 
     cleanup()
+    abortRef.current = false
     runStep(currentStep)
 
     return cleanup
@@ -119,12 +141,11 @@ export default function GuideOverlay() {
     }
   }, [location.pathname, isRunning])
 
-  // Re-measure on scroll/resize
+  // Re-measure on scroll/resize (single memoized handler)
   useEffect(() => {
-    if (!isRunning) return
+    if (!isRunning || !currentStep) return
 
     function remeasure() {
-      if (!currentStep) return
       const el = document.querySelector(currentStep.target)
       if (el) {
         const rect = el.getBoundingClientRect()
@@ -136,13 +157,13 @@ export default function GuideOverlay() {
       }
     }
 
-    window.addEventListener('scroll', remeasure, true)
-    window.addEventListener('resize', remeasure)
+    window.addEventListener('scroll', remeasure, { capture: true, passive: true })
+    window.addEventListener('resize', remeasure, { passive: true })
     return () => {
-      window.removeEventListener('scroll', remeasure, true)
+      window.removeEventListener('scroll', remeasure, { capture: true })
       window.removeEventListener('resize', remeasure)
     }
-  }, [isRunning, currentStep])
+  }, [isRunning, currentStepIndex])
 
   async function runStep(step) {
     // 1. Navigate to route if needed
@@ -151,16 +172,17 @@ export default function GuideOverlay() {
       if (currentPath !== step.route) {
         navigate(step.route)
         await wait(500) // wait for route change render
+        if (abortRef.current) return
       }
     }
 
-    // 2. Find target element (poll up to 4s — give extra time for lazy-loaded pages)
-    const el = await findElement(step.target, 4000)
+    // 2. Find target element (poll up to 5s)
+    const el = await findElement(step.target, 5000)
+    if (abortRef.current) return
     if (!el) {
       console.warn(`Guide target not found: ${step.target}`)
-      // Auto-skip to next step if target missing, unless it's the last step
+      // Auto-skip to next step if target missing
       if (!isLastStep) {
-        await wait(300)
         nextStep()
       }
       return
@@ -168,7 +190,8 @@ export default function GuideOverlay() {
 
     // 3. Scroll into view
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    await wait(350)
+    await wait(400)
+    if (abortRef.current) return
 
     // 4. Measure target rect
     const rect = el.getBoundingClientRect()
@@ -186,6 +209,7 @@ export default function GuideOverlay() {
     // 6. Set up ResizeObserver to track target position changes
     if (window.ResizeObserver) {
       resizeObsRef.current = new ResizeObserver(() => {
+        if (abortRef.current) return
         const r = el.getBoundingClientRect()
         setTargetRect({
           top: r.top, left: r.left,
@@ -228,20 +252,6 @@ export default function GuideOverlay() {
     el.addEventListener('click', handler, { capture: true, once: true })
     clickHandlerRef.current = { el, fn: handler }
 
-    // Also watch for clicks on child elements of the target (e.g., icon inside a button)
-    const childHandler = (e) => {
-      if (el.contains(e.target) && e.target !== el) {
-        advancePendingRef.current = true
-        setTimeout(() => {
-          if (advancePendingRef.current) {
-            advancePendingRef.current = false
-            cleanup()
-            nextStep()
-          }
-        }, 600)
-      }
-    }
-
     // Backup: watch for route changes via polling (for hash router edge cases)
     if (step.route) {
       const startPath = window.location.hash || window.location.pathname
@@ -260,10 +270,11 @@ export default function GuideOverlay() {
     }
   }
 
-  function findElement(selector, timeout = 4000) {
+  function findElement(selector, timeout = 5000) {
     return new Promise((resolve) => {
       const start = Date.now()
       function poll() {
+        if (abortRef.current) return resolve(null)
         const el = document.querySelector(selector)
         if (el) return resolve(el)
         if (Date.now() - start > timeout) return resolve(null)

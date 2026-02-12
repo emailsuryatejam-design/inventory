@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useUser } from '../context/AppContext'
-import { pos as posApi, items as itemsApi } from '../services/api'
+import { pos as posApi, items as itemsApi, users as usersApi } from '../services/api'
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, X, CreditCard,
   Loader2, AlertTriangle, Coffee, UtensilsCrossed, BedDouble,
   Wine, Users, Wrench, ChevronLeft, Clock, ReceiptText,
-  Sparkles, ChevronRight, Grid3X3
+  Sparkles, ChevronRight, Grid3X3, ChevronDown
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -20,13 +20,20 @@ const SERVICE_TYPES = [
   { value: 'maintenance', label: 'Maintenance', icon: Wrench, color: 'bg-red-500', costCenter: 'MAINT' },
 ]
 
+// Groups that show for Bar service (alcohol + juices only)
+const BAR_GROUP_CODES = ['BA', 'BJ']
+
+const TABLE_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1))
+const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
+const ROOM_OPTIONS = ['101','102','103','104','105','106','107','108','201','202','203','204','205','206','207','208']
+
 export default function POS() {
   const user = useUser()
-  const [view, setView] = useState('service') // service | categories | items | cart | receipt
+  const [view, setView] = useState('service') // service | items | cart | receipt
   const [serviceType, setServiceType] = useState(null)
   const [categories, setCategories] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [posItems, setPosItems] = useState([])
+  const [activeGroup, setActiveGroup] = useState(null) // null = All
+  const [allItems, setAllItems] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -35,8 +42,6 @@ export default function POS() {
 
   // Search
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [searching, setSearching] = useState(false)
   const searchTimerRef = useRef(null)
 
   // Optional details
@@ -46,6 +51,11 @@ export default function POS() {
   const [receivedBy, setReceivedBy] = useState('')
   const [notes, setNotes] = useState('')
   const [showDetails, setShowDetails] = useState(false)
+
+  // Staff & room picker
+  const [staffList, setStaffList] = useState([])
+  const [selectedRooms, setSelectedRooms] = useState([])
+  const [showRoomPicker, setShowRoomPicker] = useState(false)
 
   // Today stats
   const [todayStats, setTodayStats] = useState(null)
@@ -59,6 +69,19 @@ export default function POS() {
     loadTodayStats()
   }, [])
 
+  // Load staff list on mount
+  useEffect(() => {
+    async function loadStaff() {
+      try {
+        const res = await usersApi.list()
+        setStaffList((res.users || []).filter(u => u.is_active))
+      } catch (err) {
+        console.error('Failed to load staff:', err)
+      }
+    }
+    loadStaff()
+  }, [])
+
   async function loadTodayStats() {
     try {
       const data = await posApi.today()
@@ -68,64 +91,33 @@ export default function POS() {
     }
   }
 
-  // Load categories when service type is selected
-  async function loadCategories() {
+  // Load categories + all items for the selected service
+  async function loadItemsForService(svc) {
     setLoading(true)
     try {
-      const data = await posApi.categories()
-      setCategories(data.categories || [])
+      const [catData, itemData] = await Promise.all([
+        posApi.categories(),
+        posApi.items({ limit: 100 }),
+      ])
+
+      let cats = catData.categories || []
+      let items = itemData.items || []
+
+      // For "bar" service, filter to only Bar + Juice groups
+      if (svc.value === 'bar') {
+        cats = cats.filter(c => BAR_GROUP_CODES.includes(c.code))
+        items = items.filter(i => BAR_GROUP_CODES.includes(i.group_code))
+      }
+
+      setCategories(cats)
+      setAllItems(items)
+      setActiveGroup(null)
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }
-
-  // Load items for a category
-  async function loadItems(groupId) {
-    setLoading(true)
-    try {
-      const data = await posApi.items({ group_id: groupId })
-      setPosItems(data.items || [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Load all items (no group filter)
-  async function loadAllItems() {
-    setLoading(true)
-    try {
-      const data = await posApi.items({})
-      setPosItems(data.items || [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Search items
-  useEffect(() => {
-    if (searchQuery.length >= 2) {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-      searchTimerRef.current = setTimeout(async () => {
-        setSearching(true)
-        try {
-          const data = await posApi.items({ search: searchQuery })
-          setSearchResults(data.items || [])
-        } catch (err) {
-          console.error('Search failed:', err)
-        } finally {
-          setSearching(false)
-        }
-      }, 300)
-    } else {
-      setSearchResults([])
-    }
-  }, [searchQuery])
 
   // Load recent transactions
   async function loadRecent() {
@@ -138,26 +130,38 @@ export default function POS() {
     }
   }
 
-  // Select service type
+  // Select service type — go directly to items view with group tabs
   function selectService(svc) {
     setServiceType(svc)
-    setView('categories')
-    loadCategories()
+    setView('items')
+    setSearchQuery('')
+    loadItemsForService(svc)
   }
 
-  // Select category
-  function selectCategory(cat) {
-    setSelectedCategory(cat)
-    setView('items')
-    loadItems(cat.id)
-  }
+  // Visible groups (for tabs)
+  const visibleGroups = categories
 
-  // Browse all items
-  function browseAll() {
-    setSelectedCategory({ id: null, name: 'All Items', code: 'ALL' })
-    setView('items')
-    loadAllItems()
-  }
+  // Filtered items based on active group + search
+  const filteredItems = useMemo(() => {
+    let items = allItems
+
+    // Filter by active group tab
+    if (activeGroup) {
+      items = items.filter(i => i.group_code === activeGroup)
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      items = items.filter(i =>
+        i.name.toLowerCase().includes(q) ||
+        i.item_code?.toLowerCase().includes(q) ||
+        i.group_name?.toLowerCase().includes(q)
+      )
+    }
+
+    return items
+  }, [allItems, activeGroup, searchQuery])
 
   // Add to cart
   function addToCart(item) {
@@ -182,6 +186,15 @@ export default function POS() {
   // Remove from cart
   function removeFromCart(itemId) {
     setCart(prev => prev.filter(c => c.id !== itemId))
+  }
+
+  // Toggle room selection
+  function toggleRoom(room) {
+    setSelectedRooms(prev => {
+      const next = prev.includes(room) ? prev.filter(r => r !== room) : [...prev, room]
+      setRoomNumbers(next.join(', '))
+      return next
+    })
   }
 
   // Cart total
@@ -225,6 +238,8 @@ export default function POS() {
       setRoomNumbers('')
       setReceivedBy('')
       setNotes('')
+      setSelectedRooms([])
+      setShowRoomPicker(false)
       setShowDetails(false)
       loadTodayStats()
     } catch (err) {
@@ -238,11 +253,11 @@ export default function POS() {
   function newTransaction() {
     setView('service')
     setServiceType(null)
-    setSelectedCategory(null)
-    setPosItems([])
+    setActiveGroup(null)
+    setAllItems([])
+    setCategories([])
     setCart([])
     setSearchQuery('')
-    setSearchResults([])
     setLastReceipt(null)
     setError('')
     setShowRecent(false)
@@ -251,8 +266,7 @@ export default function POS() {
   // Back navigation
   function goBack() {
     if (view === 'cart') setView('items')
-    else if (view === 'items') { setView('categories'); setPosItems([]) }
-    else if (view === 'categories') { setView('service'); setServiceType(null) }
+    else if (view === 'items') { setView('service'); setServiceType(null); setAllItems([]); setCategories([]) }
   }
 
   // ═══════════════════════════════════════════════
@@ -453,17 +467,19 @@ export default function POS() {
         </div>
       )}
 
-      {/* ══════ CATEGORY GRID ══════ */}
-      {view === 'categories' && (
+      {/* ══════ ITEMS VIEW WITH GROUP TABS ══════ */}
+      {view === 'items' && (
         <div>
           {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-lg transition">
               <ChevronLeft size={20} className="text-gray-600" />
             </button>
             <div className="flex-1">
               <h1 className="text-lg font-bold text-gray-900">{serviceType?.label}</h1>
-              <p className="text-xs text-gray-500">Select a category</p>
+              <p className="text-xs text-gray-500">
+                {filteredItems.length} items · Tap to add
+              </p>
             </div>
             {cart.length > 0 && (
               <button
@@ -479,194 +495,123 @@ export default function POS() {
           </div>
 
           {/* Search */}
-          <div className="relative mb-4">
+          <div className="relative mb-3">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search items..."
-              className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+              className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
             />
             {searchQuery && (
               <button
-                onClick={() => { setSearchQuery(''); setSearchResults([]) }}
+                onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
                 <X size={16} />
               </button>
             )}
-
-            {/* Search Results Dropdown */}
-            {searchQuery.length >= 2 && (searchResults.length > 0 || searching) && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-72 overflow-y-auto">
-                {searching && (
-                  <div className="flex items-center gap-2 px-4 py-3 text-sm text-gray-500">
-                    <Loader2 size={16} className="animate-spin" /> Searching...
-                  </div>
-                )}
-                {searchResults.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => { addToCart(item); setSearchQuery(''); setSearchResults([]) }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition text-left border-b border-gray-50 last:border-0"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <span>{item.group_code}</span>
-                        <span>·</span>
-                        <span>{item.uom}</span>
-                        {item.stock_qty > 0 && (
-                          <>
-                            <span>·</span>
-                            <span className="text-green-600">Stock: {item.stock_qty}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {item.price > 0 && (
-                        <p className="text-xs text-gray-500">TZS {Math.round(item.price).toLocaleString()}</p>
-                      )}
-                      <Plus size={18} className="text-green-600 ml-auto" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
-          {loading ? (
-            <LoadingSpinner message="Loading categories..." />
-          ) : (
-            <>
-              {/* Browse All button */}
+          {/* ── Group Tabs ── */}
+          {visibleGroups.length > 1 && (
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scroll-touch">
               <button
-                onClick={browseAll}
-                className="w-full bg-white rounded-xl border border-gray-200 p-4 mb-3 flex items-center gap-3 hover:border-green-300 hover:shadow-sm transition"
+                onClick={() => setActiveGroup(null)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                  !activeGroup ? 'bg-green-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               >
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Grid3X3 size={20} className="text-gray-600" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900 text-sm">Browse All Items</p>
-                  <p className="text-xs text-gray-400">View everything in stock</p>
-                </div>
-                <ChevronRight size={18} className="text-gray-400" />
+                All ({allItems.length})
               </button>
-
-              {/* Category Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {categories.map(cat => (
+              {visibleGroups.map(grp => {
+                const count = allItems.filter(i => i.group_code === grp.code).length
+                return (
                   <button
-                    key={cat.id}
-                    onClick={() => selectCategory(cat)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-green-300 hover:shadow-sm transition"
+                    key={grp.id}
+                    onClick={() => setActiveGroup(grp.code)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
+                      activeGroup === grp.code
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
                   >
-                    <p className="font-mono text-xs text-gray-400">{cat.code}</p>
-                    <p className="font-medium text-gray-900 text-sm mt-0.5 truncate">{cat.name}</p>
-                    <p className="text-xs text-green-600 mt-1">{cat.item_count} items</p>
+                    {grp.name} ({count})
                   </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ══════ ITEMS GRID ══════ */}
-      {view === 'items' && (
-        <div>
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-lg transition">
-              <ChevronLeft size={20} className="text-gray-600" />
-            </button>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold text-gray-900">{selectedCategory?.name}</h1>
-              <p className="text-xs text-gray-500">{posItems.length} items · Tap to add</p>
+                )
+              })}
             </div>
-            {cart.length > 0 && (
-              <button
-                onClick={() => setView('cart')}
-                className="relative p-2 bg-green-100 rounded-lg transition hover:bg-green-200"
-              >
-                <ShoppingCart size={20} className="text-green-700" />
-                <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {cartCount}
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Inline Search */}
-          <div className="relative mb-4">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter items..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            />
-          </div>
+          )}
 
           {loading ? (
             <LoadingSpinner message="Loading items..." />
+          ) : filteredItems.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <Grid3X3 size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 text-sm">
+                {searchQuery ? 'No items match your search' : 'No items available'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-sm text-green-600 font-medium"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {(searchQuery.length >= 2 ? searchResults : posItems)
-                .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map(item => {
-                  const inCart = cart.find(c => c.id === item.id)
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => addToCart(item)}
-                      className={`bg-white rounded-xl border p-3 text-left transition relative ${
-                        inCart
-                          ? 'border-green-400 shadow-sm'
-                          : item.stock_qty <= 0
-                          ? 'border-red-200 opacity-60'
-                          : 'border-gray-200 hover:border-green-300 hover:shadow-sm'
-                      }`}
-                      disabled={item.stock_qty <= 0}
-                    >
-                      {inCart && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-green-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
-                          {inCart.qty}
+              {filteredItems.map(item => {
+                const inCart = cart.find(c => c.id === item.id)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => addToCart(item)}
+                    className={`bg-white rounded-xl border p-3 text-left transition relative ${
+                      inCart
+                        ? 'border-green-400 shadow-sm'
+                        : item.stock_qty <= 0
+                        ? 'border-red-200 opacity-60'
+                        : 'border-gray-200 hover:border-green-300 hover:shadow-sm'
+                    }`}
+                    disabled={item.stock_qty <= 0}
+                  >
+                    {inCart && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-green-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
+                        {inCart.qty}
+                      </span>
+                    )}
+                    <p className="text-sm font-medium text-gray-900 truncate leading-tight">{item.name}</p>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className="text-[10px] font-mono text-gray-400">{item.group_code}</span>
+                      <span className="text-[10px] text-gray-300">·</span>
+                      <span className="text-[10px] text-gray-400">{item.uom}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      {item.price > 0 ? (
+                        <span className="text-xs font-semibold text-gray-700">
+                          TZS {Math.round(item.price).toLocaleString()}
                         </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">No price</span>
                       )}
-                      <p className="text-sm font-medium text-gray-900 truncate leading-tight">{item.name}</p>
-                      <div className="flex items-center gap-1 mt-1.5">
-                        <span className="text-[10px] font-mono text-gray-400">{item.group_code}</span>
-                        <span className="text-[10px] text-gray-300">·</span>
-                        <span className="text-[10px] text-gray-400">{item.uom}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        {item.price > 0 ? (
-                          <span className="text-xs font-semibold text-gray-700">
-                            TZS {Math.round(item.price).toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">No price</span>
-                        )}
-                        {item.stock_qty > 0 ? (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                            item.stock_status === 'low' || item.stock_status === 'critical'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-green-100 text-green-700'
-                          }`}>
-                            {item.stock_qty}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Out</span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
+                      {item.stock_qty > 0 ? (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          item.stock_status === 'low' || item.stock_status === 'critical'
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {item.stock_qty}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Out</span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
 
@@ -782,48 +727,111 @@ export default function POS() {
               {showDetails && (
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Table # dropdown */}
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Table #</label>
-                      <input
-                        type="text"
-                        value={tableNumber}
-                        onChange={(e) => setTableNumber(e.target.value)}
-                        placeholder="e.g. 5"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                      />
+                      <div className="relative">
+                        <select
+                          value={tableNumber}
+                          onChange={(e) => setTableNumber(e.target.value)}
+                          className="w-full appearance-none bg-white px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">Select table</option>
+                          {TABLE_OPTIONS.map(t => (
+                            <option key={t} value={t}>Table {t}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
+
+                    {/* Guest Count dropdown */}
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Guest Count</label>
-                      <input
-                        type="number"
-                        value={guestCount}
-                        onChange={(e) => setGuestCount(e.target.value)}
-                        placeholder="e.g. 4"
-                        min="0"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                      />
+                      <div className="relative">
+                        <select
+                          value={guestCount}
+                          onChange={(e) => setGuestCount(e.target.value)}
+                          className="w-full appearance-none bg-white px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">Select</option>
+                          {GUEST_OPTIONS.map(g => (
+                            <option key={g} value={g}>{g} {g === 1 ? 'guest' : 'guests'}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
+
+                    {/* Received By dropdown (staff list) */}
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Received By</label>
-                      <input
-                        type="text"
-                        value={receivedBy}
-                        onChange={(e) => setReceivedBy(e.target.value)}
-                        placeholder="Name"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                      />
+                      <div className="relative">
+                        <select
+                          value={receivedBy}
+                          onChange={(e) => setReceivedBy(e.target.value)}
+                          className="w-full appearance-none bg-white px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">Select staff</option>
+                          {staffList.map(s => (
+                            <option key={s.id} value={s.full_name || s.username}>
+                              {s.full_name || s.username}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
+
+                    {/* Room #s picker */}
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Room #s</label>
-                      <input
-                        type="text"
-                        value={roomNumbers}
-                        onChange={(e) => setRoomNumbers(e.target.value)}
-                        placeholder="e.g. 101, 102"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRoomPicker(!showRoomPicker)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition text-left"
+                      >
+                        <span className={selectedRooms.length > 0 ? 'text-gray-900 truncate' : 'text-gray-400'}>
+                          {selectedRooms.length > 0 ? selectedRooms.join(', ') : 'Select rooms'}
+                        </span>
+                        <ChevronDown size={14} className={`text-gray-400 flex-shrink-0 transition ${showRoomPicker ? 'rotate-180' : ''}`} />
+                      </button>
                     </div>
                   </div>
+
+                  {/* Room picker grid */}
+                  {showRoomPicker && (
+                    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <p className="text-xs text-gray-500 mb-2 font-medium">Tap rooms to select</p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {ROOM_OPTIONS.map(room => (
+                          <button
+                            key={room}
+                            type="button"
+                            onClick={() => toggleRoom(room)}
+                            className={`px-2 py-1.5 text-xs font-medium rounded-lg transition ${
+                              selectedRooms.includes(room)
+                                ? 'bg-green-600 text-white shadow-sm'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-green-300'
+                            }`}
+                          >
+                            {room}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedRooms.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedRooms([]); setRoomNumbers('') }}
+                          className="mt-2 text-xs text-red-500 hover:text-red-700"
+                        >
+                          Clear rooms
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Notes (kept as text input) */}
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Notes</label>
                     <input

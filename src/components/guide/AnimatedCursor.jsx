@@ -1,14 +1,21 @@
+import useIsMobile from '../../hooks/useIsMobile'
+
 /**
  * Animated fake cursor that glides to target elements.
  * On mobile, shows a pulsing tap ring instead of cursor arrow.
+ * Uses useIsMobile() hook so it responds to orientation changes.
+ * Timing synced with GuideTooltip (0.5s for both).
  *
  * In coaching mode, the cursor has a more prominent "click here" animation
  * to make it clear the user should actually click the target.
  */
 export default function AnimatedCursor({ position, visible, clicking, coaching = false }) {
-  const isMobile = window.innerWidth <= 768
+  const isMobile = useIsMobile()
 
   if (!visible) return null
+
+  const MOVE_DURATION = '0.5s'
+  const MOVE_EASING = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 
   // Mobile: pulsing tap indicator
   if (isMobile) {
@@ -19,7 +26,9 @@ export default function AnimatedCursor({ position, visible, clicking, coaching =
           left: position.x - 24,
           top: position.y - 24,
           zIndex: 10000,
-          transition: 'left 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition: `left ${MOVE_DURATION} ${MOVE_EASING}, top ${MOVE_DURATION} ${MOVE_EASING}`,
+          animation: 'guide-cursor-fade-in 0.3s ease-out forwards',
+          willChange: 'left, top',
         }}
       >
         {/* Outer pulsing ring */}
@@ -30,6 +39,7 @@ export default function AnimatedCursor({ position, visible, clicking, coaching =
             animation: coaching
               ? 'guide-coaching-tap-ring 1.2s ease-out infinite'
               : 'guide-tap-ring 1.5s ease-out infinite',
+            animationFillMode: 'both',
           }}
         />
         {/* Inner dot */}
@@ -62,12 +72,13 @@ export default function AnimatedCursor({ position, visible, clicking, coaching =
         left: position.x,
         top: position.y,
         zIndex: 10000,
-        transition: 'left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        transition: `left ${MOVE_DURATION} ${MOVE_EASING}, top ${MOVE_DURATION} ${MOVE_EASING}`,
         animation: clicking
-          ? 'guide-cursor-click 0.3s ease'
+          ? 'guide-cursor-click 0.3s ease forwards'
           : coaching
             ? 'guide-coaching-cursor-bounce 1.8s ease-in-out infinite'
-            : undefined,
+            : 'guide-cursor-fade-in 0.3s ease-out forwards',
+        willChange: 'left, top',
       }}
     >
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>

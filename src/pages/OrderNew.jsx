@@ -216,13 +216,9 @@ export default function OrderNew() {
                   >
                     <Minus size={16} />
                   </button>
-                  <input
-                    type="number"
-                    value={line.qty}
-                    onChange={(e) => updateQty(index, parseInt(e.target.value) || 1)}
-                    className="w-14 h-9 text-center text-sm font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                    min="1"
-                  />
+                  <span className="w-14 h-9 flex items-center justify-center text-sm font-bold text-gray-900 bg-gray-50 rounded-lg border border-gray-200">
+                    {line.qty}
+                  </span>
                   <button
                     onClick={() => updateQty(index, line.qty + 1)}
                     className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 transition"

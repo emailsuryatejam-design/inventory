@@ -10,6 +10,13 @@ import GuideProgress from './GuideProgress'
  *  - "Go ahead, click it!" prompt instead of Next button
  *  - Animated coaching indicator
  *  - Still shows Back and Exit controls
+ *
+ * Fixes:
+ * - Safe flip logic (no infinite flip)
+ * - Arrow position recalculates after bounds clamping
+ * - Transition synced with AnimatedCursor (0.5s)
+ * - Touch-friendly with touch-action: manipulation
+ * - Key-based re-animation on step change
  */
 export default function GuideTooltip({
   step,
@@ -24,7 +31,7 @@ export default function GuideTooltip({
   coaching = false,
 }) {
   const tooltipRef = useRef(null)
-  const [pos, setPos] = useState({ top: 0, left: 0, arrowSide: 'top' })
+  const [pos, setPos] = useState({ top: 0, left: 0, arrowSide: 'top', arrowOffset: '50%' })
 
   useEffect(() => {
     if (!targetRect || !tooltipRef.current) return
@@ -33,7 +40,8 @@ export default function GuideTooltip({
     const vw = window.innerWidth
     const vh = window.innerHeight
     const gap = 14
-    const placement = step.placement || 'bottom'
+    const margin = 16 // min distance from viewport edge
+    const placement = step?.placement || 'bottom'
 
     let top, left, arrowSide
 
@@ -57,23 +65,34 @@ export default function GuideTooltip({
       arrowSide = 'right'
     }
 
-    // Flip if out of viewport
-    if (top + tt.height > vh - 20) {
-      top = targetRect.top - tt.height - gap
-      arrowSide = 'bottom'
-    }
-    if (top < 20) {
-      top = targetRect.bottom + gap
-      arrowSide = 'top'
-    }
-    if (left + tt.width > vw - 20) {
-      left = vw - tt.width - 20
-    }
-    if (left < 20) {
-      left = 20
+    // Vertical flip — try once, then clamp
+    if (top + tt.height > vh - margin && arrowSide === 'top') {
+      const flipped = targetRect.top - tt.height - gap
+      if (flipped >= margin) {
+        top = flipped
+        arrowSide = 'bottom'
+      }
+    } else if (top < margin && arrowSide === 'bottom') {
+      const flipped = targetRect.bottom + gap
+      if (flipped + tt.height <= vh - margin) {
+        top = flipped
+        arrowSide = 'top'
+      }
     }
 
-    setPos({ top, left, arrowSide })
+    // Final clamp — ensure tooltip stays within viewport
+    top = Math.max(margin, Math.min(top, vh - tt.height - margin))
+    left = Math.max(margin, Math.min(left, vw - tt.width - margin))
+
+    // Compute arrow offset relative to tooltip (track where target center is)
+    let arrowOffset = '50%'
+    if (arrowSide === 'top' || arrowSide === 'bottom') {
+      const targetCenterX = targetRect.left + targetRect.width / 2
+      const offsetPx = Math.max(16, Math.min(targetCenterX - left, tt.width - 16))
+      arrowOffset = `${offsetPx}px`
+    }
+
+    setPos({ top, left, arrowSide, arrowOffset })
   }, [targetRect, step])
 
   if (!step || !targetRect) return null
@@ -81,22 +100,24 @@ export default function GuideTooltip({
   return (
     <div
       ref={tooltipRef}
-      className="fixed bg-white rounded-xl shadow-xl border border-gray-200 w-72 max-w-[calc(100vw-40px)]"
+      key={`tooltip-step-${currentIndex}`}
+      className="fixed bg-white rounded-xl shadow-xl border border-gray-200 w-72 max-w-[calc(100vw-32px)]"
       style={{
         top: pos.top,
         left: pos.left,
         zIndex: 10001,
-        animation: 'guide-tooltip-enter 0.3s ease-out',
-        transition: 'top 0.35s ease, left 0.35s ease',
-        pointerEvents: 'auto', // Always interactive (tooltip itself)
+        animation: 'guide-tooltip-enter 0.3s ease-out forwards',
+        transition: 'top 0.5s ease, left 0.5s ease',
+        touchAction: 'manipulation',
+        pointerEvents: 'auto',
       }}
     >
       {/* Arrow indicator */}
       <div
         className="absolute w-3 h-3 bg-white border-gray-200 rotate-45"
         style={{
-          ...(pos.arrowSide === 'top' && { top: -6, left: '50%', marginLeft: -6, borderTop: '1px solid', borderLeft: '1px solid' }),
-          ...(pos.arrowSide === 'bottom' && { bottom: -6, left: '50%', marginLeft: -6, borderBottom: '1px solid', borderRight: '1px solid' }),
+          ...(pos.arrowSide === 'top' && { top: -6, left: pos.arrowOffset, marginLeft: -6, borderTop: '1px solid', borderLeft: '1px solid' }),
+          ...(pos.arrowSide === 'bottom' && { bottom: -6, left: pos.arrowOffset, marginLeft: -6, borderBottom: '1px solid', borderRight: '1px solid' }),
           ...(pos.arrowSide === 'left' && { left: -6, top: '50%', marginTop: -6, borderBottom: '1px solid', borderLeft: '1px solid' }),
           ...(pos.arrowSide === 'right' && { right: -6, top: '50%', marginTop: -6, borderTop: '1px solid', borderRight: '1px solid' }),
         }}

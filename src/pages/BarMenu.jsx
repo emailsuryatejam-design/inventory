@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '../context/AppContext'
-import { menu as menuApi } from '../services/api'
+import { menu as menuApi, users as usersApi } from '../services/api'
 import {
   Wine, GlassWater, Sparkles, Plus, Minus, Trash2, ShoppingCart,
   Loader2, AlertTriangle, X, ChevronDown, ChevronUp, CreditCard,
-  ReceiptText, Clock, TrendingDown, AlertCircle, CheckCircle2
+  ReceiptText, Clock, TrendingDown, AlertCircle, CheckCircle2, Beaker
 } from 'lucide-react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import RecipeSheet from '../components/bar/RecipeSheet'
 
 const STATUS_STYLES = {
   available: { bg: 'bg-green-100', text: 'text-green-700', label: 'In Stock' },
@@ -23,6 +24,9 @@ const STATUS_ICONS = {
   out: X,
   unknown: AlertCircle,
 }
+
+const TABLE_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1))
+const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 
 export default function BarMenu() {
   const user = useUser()
@@ -45,6 +49,10 @@ export default function BarMenu() {
   const [receivedBy, setReceivedBy] = useState('')
   const [notes, setNotes] = useState('')
   const [showDetails, setShowDetails] = useState(false)
+  const [staffList, setStaffList] = useState([])
+
+  // Recipe sheet for cocktails/mocktails
+  const [recipeItem, setRecipeItem] = useState(null)
 
   // Depletion alerts
   const [depletionAlerts, setDepletionAlerts] = useState([])
@@ -59,12 +67,14 @@ export default function BarMenu() {
   async function loadMenu() {
     setLoading(true)
     try {
-      const [catData, itemData] = await Promise.all([
+      const [catData, itemData, staffData] = await Promise.all([
         menuApi.categories(),
         menuApi.items({}),
+        usersApi.list(),
       ])
       setCategories(catData.categories || [])
       setMenuItems(itemData.menu_items || [])
+      setStaffList((staffData.users || []).filter(u => u.is_active))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -106,6 +116,17 @@ export default function BarMenu() {
   })
 
   // Cart functions
+  function handleItemTap(item) {
+    if (item.stock?.status === 'out') return
+    // For cocktails/mocktails, show recipe sheet first
+    if (item.is_cocktail || item.is_mocktail) {
+      setRecipeItem(item)
+      return
+    }
+    // For regular drinks (spirits, beer, etc.), add directly
+    addToCart(item)
+  }
+
   function addToCart(item) {
     if (item.stock?.status === 'out') return
     setCart(prev => {
@@ -113,6 +134,11 @@ export default function BarMenu() {
       if (existing) return prev.map(c => c.id === item.id ? { ...c, qty: c.qty + 1 } : c)
       return [...prev, { ...item, qty: 1 }]
     })
+  }
+
+  // Called from RecipeSheet when user confirms "Add to Order"
+  function handleRecipeAdd(item, _modifications) {
+    addToCart(item)
   }
 
   function updateCartQty(itemId, newQty) {
@@ -383,18 +409,36 @@ export default function BarMenu() {
               <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Table #</label>
-                  <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)}
-                    placeholder="e.g. 5" className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500" />
+                  <div className="relative">
+                    <select value={tableNumber} onChange={e => setTableNumber(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 appearance-none bg-white">
+                      <option value="">— Select —</option>
+                      {TABLE_OPTIONS.map(t => <option key={t} value={t}>Table {t}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Guests</label>
-                  <input type="number" value={guestCount} onChange={e => setGuestCount(e.target.value)}
-                    placeholder="e.g. 4" min="0" className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500" />
+                  <div className="relative">
+                    <select value={guestCount} onChange={e => setGuestCount(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 appearance-none bg-white">
+                      <option value="">— Select —</option>
+                      {GUEST_OPTIONS.map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Served By</label>
-                  <input type="text" value={receivedBy} onChange={e => setReceivedBy(e.target.value)}
-                    placeholder="Bartender name" className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500" />
+                  <div className="relative">
+                    <select value={receivedBy} onChange={e => setReceivedBy(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 appearance-none bg-white">
+                      <option value="">— Select —</option>
+                      {staffList.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Notes</label>
@@ -576,17 +620,29 @@ export default function BarMenu() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => addToCart(item)}
-                          disabled={isOut}
-                          className={`w-9 h-9 flex items-center justify-center rounded-xl transition flex-shrink-0 ${
-                            isOut
-                              ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                              : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                          }`}
-                        >
-                          <Plus size={18} />
-                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Recipe button for cocktails/mocktails */}
+                          {(item.is_cocktail || item.is_mocktail) && (
+                            <button
+                              onClick={() => setRecipeItem(item)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-50 text-purple-500 hover:bg-purple-100 transition"
+                              title="View Recipe"
+                            >
+                              <Beaker size={14} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleItemTap(item)}
+                            disabled={isOut}
+                            className={`w-9 h-9 flex items-center justify-center rounded-xl transition ${
+                              isOut
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                            }`}
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )
@@ -608,6 +664,15 @@ export default function BarMenu() {
             <span>View Order ({cartCount} drinks)</span>
           </button>
         </div>
+      )}
+
+      {/* Recipe Sheet for cocktails/mocktails */}
+      {recipeItem && (
+        <RecipeSheet
+          item={recipeItem}
+          onClose={() => setRecipeItem(null)}
+          onAddToCart={handleRecipeAdd}
+        />
       )}
     </div>
   )

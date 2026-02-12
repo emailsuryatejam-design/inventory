@@ -7,6 +7,8 @@ import {
   Bell, BarChart3, Users, Play
 } from 'lucide-react'
 import useGuide from '../../hooks/useGuide'
+import useIsMobile from '../../hooks/useIsMobile'
+import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 import { allGuides, searchGuides, getGuidesByCategory } from '../../data/guides'
 
 const ICON_MAP = {
@@ -28,17 +30,27 @@ const SUGGESTIONS = [
 
 export default function AssistantPanel() {
   const { isPanelOpen, closePanel, startGuide, completedGuides, openReport } = useGuide()
+  const isMobile = useIsMobile()
   const location = useLocation()
   const [query, setQuery] = useState('')
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
 
-  // Rotate placeholder suggestions
+  // Rotate placeholder suggestions — only when panel is open
   useEffect(() => {
+    if (!isPanelOpen) return
     const interval = setInterval(() => {
       setPlaceholderIdx(prev => (prev + 1) % SUGGESTIONS.length)
     }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [isPanelOpen])
+
+  // Scroll lock when panel is open
+  useEffect(() => {
+    if (isPanelOpen) {
+      lockScroll()
+      return () => unlockScroll()
+    }
+  }, [isPanelOpen])
 
   // Search results
   const results = useMemo(() => {
@@ -82,26 +94,24 @@ export default function AssistantPanel() {
 
   if (!isPanelOpen) return null
 
-  const isMobile = window.innerWidth <= 768
-
   return (
     <>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 z-[9994]"
         onClick={closePanel}
-        style={{ animation: 'guide-fade-in 0.2s ease' }}
+        style={{ animation: 'guide-fade-in 0.2s ease forwards' }}
       />
 
       {/* Panel */}
       <div
         className={`fixed bg-white z-[9995] flex flex-col overflow-hidden ${
           isMobile
-            ? 'inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]'
+            ? 'inset-x-0 bottom-0 rounded-t-2xl max-h-[85dvh]'
             : 'right-0 top-0 bottom-0 w-96 border-l border-gray-200'
         }`}
         style={{
-          animation: isMobile ? 'guide-slide-up 0.3s ease-out' : 'guide-slide-right 0.3s ease-out',
+          animation: isMobile ? 'guide-slide-up 0.3s ease-out forwards' : 'guide-slide-right 0.3s ease-out forwards',
           boxShadow: '-4px 0 20px rgba(0,0,0,0.1)',
         }}
       >
@@ -148,7 +158,7 @@ export default function AssistantPanel() {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-3">
+        <div className="flex-1 overflow-y-auto px-5 py-3 scroll-touch">
           {/* Search results */}
           {results !== null ? (
             results.length > 0 ? (

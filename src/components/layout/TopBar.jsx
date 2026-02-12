@@ -1,6 +1,7 @@
 import { useUser, useApp, isManager } from '../../context/AppContext'
 import { Bell, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import SyncStatus from '../ui/SyncStatus'
 
 export default function TopBar() {
   const user = useUser()
@@ -67,8 +68,9 @@ export default function TopBar() {
         )}
       </div>
 
-      {/* Right: Notifications + User */}
+      {/* Right: Sync status + Notifications + User */}
       <div className="flex items-center gap-3">
+        <SyncStatus />
         <button data-guide="notifications-btn" className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition">
           <Bell size={20} />
           {/* Notification dot */}

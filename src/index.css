@@ -23,6 +23,14 @@ body {
   color: #111827;
 }
 
+/* Body scroll lock when modals/drawers are open */
+body.overflow-locked {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  touch-action: none;
+}
+
 /* Mobile: minimum 48px touch targets (override with .compact-btn or style="minHeight:auto") */
 @media (max-width: 768px) {
   button:not(.compact-btn), a:not(.compact-btn), [role="button"]:not(.compact-btn) {
@@ -80,6 +88,18 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes guide-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes guide-slide-down {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+@keyframes guide-cursor-fade-in {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 /* ── Coaching Mode Animations (real-time guide) ──── */
 @keyframes guide-coaching-pulse {
@@ -111,4 +131,49 @@ body {
 @keyframes guide-coaching-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+/* ── Mobile Drawer Animations ──────────────────── */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out forwards;
+}
+.animate-slide-down {
+  animation: slide-down 0.2s ease-in forwards;
+}
+.animate-backdrop-in {
+  animation: backdrop-in 0.2s ease-out forwards;
+}
+.animate-backdrop-out {
+  animation: backdrop-out 0.2s ease-in forwards;
+}
+
+/* ── Smooth momentum scrolling (iOS/Android) ──── */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── Reduced Motion ────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

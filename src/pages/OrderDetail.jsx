@@ -278,14 +278,13 @@ export default function OrderDetail() {
                             <option value="rejected">Reject</option>
                           </select>
                           {lineActions[line.id]?.action === 'adjusted' && (
-                            <input
-                              type="number"
-                              value={lineActions[line.id]?.approved_qty || ''}
-                              onChange={(e) => setLineAction(line.id, 'approved_qty', parseFloat(e.target.value) || 0)}
-                              className="w-16 text-xs px-2 py-1 border border-gray-300 rounded-lg mt-1"
-                              min="0"
-                              placeholder="Qty"
-                            />
+                            <div className="flex items-center gap-1 mt-1">
+                              <button type="button" onClick={() => setLineAction(line.id, 'approved_qty', Math.max(0, (lineActions[line.id]?.approved_qty || 0) - 1))}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">−</button>
+                              <span className="w-10 text-center text-xs font-bold">{lineActions[line.id]?.approved_qty || 0}</span>
+                              <button type="button" onClick={() => setLineAction(line.id, 'approved_qty', (lineActions[line.id]?.approved_qty || 0) + 1)}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">+</button>
+                            </div>
                           )}
                         </td>
                       )}
@@ -330,14 +329,13 @@ export default function OrderDetail() {
                         <option value="rejected">Reject</option>
                       </select>
                       {lineActions[line.id]?.action === 'adjusted' && (
-                        <input
-                          type="number"
-                          value={lineActions[line.id]?.approved_qty || ''}
-                          onChange={(e) => setLineAction(line.id, 'approved_qty', parseFloat(e.target.value) || 0)}
-                          className="w-20 text-xs px-2 py-1.5 border border-gray-300 rounded-lg"
-                          min="0"
-                          placeholder="New Qty"
-                        />
+                        <div className="flex items-center gap-1 mt-1">
+                          <button type="button" onClick={() => setLineAction(line.id, 'approved_qty', Math.max(0, (lineActions[line.id]?.approved_qty || 0) - 1))}
+                            className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">−</button>
+                          <span className="w-10 text-center text-xs font-bold">{lineActions[line.id]?.approved_qty || 0}</span>
+                          <button type="button" onClick={() => setLineAction(line.id, 'approved_qty', (lineActions[line.id]?.approved_qty || 0) + 1)}
+                            className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">+</button>
+                        </div>
                       )}
                     </div>
                   )}

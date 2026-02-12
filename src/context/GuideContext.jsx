@@ -4,6 +4,12 @@ const GuideContext = createContext(null)
 
 const STORAGE_KEY = 'karibu_guide_data'
 
+// Safe center — avoids SSR/early-mount issues
+function getSafeCenter() {
+  if (typeof window === 'undefined') return { x: 200, y: 400 }
+  return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+}
+
 const initialState = {
   // Panel
   isPanelOpen: false,
@@ -14,7 +20,7 @@ const initialState = {
   // Target tracking
   targetRect: null,
   // Cursor
-  cursorPosition: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+  cursorPosition: getSafeCenter(),
   cursorVisible: false,
   // Report form
   isReportFormOpen: false,
@@ -41,6 +47,7 @@ function guideReducer(state, action) {
         isPanelOpen: false,
         cursorVisible: false,
         targetRect: null,
+        cursorPosition: getSafeCenter(),
       }
     case 'NEXT_STEP': {
       const nextIndex = state.currentStepIndex + 1
@@ -54,20 +61,28 @@ function guideReducer(state, action) {
           isRunning: false,
           targetRect: null,
           cursorVisible: false,
+          cursorPosition: getSafeCenter(),
           completedGuides: state.activeGuide
             ? [...new Set([...state.completedGuides, state.activeGuide.id])]
             : state.completedGuides,
         }
       }
-      return { ...state, currentStepIndex: nextIndex }
+      return {
+        ...state,
+        currentStepIndex: nextIndex,
+        cursorVisible: false,
+        targetRect: null,
+      }
     }
     case 'PREV_STEP':
       return {
         ...state,
         currentStepIndex: Math.max(0, state.currentStepIndex - 1),
+        cursorVisible: false,
+        targetRect: null,
       }
     case 'GO_TO_STEP':
-      return { ...state, currentStepIndex: action.payload }
+      return { ...state, currentStepIndex: action.payload, cursorVisible: false, targetRect: null }
 
     case 'SET_TARGET_RECT':
       return { ...state, targetRect: action.payload }
@@ -89,6 +104,7 @@ function guideReducer(state, action) {
         isRunning: false,
         targetRect: null,
         cursorVisible: false,
+        cursorPosition: getSafeCenter(),
         completedGuides: completed && state.activeGuide
           ? [...new Set([...state.completedGuides, state.activeGuide.id])]
           : state.completedGuides,

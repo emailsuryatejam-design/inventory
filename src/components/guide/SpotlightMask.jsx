@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useId } from 'react'
 
 /**
  * SVG-based spotlight overlay with animated cutout around target element.
@@ -7,52 +7,85 @@ import { useEffect, useState } from 'react'
  * When clickThrough is true (real-time coaching mode), the entire overlay
  * becomes pointer-events:none so user clicks pass through to the actual
  * target element underneath. The dark mask is purely visual.
+ *
+ * Fixes:
+ * - Uses ref-based animation (no state re-render for rect updates)
+ * - Specific transition properties (not 'all')
+ * - Unique mask ID to avoid SVG conflicts
+ * - Single animation source (CSS transition only, no double animation)
+ * - pointer-events structure: SVG has none, dark area has auto, target hole passes through
+ * - Click-through to target elements works for advanceOn:'click' steps
  */
 export default function SpotlightMask({ targetRect, padding = 8, onClick, clickThrough = false }) {
-  const [animRect, setAnimRect] = useState(targetRect)
+  const rectRef = useRef(null)
+  const ringRef = useRef(null)
+  const maskId = useId()?.replace(/:/g, '_') || 'guide-mask'
 
+  // Animate via ref (no re-render, no extra frame delay)
   useEffect(() => {
-    if (targetRect) {
-      requestAnimationFrame(() => setAnimRect(targetRect))
+    if (!targetRect) return
+
+    const x = targetRect.left - padding
+    const y = targetRect.top - padding
+    const w = targetRect.width + padding * 2
+    const h = targetRect.height + padding * 2
+
+    if (rectRef.current) {
+      rectRef.current.setAttribute('x', x)
+      rectRef.current.setAttribute('y', y)
+      rectRef.current.setAttribute('width', w)
+      rectRef.current.setAttribute('height', h)
     }
-  }, [targetRect])
 
-  if (!animRect) return null
+    if (ringRef.current) {
+      ringRef.current.style.left = `${x}px`
+      ringRef.current.style.top = `${y}px`
+      ringRef.current.style.width = `${w}px`
+      ringRef.current.style.height = `${h}px`
+    }
+  }, [targetRect, padding])
 
-  const x = animRect.left - padding
-  const y = animRect.top - padding
-  const w = animRect.width + padding * 2
-  const h = animRect.height + padding * 2
+  if (!targetRect) return null
+
+  const x = targetRect.left - padding
+  const y = targetRect.top - padding
+  const w = targetRect.width + padding * 2
+  const h = targetRect.height + padding * 2
 
   return (
     <div
       className="fixed inset-0"
-      style={{ zIndex: 9997, pointerEvents: clickThrough ? 'none' : 'auto' }}
+      style={{ zIndex: 9997, pointerEvents: 'none' }}
     >
-      {/* SVG mask overlay */}
-      <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: clickThrough ? 'none' : 'auto' }}>
+      {/* SVG mask overlay — dark area is clickable (dismiss), hole passes through */}
+      <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
         <defs>
-          <mask id="guide-spotlight-mask">
+          <mask id={maskId}>
             <rect width="100%" height="100%" fill="white" />
             <rect
+              ref={rectRef}
               x={x} y={y} width={w} height={h}
               rx="8" ry="8"
               fill="black"
-              style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              style={{
+                transition: 'x 0.4s cubic-bezier(0.4,0,0.2,1), y 0.4s cubic-bezier(0.4,0,0.2,1), width 0.4s cubic-bezier(0.4,0,0.2,1), height 0.4s cubic-bezier(0.4,0,0.2,1)',
+              }}
             />
           </mask>
         </defs>
+        {/* Dark overlay — clicking outside the target dismisses the guide */}
         <rect
           width="100%" height="100%"
-          fill="rgba(0,0,0,0.5)"
-          mask="url(#guide-spotlight-mask)"
+          fill="rgba(0,0,0,0.55)"
+          mask={`url(#${maskId})`}
           onClick={clickThrough ? undefined : onClick}
-          style={{ cursor: clickThrough ? 'default' : 'pointer' }}
+          style={{ pointerEvents: clickThrough ? 'none' : 'auto', cursor: clickThrough ? 'default' : 'pointer' }}
         />
       </svg>
 
       {/* Pulsing ring around the target — more prominent in coaching mode */}
       <div
+        ref={ringRef}
         className="absolute rounded-lg pointer-events-none"
         style={{
           left: x,
@@ -65,7 +98,8 @@ export default function SpotlightMask({ targetRect, padding = 8, onClick, clickT
           animation: clickThrough
             ? 'guide-coaching-pulse 1.4s ease-in-out infinite'
             : 'guide-spotlight-pulse 2s ease-in-out infinite',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          animationFillMode: 'both',
+          willChange: 'box-shadow',
           boxShadow: clickThrough
             ? '0 0 0 4px rgba(22, 163, 74, 0.15), inset 0 0 12px rgba(22, 163, 74, 0.08)'
             : 'none',

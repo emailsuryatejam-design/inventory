@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Send, Bug, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react'
 import useGuide from '../../hooks/useGuide'
+import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 
 const REPORT_TYPES = [
   { key: 'bug', label: 'Bug Report', icon: Bug, color: 'text-red-500 bg-red-50' },
@@ -15,14 +16,30 @@ export default function ReportForm() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const timerRef = useRef(null)
+
+  // Scroll lock when form is open
+  useEffect(() => {
+    if (isReportFormOpen) {
+      lockScroll()
+      return () => unlockScroll()
+    }
+  }, [isReportFormOpen])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim() || submitted) return
 
     addReport({ type, title: title.trim(), description: description.trim() })
     setSubmitted(true)
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setSubmitted(false)
       setType('help')
       setTitle('')
@@ -32,6 +49,7 @@ export default function ReportForm() {
   }
 
   function handleClose() {
+    if (timerRef.current) clearTimeout(timerRef.current)
     setSubmitted(false)
     setType('help')
     setTitle('')
@@ -47,17 +65,17 @@ export default function ReportForm() {
       <div
         className="fixed inset-0 bg-black/40 z-[10010]"
         onClick={handleClose}
-        style={{ animation: 'guide-fade-in 0.2s ease' }}
+        style={{ animation: 'guide-fade-in 0.2s ease forwards' }}
       />
 
       {/* Modal */}
       <div
-        className="fixed z-[10011] bg-white rounded-2xl shadow-2xl w-[90vw] max-w-md max-h-[85vh] overflow-y-auto"
+        className="fixed z-[10011] bg-white rounded-2xl shadow-2xl w-[90vw] max-w-md max-h-[85dvh] overflow-y-auto scroll-touch"
         style={{
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          animation: 'guide-tooltip-enter 0.3s ease-out',
+          animation: 'guide-tooltip-enter 0.3s ease-out forwards',
         }}
       >
         {submitted ? (
@@ -145,7 +163,7 @@ export default function ReportForm() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={!title.trim()}
+                disabled={!title.trim() || submitted}
                 className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg text-sm font-semibold transition"
               >
                 <Send size={16} />

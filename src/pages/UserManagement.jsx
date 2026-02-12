@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { users as usersApi } from '../services/api'
-import { useUser } from '../context/AppContext'
+import { useUser, useApp } from '../context/AppContext'
+import { ChevronDown } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
@@ -11,6 +12,8 @@ const ROLES = [
 
 export default function UserManagement() {
   const currentUser = useUser()
+  const { state } = useApp()
+  const camps = state.camps || []
   const [userList, setUserList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -126,22 +129,45 @@ export default function UserManagement() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Camp ID</label>
-              <input
-                value={form.camp_id}
-                onChange={e => setForm({...form, camp_id: e.target.value})}
-                placeholder="Optional"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
+              <label className="text-xs text-gray-500 mb-1 block">Camp</label>
+              <div className="relative">
+                <select
+                  value={form.camp_id}
+                  onChange={e => setForm({...form, camp_id: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm appearance-none bg-white"
+                >
+                  <option value="">— Head Office —</option>
+                  {camps.map(c => (
+                    <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">PIN (optional)</label>
-              <input
-                value={form.pin}
-                onChange={e => setForm({...form, pin: e.target.value})}
-                placeholder="4-digit PIN"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono tracking-widest bg-gray-50 min-h-[38px] flex items-center">
+                  {form.pin ? '●'.repeat(form.pin.length) : <span className="text-gray-400">No PIN</span>}
+                </div>
+                {form.pin && (
+                  <button type="button" onClick={() => setForm({...form, pin: ''})} className="text-xs text-red-500 hover:text-red-700">Clear</button>
+                )}
+              </div>
+              {form.pin.length < 4 && (
+                <div className="grid grid-cols-5 gap-1 mt-1.5">
+                  {[1,2,3,4,5,6,7,8,9,0].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => form.pin.length < 4 && setForm({...form, pin: form.pin + String(n)})}
+                      className="h-8 text-sm font-medium bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <button

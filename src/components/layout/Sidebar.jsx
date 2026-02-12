@@ -3,12 +3,13 @@ import { useUser, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
-  Users, Settings, LogOut, Wine, Sparkles, GlassWater
+  Users, Settings, LogOut, Wine, Sparkles, GlassWater, Calendar
 } from 'lucide-react'
 
 // Role-based nav: access = 'all' | 'manager' | roles array
 const navItems = [
   { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', guide: 'nav-dashboard' },
+  { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all', guide: 'nav-daily' },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', guide: 'nav-orders' },
   { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager', guide: 'nav-dispatch' },
   { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', guide: 'nav-stock' },

@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import TopBar from './TopBar'
+import OfflineBanner from '../ui/OfflineBanner'
 import { GuideProvider } from '../../context/GuideContext'
 import AssistantButton from '../guide/AssistantButton'
 import AssistantPanel from '../guide/AssistantPanel'
@@ -18,6 +19,7 @@ export default function AppLayout() {
         {/* Main content area */}
         <div className="lg:ml-64">
           <TopBar />
+          <OfflineBanner />
           <main className="p-4 lg:p-6 pb-24 lg:pb-6">
             <Outlet />
           </main>

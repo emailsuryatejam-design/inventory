@@ -204,14 +204,13 @@ export default function ReceiveDetail() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {confirming ? (
-                          <input
-                            type="number"
-                            value={lineInputs[line.id]?.received_qty ?? ''}
-                            onChange={(e) => setLineInput(line.id, 'received_qty', e.target.value)}
-                            className="w-20 text-sm text-right px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                            min="0"
-                            step="any"
-                          />
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => setLineInput(line.id, 'received_qty', Math.max(0, parseFloat(lineInputs[line.id]?.received_qty || 0) - 1))}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">−</button>
+                            <span className="w-12 text-center text-sm font-bold">{lineInputs[line.id]?.received_qty ?? ''}</span>
+                            <button type="button" onClick={() => setLineInput(line.id, 'received_qty', parseFloat(lineInputs[line.id]?.received_qty || 0) + 1)}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">+</button>
+                          </div>
                         ) : (
                           <span className={`text-sm font-semibold ${
                             line.received_qty !== null && line.received_qty < line.dispatched_qty
@@ -269,15 +268,13 @@ export default function ReceiveDetail() {
                   </div>
                   {confirming && (
                     <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={lineInputs[line.id]?.received_qty ?? ''}
-                        onChange={(e) => setLineInput(line.id, 'received_qty', e.target.value)}
-                        className="w-24 text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                        min="0"
-                        step="any"
-                        placeholder="Qty"
-                      />
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => setLineInput(line.id, 'received_qty', Math.max(0, parseFloat(lineInputs[line.id]?.received_qty || 0) - 1))}
+                          className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">−</button>
+                        <span className="w-12 text-center text-sm font-bold">{lineInputs[line.id]?.received_qty ?? ''}</span>
+                        <button type="button" onClick={() => setLineInput(line.id, 'received_qty', parseFloat(lineInputs[line.id]?.received_qty || 0) + 1)}
+                          className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-xs">+</button>
+                      </div>
                       <select
                         value={lineInputs[line.id]?.condition_status || 'good'}
                         onChange={(e) => setLineInput(line.id, 'condition_status', e.target.value)}
