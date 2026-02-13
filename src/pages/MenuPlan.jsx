@@ -120,11 +120,11 @@ export default function MenuPlan() {
       if (fetchRef.current === fetchId) {
         setLoading(false)
         setFetching(false)
+        // Prefetch adjacent days so next arrow tap is instant (api.js memCache handles it)
+        // Only if this is still the active request (user hasn't navigated away)
+        prefetchAdjacent(date, meal)
       }
     }
-
-    // Prefetch adjacent days so next arrow tap is instant (api.js memCache handles it)
-    prefetchAdjacent(date, meal)
   }
 
   // Lightweight refresh after mutations — skip recipes, just reload plan data
@@ -152,10 +152,13 @@ export default function MenuPlan() {
   }
 
   // ── Date navigation — NEVER blocks, always instant ──
+  // Uses functional updater so rapid clicks always read the LATEST date
   function changeDate(days) {
-    const d = new Date(date + 'T00:00:00')
-    d.setDate(d.getDate() + days)
-    setDate(d.toISOString().split('T')[0])
+    setDate(prev => {
+      const d = new Date(prev + 'T00:00:00')
+      d.setDate(d.getDate() + days)
+      return d.toISOString().split('T')[0]
+    })
   }
 
   // ── Auto-create plan + add dish ──
