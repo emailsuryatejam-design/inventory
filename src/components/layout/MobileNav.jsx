@@ -8,35 +8,47 @@ import {
   Users, Settings, LogOut, Sparkles, GlassWater, Package, ChefHat
 } from 'lucide-react'
 
+// Chef only sees: Dashboard, Menu Plan, Issue, Recipes
+const CHEF_ONLY = ['chef']
+
 // Primary tabs always visible in bottom bar
-const primaryTabs = [
+// Chef gets a different set of primary tabs
+const defaultTabs = [
   { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
   { path: '/app/pos', icon: Wine, label: 'POS' },
   { path: '/app/stock', icon: Boxes, label: 'Stock' },
 ]
 
+const chefTabs = [
+  { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
+  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu' },
+  { path: '/app/issue', icon: FileOutput, label: 'Issue' },
+  { path: '/app/recipes', icon: Sparkles, label: 'Recipes' },
+]
+
 // All navigation items for the "More" drawer (role-based, same as Sidebar)
 const allNavItems = [
   { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all' },
-  { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all' },
-  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all' },
+  { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all', exclude: CHEF_ONLY },
+  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
-  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all' },
-  { path: '/app/items', icon: Package, label: 'Items', access: 'all' },
-  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all' },
+  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', exclude: CHEF_ONLY },
+  { path: '/app/items', icon: Package, label: 'Items', access: 'all', exclude: CHEF_ONLY },
+  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all' },
-  { path: '/app/pos', icon: Wine, label: 'POS', access: 'all' },
-  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all' },
+  { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
+  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all' },
   { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
-  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all' },
+  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
   { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
   { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
 ]
 
 function canAccess(item, role) {
+  if (item.exclude && item.exclude.includes(role)) return false
   if (item.roles) return item.roles.includes(role)
   if (item.access === 'all') return true
   if (item.access === 'manager') return isManager(role)
@@ -49,6 +61,9 @@ export default function MobileNav() {
   const user = useUser()
   const location = useLocation()
   const closingTimerRef = useRef(null)
+
+  // Chef gets a dedicated bottom bar
+  const primaryTabs = user?.role === 'chef' ? chefTabs : defaultTabs
 
   // Check if current path matches any "more" item (not in primary tabs)
   const primaryPaths = primaryTabs.map(t => t.path)
