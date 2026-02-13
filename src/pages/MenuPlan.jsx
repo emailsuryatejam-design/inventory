@@ -12,20 +12,6 @@ import {
   BookOpen, Star, Camera, ChevronDown
 } from 'lucide-react'
 
-// ── Plan cache — instant navigation for visited days ──
-const planCache = new Map()          // key = "date|meal" → { plan, dishes, ts }
-const CACHE_TTL = 5 * 60 * 1000     // 5 min — after this, still show cached but refetch
-
-function cacheKey(date, meal) { return `${date}|${meal}` }
-function getCached(date, meal) {
-  const c = planCache.get(cacheKey(date, meal))
-  if (!c) return null
-  return c // { plan, dishes, ts }
-}
-function setCache(date, meal, plan, dishes) {
-  planCache.set(cacheKey(date, meal), { plan, dishes, ts: Date.now() })
-}
-
 // ── Constants ────────────────────────────────────────
 const COURSES = [
   { value: 'appetizer', label: 'Appetizer' },
@@ -80,11 +66,11 @@ export default function MenuPlan() {
   // Plan data
   const [plan, setPlan] = useState(null)
   const [dishes, setDishes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // only true on very first load
+  const [fetching, setFetching] = useState(false) // background fetch indicator (doesn't block UI)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [navigating, setNavigating] = useState(false) // blocks double-clicks on arrows
-  const navRef = useRef(false) // sync guard — state is async, ref is instant
+  const fetchRef = useRef(0) // incrementing counter to discard stale responses
 
   // Recipes for dropdown
   const [allRecipes, setAllRecipes] = useState([])
@@ -94,37 +80,22 @@ export default function MenuPlan() {
   const [ratingDish, setRatingDish] = useState(null)
   const [showAudit, setShowAudit] = useState(false)
 
-  // ── Load plan + recipes when date/meal changes ──
-  // Uses stale-while-revalidate: show cached data instantly, refresh in background
+  // ── Load plan when date/meal changes ──
+  // api.js memCache handles stale-while-revalidate automatically
+  // Arrows are NEVER blocked — date changes instantly, content updates when ready
   useEffect(() => {
     loadPlan()
   }, [date, meal, campId])
 
   async function loadPlan() {
+    const fetchId = ++fetchRef.current // tag this request
     setError('')
-
-    // 1. Instant cache hit — show stale data immediately (0ms)
-    const cached = getCached(date, meal)
-    if (cached) {
-      setPlan(cached.plan)
-      setDishes(cached.dishes)
-      // Don't show spinner — data is already on screen
-      setLoading(false)
-      setNavigating(false)
-      navRef.current = false
-    } else {
-      // No cache — show spinner
-      setLoading(true)
-      setNavigating(true)
-      navRef.current = true
-    }
-
-    // 2. Fetch fresh data from server (runs regardless of cache)
+    setFetching(true)
     try {
       const data = await menuApi.chefInit(date, meal)
+      if (fetchRef.current !== fetchId) return // stale — user already navigated away
       setPlan(data.plan)
       setDishes(data.dishes || [])
-      setCache(date, meal, data.plan, data.dishes || [])
       if (data.recipes) {
         setAllRecipes(data.recipes)
         setRecipesLoaded(true)
@@ -135,24 +106,24 @@ export default function MenuPlan() {
           menuApi.plan(date, meal),
           recipesLoaded ? null : kitchenApi.recipes(),
         ])
+        if (fetchRef.current !== fetchId) return // stale
         setPlan(planData.plan)
         setDishes(planData.dishes || [])
-        setCache(date, meal, planData.plan, planData.dishes || [])
         if (recData?.recipes) {
           setAllRecipes(recData.recipes)
           setRecipesLoaded(true)
         }
       } catch (err2) {
-        // Only show error if no cached data
-        if (!cached) setError(err2.message)
+        if (fetchRef.current === fetchId) setError(err2.message)
       }
     } finally {
-      setLoading(false)
-      setNavigating(false)
-      navRef.current = false
+      if (fetchRef.current === fetchId) {
+        setLoading(false)
+        setFetching(false)
+      }
     }
 
-    // 3. Prefetch adjacent days in background (±1 day, same meal)
+    // Prefetch adjacent days so next arrow tap is instant (api.js memCache handles it)
     prefetchAdjacent(date, meal)
   }
 
@@ -162,40 +133,26 @@ export default function MenuPlan() {
       const data = await menuApi.plan(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
-      // Update cache so navigation back is instant with fresh data
-      setCache(date, meal, data.plan, data.dishes || [])
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // Prefetch adjacent days so arrow navigation is instant
+  // Prefetch ±1 day so arrow navigation is instant
   function prefetchAdjacent(d, m) {
     for (const offset of [-1, 1]) {
       const adj = new Date(d + 'T00:00:00')
       adj.setDate(adj.getDate() + offset)
       const adjDate = adj.toISOString().split('T')[0]
-      const existing = getCached(adjDate, m)
-      // Skip if already cached and fresh (< TTL)
-      if (existing && (Date.now() - existing.ts) < CACHE_TTL) continue
-      // Fire-and-forget prefetch
-      menuApi.chefInit(adjDate, m)
-        .then(data => setCache(adjDate, m, data.plan, data.dishes || []))
-        .catch(() => {
-          // Try fallback
-          menuApi.plan(adjDate, m)
-            .then(data => setCache(adjDate, m, data.plan, data.dishes || []))
-            .catch(() => {}) // silent fail for prefetch
-        })
+      // Fire-and-forget — api.js memCache will store the result
+      menuApi.chefInit(adjDate, m).catch(() => {
+        menuApi.plan(adjDate, m).catch(() => {})
+      })
     }
   }
 
-  // ── Date navigation (guarded against double-clicks) ──
+  // ── Date navigation — NEVER blocks, always instant ──
   function changeDate(days) {
-    // Use ref for instant sync check — state updates are async
-    if (navRef.current) return
-    navRef.current = true          // block immediately
-    setNavigating(true)            // update UI (spinner)
     const d = new Date(date + 'T00:00:00')
     d.setDate(d.getDate() + days)
     setDate(d.toISOString().split('T')[0])
@@ -332,23 +289,24 @@ export default function MenuPlan() {
         )}
       </div>
 
-      {/* ── Date Picker ── */}
+      {/* ── Date Picker — arrows always active, never block ── */}
       <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3 mb-3">
         <button
           onClick={() => changeDate(-1)}
-          disabled={navigating}
-          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none"
+          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200"
         >
-          {navigating ? <Loader2 size={20} className="animate-spin text-gray-400" /> : <ChevronLeft size={20} className="text-gray-600" />}
+          <ChevronLeft size={20} className="text-gray-600" />
         </button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-gray-900">{formatDate(date)}</p>
+          <div className="flex items-center gap-1.5 justify-center">
+            <p className="text-sm font-semibold text-gray-900">{formatDate(date)}</p>
+            {fetching && <Loader2 size={12} className="animate-spin text-orange-400" />}
+          </div>
           {isToday(date) && <span className="text-[10px] text-green-600 font-medium">Today</span>}
           {!isToday(date) && (
             <button
-              onClick={() => { if (!navRef.current) setDate(new Date().toISOString().split('T')[0]) }}
-              disabled={navigating}
-              className="text-[10px] text-orange-600 font-medium disabled:opacity-40"
+              onClick={() => setDate(new Date().toISOString().split('T')[0])}
+              className="text-[10px] text-orange-600 font-medium"
             >
               Go to Today
             </button>
@@ -356,10 +314,9 @@ export default function MenuPlan() {
         </div>
         <button
           onClick={() => changeDate(1)}
-          disabled={navigating}
-          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none"
+          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200"
         >
-          {navigating ? <Loader2 size={20} className="animate-spin text-gray-400" /> : <ChevronRight size={20} className="text-gray-600" />}
+          <ChevronRight size={20} className="text-gray-600" />
         </button>
       </div>
 
@@ -368,9 +325,8 @@ export default function MenuPlan() {
         {MEALS.map(m => (
           <button
             key={m.value}
-            onClick={() => { if (!navRef.current) setMeal(m.value) }}
-            disabled={navigating}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${
+            onClick={() => setMeal(m.value)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               meal === m.value
                 ? 'bg-orange-500 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200'

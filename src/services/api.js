@@ -545,9 +545,26 @@ export const kitchen = {
 
 // ── Kitchen Menu Planning ──────────────────────────
 export const kitchenMenu = {
-  // Combined: plan + recipes in one call (saves a full round-trip)
-  chefInit: (date, meal) =>
-    request(`kitchen-menu.php?action=chef_init&date=${date}&meal=${meal}`),
+  // Try fast file-cache endpoint first (no MySQL, ~100ms)
+  // Falls back to full chef_init on cache miss or error
+  chefInit: async (date, meal) => {
+    try {
+      const token = getToken()
+      const resp = await fetch(
+        `${BASE_URL}/kitchen-fast.php?date=${date}&meal=${meal}`,
+        { headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) } }
+      )
+      if (resp.ok && resp.status === 200) {
+        const text = await resp.text()
+        if (text) {
+          const data = JSON.parse(text)
+          if (data && data.plan !== undefined) return data
+        }
+      }
+    } catch { /* cache miss, endpoint missing, or network error — fall through */ }
+    // Fallback: full DB endpoint (also writes cache file for next time)
+    return request(`kitchen-menu.php?action=chef_init&date=${date}&meal=${meal}`)
+  },
 
   // Get single plan by date + meal
   plan: (date, meal) =>
