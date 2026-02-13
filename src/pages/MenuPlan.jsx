@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser, useSelectedCamp } from '../context/AppContext'
-import { kitchenMenu as menuApi } from '../services/api'
+import { kitchenMenu as menuApi, kitchen as kitchenApi } from '../services/api'
 import { lockScroll, unlockScroll } from '../utils/scrollLock'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import {
@@ -95,13 +95,26 @@ export default function MenuPlan() {
       const data = await menuApi.chefInit(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
-      // Recipes come back in the same response — only update if present
       if (data.recipes) {
         setAllRecipes(data.recipes)
         setRecipesLoaded(true)
       }
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // Fallback: if chefInit not available, use parallel separate calls
+      try {
+        const [planData, recData] = await Promise.all([
+          menuApi.plan(date, meal),
+          recipesLoaded ? null : kitchenApi.recipes(),
+        ])
+        setPlan(planData.plan)
+        setDishes(planData.dishes || [])
+        if (recData?.recipes) {
+          setAllRecipes(recData.recipes)
+          setRecipesLoaded(true)
+        }
+      } catch (err2) {
+        setError(err2.message)
+      }
     } finally {
       setLoading(false)
       setNavigating(false)
