@@ -7,7 +7,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 import {
   BookOpen, Plus, Search, X, Loader2, ChevronDown, ChevronUp,
   Pencil, Trash2, ChefHat, Users, Clock, UtensilsCrossed,
-  Check, Minus, Package, AlertTriangle, Filter
+  Check, Minus, Package, AlertTriangle
 } from 'lucide-react'
 
 // ── Constants ──────────────────────────────────────────
@@ -47,7 +47,6 @@ export default function Recipes() {
   // Search + filter
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
 
   // Expanded recipe detail
   const [expandedId, setExpandedId] = useState(null)
@@ -189,7 +188,7 @@ export default function Recipes() {
         </div>
       )}
 
-      {/* Search + Filter */}
+      {/* Search + Category Dropdown */}
       <div className="bg-white rounded-xl border border-gray-200 p-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -210,37 +209,20 @@ export default function Recipes() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium border transition ${
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition appearance-none cursor-pointer min-w-[120px] ${
               categoryFilter
                 ? 'bg-orange-50 border-orange-200 text-orange-700'
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                : 'bg-gray-50 border-gray-200 text-gray-600'
             }`}
           >
-            <Filter size={14} />
-            Filter
-          </button>
-        </div>
-
-        {/* Category pills */}
-        {showFilters && (
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scroll-touch">
             {CATEGORIES.map(c => (
-              <button
-                key={c.value}
-                onClick={() => setCategoryFilter(c.value)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
-                  categoryFilter === c.value
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {c.label}
-              </button>
+              <option key={c.value} value={c.value}>{c.label}</option>
             ))}
-          </div>
-        )}
+          </select>
+        </div>
       </div>
 
       {/* Stats */}
@@ -294,6 +276,15 @@ export default function Recipes() {
               onDelete={() => setDeletingId(recipe.id)}
             />
           ))}
+
+          {/* New Recipe button at end of list */}
+          <button
+            onClick={openCreate}
+            className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition font-semibold text-sm"
+          >
+            <Plus size={18} />
+            New Recipe
+          </button>
         </div>
       )}
 
