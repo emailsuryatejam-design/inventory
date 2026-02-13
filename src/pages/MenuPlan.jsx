@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser, useSelectedCamp } from '../context/AppContext'
-import { kitchenMenu as menuApi, kitchen as kitchenApi } from '../services/api'
+import { kitchenMenu as menuApi } from '../services/api'
 import { lockScroll, unlockScroll } from '../utils/scrollLock'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import {
@@ -80,22 +80,7 @@ export default function MenuPlan() {
   const [ratingDish, setRatingDish] = useState(null)
   const [showAudit, setShowAudit] = useState(false)
 
-  // ── Load recipes on mount ──
-  useEffect(() => {
-    async function fetchRecipes() {
-      try {
-        const data = await kitchenApi.recipes()
-        setAllRecipes(data.recipes || [])
-      } catch {
-        // silently fail — dropdown will just be empty
-      } finally {
-        setRecipesLoaded(true)
-      }
-    }
-    fetchRecipes()
-  }, [campId])
-
-  // ── Load plan when date/meal changes ──
+  // ── Load plan + recipes in ONE call when date/meal changes ──
   useEffect(() => {
     loadPlan()
   }, [date, meal, campId])
@@ -106,15 +91,32 @@ export default function MenuPlan() {
     navRef.current = true
     setError('')
     try {
-      const data = await menuApi.plan(date, meal)
+      // Combined endpoint: plan + recipes in a single round-trip
+      const data = await menuApi.chefInit(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
+      // Recipes come back in the same response — only update if present
+      if (data.recipes) {
+        setAllRecipes(data.recipes)
+        setRecipesLoaded(true)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
       setNavigating(false)
       navRef.current = false
+    }
+  }
+
+  // Lightweight refresh after mutations — skip recipes, just reload plan data
+  async function refreshPlan() {
+    try {
+      const data = await menuApi.plan(date, meal)
+      setPlan(data.plan)
+      setDishes(data.dishes || [])
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -156,7 +158,7 @@ export default function MenuPlan() {
         }
       }
 
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -170,7 +172,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.removeDish(dishId)
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -184,7 +186,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.updatePortions(dishId, newPortions)
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -198,7 +200,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.updatePlanPax(plan.id, newPax)
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -212,7 +214,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.confirmPlan(plan.id)
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -224,7 +226,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.reopenPlan(plan.id)
-      await loadPlan()
+      await refreshPlan()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -417,7 +419,7 @@ export default function MenuPlan() {
       {ratingDish && (
         <PresentationRatingSheet
           dish={ratingDish}
-          onRated={() => { setRatingDish(null); loadPlan() }}
+          onRated={() => { setRatingDish(null); refreshPlan() }}
           onClose={() => setRatingDish(null)}
         />
       )}

@@ -545,6 +545,10 @@ export const kitchen = {
 
 // ── Kitchen Menu Planning ──────────────────────────
 export const kitchenMenu = {
+  // Combined: plan + recipes in one call (saves a full round-trip)
+  chefInit: (date, meal) =>
+    request(`kitchen-menu.php?action=chef_init&date=${date}&meal=${meal}`),
+
   // Get single plan by date + meal
   plan: (date, meal) =>
     request(`kitchen-menu.php?action=plan&date=${date}&meal=${meal}`),
