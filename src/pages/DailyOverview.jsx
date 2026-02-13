@@ -8,19 +8,29 @@ import {
 } from 'lucide-react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
+// Format YYYY-MM-DD using LOCAL time (never UTC — avoids timezone bugs in EAT/GMT+3)
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function todayStr() { return toDateStr(new Date()) }
+
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function isToday(dateStr) {
-  return dateStr === new Date().toISOString().split('T')[0]
+  return dateStr === todayStr()
 }
 
 export default function DailyOverview() {
   const user = useUser()
   const { campId, camps } = useSelectedCamp()
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(todayStr())
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,13 +61,15 @@ export default function DailyOverview() {
   }
 
   function changeDate(days) {
-    const d = new Date(date + 'T00:00:00')
-    d.setDate(d.getDate() + days)
-    setDate(d.toISOString().split('T')[0])
+    setDate(prev => {
+      const d = new Date(prev + 'T00:00:00')
+      d.setDate(d.getDate() + days)
+      return toDateStr(d)
+    })
   }
 
   function goToToday() {
-    setDate(new Date().toISOString().split('T')[0])
+    setDate(todayStr())
   }
 
   // Sorting

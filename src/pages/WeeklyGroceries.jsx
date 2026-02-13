@@ -9,18 +9,28 @@ import {
 
 // ── Helpers ──────────────────────────────────────────
 
+// Format YYYY-MM-DD using LOCAL time (never UTC — avoids timezone bugs in EAT/GMT+3)
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function todayStr() { return toDateStr(new Date()) }
+
 function getMonday(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
   const day = d.getDay() // 0=Sun,1=Mon...
   const diff = d.getDate() - day + (day === 0 ? -6 : 1) // adjust for Sunday
   d.setDate(diff)
-  return d.toISOString().split('T')[0]
+  return toDateStr(d)
 }
 
 function getSunday(mondayStr) {
   const d = new Date(mondayStr + 'T00:00:00')
   d.setDate(d.getDate() + 6)
-  return d.toISOString().split('T')[0]
+  return toDateStr(d)
 }
 
 function formatWeekRange(mondayStr) {
@@ -32,7 +42,7 @@ function formatWeekRange(mondayStr) {
 }
 
 function isCurrentWeek(mondayStr) {
-  return mondayStr === getMonday(new Date().toISOString().split('T')[0])
+  return mondayStr === getMonday(todayStr())
 }
 
 
@@ -44,7 +54,7 @@ export default function WeeklyGroceries() {
   const { campId } = useSelectedCamp()
 
   // Week
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date().toISOString().split('T')[0]))
+  const [weekStart, setWeekStart] = useState(() => getMonday(todayStr()))
 
   // Data
   const [items, setItems] = useState([])
@@ -71,9 +81,11 @@ export default function WeeklyGroceries() {
 
   // ── Week navigation ──
   function changeWeek(weeks) {
-    const d = new Date(weekStart + 'T00:00:00')
-    d.setDate(d.getDate() + weeks * 7)
-    setWeekStart(d.toISOString().split('T')[0])
+    setWeekStart(prev => {
+      const d = new Date(prev + 'T00:00:00')
+      d.setDate(d.getDate() + weeks * 7)
+      return toDateStr(d)
+    })
   }
 
   // ── Update tracking field ──
@@ -113,7 +125,7 @@ export default function WeeklyGroceries() {
           {isCurrentWeek(weekStart) && <span className="text-[10px] text-green-600 font-medium">This Week</span>}
           {!isCurrentWeek(weekStart) && (
             <button
-              onClick={() => setWeekStart(getMonday(new Date().toISOString().split('T')[0]))}
+              onClick={() => setWeekStart(getMonday(todayStr()))}
               className="text-[10px] text-purple-600 font-medium"
             >
               Go to This Week

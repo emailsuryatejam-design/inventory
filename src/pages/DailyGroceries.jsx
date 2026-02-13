@@ -13,13 +13,23 @@ const MEALS = [
   { value: 'dinner', label: 'Dinner', icon: '\uD83C\uDF19' },
 ]
 
+// Format YYYY-MM-DD using LOCAL time (never UTC — avoids timezone bugs in EAT/GMT+3)
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function todayStr() { return toDateStr(new Date()) }
+
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function isToday(dateStr) {
-  return dateStr === new Date().toISOString().split('T')[0]
+  return dateStr === todayStr()
 }
 
 
@@ -31,7 +41,7 @@ export default function DailyGroceries() {
   const { campId } = useSelectedCamp()
 
   // Date + meal
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(todayStr())
   const [meal, setMeal] = useState('lunch')
 
   // Data
@@ -77,9 +87,11 @@ export default function DailyGroceries() {
 
   // ── Date navigation ──
   function changeDate(days) {
-    const d = new Date(date + 'T00:00:00')
-    d.setDate(d.getDate() + days)
-    setDate(d.toISOString().split('T')[0])
+    setDate(prev => {
+      const d = new Date(prev + 'T00:00:00')
+      d.setDate(d.getDate() + days)
+      return toDateStr(d)
+    })
   }
 
   // ── Update tracking field ──
@@ -118,7 +130,7 @@ export default function DailyGroceries() {
           <p className="text-sm font-semibold text-gray-900">{formatDate(date)}</p>
           {isToday(date) && <span className="text-[10px] text-green-600 font-medium">Today</span>}
           {!isToday(date) && (
-            <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="text-[10px] text-blue-600 font-medium">
+            <button onClick={() => setDate(todayStr())} className="text-[10px] text-blue-600 font-medium">
               Go to Today
             </button>
           )}
