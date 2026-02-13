@@ -323,7 +323,13 @@ export default function Recipes() {
 // ════════════════════════════════════════════════════════
 function RecipeCard({ recipe, isExpanded, detail, detailLoading, onToggle, onEdit, onDelete }) {
   const ingredients = detail?.ingredients || []
-  const instructions = detail?.recipe?.instructions ? JSON.parse(detail.recipe.instructions || '[]') : []
+  const rawInst = detail?.recipe?.instructions
+  let instructions = []
+  if (rawInst) {
+    try {
+      instructions = typeof rawInst === 'string' ? JSON.parse(rawInst) : Array.isArray(rawInst) ? rawInst : []
+    } catch { instructions = [] }
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
