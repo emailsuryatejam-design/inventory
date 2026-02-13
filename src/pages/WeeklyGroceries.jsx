@@ -139,7 +139,7 @@ export default function WeeklyGroceries() {
 
       {/* ── Content ── */}
       {!loading && (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100">
           {/* Add new item row */}
           <AddWeeklyRow
             weekStart={weekStart}
@@ -274,12 +274,12 @@ function AddWeeklyRow({ weekStart, onAdded, onError }) {
 
         {/* Search results dropdown */}
         {results.length > 0 && !selectedItem && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
             {results.map(item => (
               <button
                 key={item.id}
                 onClick={() => handleSelectItem(item)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 border-b border-gray-50 last:border-0"
+                className="w-full text-left px-3 py-2.5 text-sm hover:bg-purple-50 border-b border-gray-50 last:border-0"
               >
                 <span className="font-medium text-gray-900">{item.name}</span>
                 <span className="text-xs text-gray-400 ml-2">{item.uom}</span>
