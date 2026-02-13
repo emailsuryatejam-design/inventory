@@ -652,6 +652,10 @@ export const kitchenMenu = {
       method: 'POST',
       body: JSON.stringify({ action: 'reopen_plan', plan_id: planId }),
     }),
+
+  // Weekly ingredients (aggregated non-primary for a week)
+  weeklyIngredients: (weekStart) =>
+    request(`kitchen-menu.php?action=weekly_ingredients&week_start=${weekStart}`),
 }
 
 // ── Daily Overview ─────────────────────────────────

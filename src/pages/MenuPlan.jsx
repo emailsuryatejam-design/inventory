@@ -9,7 +9,7 @@ import {
   Loader2, Search, X, Check, AlertTriangle,
   UtensilsCrossed, Minus, ClipboardList, Users as UsersIcon,
   History, CheckCircle, RotateCcw, Package,
-  BookOpen, Star, Camera, ChevronDown
+  BookOpen, Star, Camera, ChevronDown, Calendar
 } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────
@@ -51,6 +51,27 @@ function isToday(dateStr) {
   return dateStr === new Date().toISOString().split('T')[0]
 }
 
+function getMonday(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Mon=1
+  d.setDate(diff)
+  return d.toISOString().split('T')[0]
+}
+
+function formatWeekRange(mondayStr) {
+  const mon = new Date(mondayStr + 'T00:00:00')
+  const sun = new Date(mon)
+  sun.setDate(sun.getDate() + 6)
+  const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return `${fmt(mon)} — ${fmt(sun)}`
+}
+
+const TABS = [
+  { value: 'daily', label: 'Daily Menu' },
+  { value: 'weekly', label: 'Weekly Items' },
+]
+
 
 // ════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
@@ -73,6 +94,9 @@ export default function MenuPlan() {
   // Recipes for dropdown
   const [allRecipes, setAllRecipes] = useState([])
   const [recipesLoaded, setRecipesLoaded] = useState(false)
+
+  // Tab: daily | weekly
+  const [activeTab, setActiveTab] = useState('daily')
 
   // Bottom sheets
   const [addIngDish, setAddIngDish] = useState(null)
@@ -298,41 +322,23 @@ export default function MenuPlan() {
         ))}
       </div>
 
-      {/* ── Status Bar (only when plan exists) ── */}
-      {plan && (
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-2.5 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-              isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {plan.status}
-            </span>
-            <span className="text-[10px] text-gray-400">
-              {dishes.length} dish{dishes.length !== 1 ? 'es' : ''}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {plan.status === 'draft' && (
-              <button
-                onClick={handleConfirmPlan}
-                disabled={saving || dishes.length === 0}
-                className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
-              >
-                <CheckCircle size={13} /> Confirm
-              </button>
-            )}
-            {isConfirmed && (
-              <button
-                onClick={handleReopenPlan}
-                disabled={saving}
-                className="text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-lg flex items-center gap-1"
-              >
-                <RotateCcw size={13} /> Reopen
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ── Daily / Weekly Tab Toggle ── */}
+      <div className="flex bg-gray-100 rounded-lg p-0.5 mb-3">
+        {TABS.map(t => (
+          <button
+            key={t.value}
+            onClick={() => setActiveTab(t.value)}
+            className={`flex-1 py-2 rounded-md text-xs font-semibold transition-all ${
+              activeTab === t.value
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500'
+            }`}
+          >
+            {t.value === 'weekly' && <Calendar size={12} className="inline mr-1" />}
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* ── Error ── */}
       {error && (
@@ -343,55 +349,102 @@ export default function MenuPlan() {
         </div>
       )}
 
-      {/* ── Loading ── */}
-      {loading && <LoadingSpinner message="Loading menu plan..." />}
-
-      {/* ── Dish list (flat, no course grouping) ── */}
-      {!loading && (
-        <div className="space-y-2">
-          {/* Empty state (no plan yet or plan with no dishes) */}
-          {dishes.length === 0 && !plan && !isConfirmed && (
-            <div className="bg-white rounded-xl border border-gray-100 p-6 text-center mb-2">
-              <ChefHat size={36} className="text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 mb-1">No menu plan yet</p>
-              <p className="text-xs text-gray-400">Add a dish below to start planning</p>
+      {/* ════════ DAILY TAB ════════ */}
+      {activeTab === 'daily' && (
+        <>
+          {/* ── Status Bar (only when plan exists) ── */}
+          {plan && (
+            <div className="bg-white rounded-xl border border-gray-100 px-4 py-2.5 mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                  isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {plan.status}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  {dishes.length} dish{dishes.length !== 1 ? 'es' : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {plan.status === 'draft' && (
+                  <button
+                    onClick={handleConfirmPlan}
+                    disabled={saving || dishes.length === 0}
+                    className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <CheckCircle size={13} /> Confirm
+                  </button>
+                )}
+                {isConfirmed && (
+                  <button
+                    onClick={handleReopenPlan}
+                    disabled={saving}
+                    className="text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-lg flex items-center gap-1"
+                  >
+                    <RotateCcw size={13} /> Reopen
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          {dishes.length === 0 && plan && (
-            <div className="bg-white rounded-xl border border-gray-100 p-6 text-center mb-2">
-              <UtensilsCrossed size={32} className="text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">No dishes yet</p>
-              <p className="text-xs text-gray-400">Add dishes below to build the menu</p>
+          {/* ── Loading ── */}
+          {loading && <LoadingSpinner message="Loading menu plan..." />}
+
+          {/* ── Dish list (flat, no course grouping) ── */}
+          {!loading && (
+            <div className="space-y-2">
+              {/* Empty state */}
+              {dishes.length === 0 && !plan && !isConfirmed && (
+                <div className="bg-white rounded-xl border border-gray-100 p-6 text-center mb-2">
+                  <ChefHat size={36} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 mb-1">No menu plan yet</p>
+                  <p className="text-xs text-gray-400">Add a dish below to start planning</p>
+                </div>
+              )}
+
+              {dishes.length === 0 && plan && (
+                <div className="bg-white rounded-xl border border-gray-100 p-6 text-center mb-2">
+                  <UtensilsCrossed size={32} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No dishes yet</p>
+                  <p className="text-xs text-gray-400">Add dishes below to build the menu</p>
+                </div>
+              )}
+
+              {/* Dish Cards — only primary ingredients shown */}
+              {dishes.map(dish => (
+                <DishCard
+                  key={dish.id}
+                  dish={dish}
+                  isConfirmed={isConfirmed}
+                  onRemoveDish={() => handleRemoveDish(dish.id)}
+                  onAddIngredient={() => setAddIngDish(dish)}
+                  onRatePresentation={() => setRatingDish(dish)}
+                  onRemoveIngredient={handleRemoveIngredient}
+                  onUpdateQty={handleUpdateQty}
+                  onUpdatePortions={(p) => handleUpdatePortions(dish.id, p)}
+                  saving={saving}
+                  showOnlyPrimary
+                />
+              ))}
+
+              {/* ── Inline Add Dish Form ── */}
+              {isDraft && !isConfirmed && (
+                <InlineAddDish
+                  recipes={allRecipes}
+                  recipesLoaded={recipesLoaded}
+                  onAdd={handleAddDish}
+                  saving={saving}
+                />
+              )}
             </div>
           )}
+        </>
+      )}
 
-          {/* Dish Cards */}
-          {dishes.map(dish => (
-            <DishCard
-              key={dish.id}
-              dish={dish}
-              isConfirmed={isConfirmed}
-              onRemoveDish={() => handleRemoveDish(dish.id)}
-              onAddIngredient={() => setAddIngDish(dish)}
-              onRatePresentation={() => setRatingDish(dish)}
-              onRemoveIngredient={handleRemoveIngredient}
-              onUpdateQty={handleUpdateQty}
-              onUpdatePortions={(p) => handleUpdatePortions(dish.id, p)}
-              saving={saving}
-            />
-          ))}
-
-          {/* ── Inline Add Dish Form ── */}
-          {isDraft && !isConfirmed && (
-            <InlineAddDish
-              recipes={allRecipes}
-              recipesLoaded={recipesLoaded}
-              onAdd={handleAddDish}
-              saving={saving}
-            />
-          )}
-        </div>
+      {/* ════════ WEEKLY TAB ════════ */}
+      {activeTab === 'weekly' && (
+        <WeeklyIngredients date={date} />
       )}
 
       {/* ── Manual Ingredient Sheet ── */}
@@ -615,8 +668,10 @@ function InlineAddDish({ recipes, recipesLoaded, onAdd, saving }) {
 // ════════════════════════════════════════════════════════════
 // DISH CARD — compact dish with inline ingredients
 // ════════════════════════════════════════════════════════════
-function DishCard({ dish, isConfirmed, onRemoveDish, onAddIngredient, onRatePresentation, onRemoveIngredient, onUpdateQty, onUpdatePortions, saving }) {
-  const activeIngredients = dish.ingredients.filter(i => !i.is_removed)
+function DishCard({ dish, isConfirmed, onRemoveDish, onAddIngredient, onRatePresentation, onRemoveIngredient, onUpdateQty, onUpdatePortions, saving, showOnlyPrimary = false }) {
+  const allActive = dish.ingredients.filter(i => !i.is_removed)
+  const activeIngredients = showOnlyPrimary ? allActive.filter(i => i.is_primary) : allActive
+  const nonPrimaryCount = showOnlyPrimary ? allActive.filter(i => !i.is_primary).length : 0
   const removedIngredients = dish.ingredients.filter(i => i.is_removed)
   const [showRemoved, setShowRemoved] = useState(false)
   const dishPortions = dish.portions || 20
@@ -709,6 +764,13 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onAddIngredient, onRatePres
         </button>
       )}
 
+      {/* Weekly items hint */}
+      {showOnlyPrimary && nonPrimaryCount > 0 && (
+        <div className="px-3 py-1.5 text-[10px] text-gray-400 text-center border-t border-gray-50">
+          + {nonPrimaryCount} weekly item{nonPrimaryCount > 1 ? 's' : ''} (onion, garlic, etc.)
+        </div>
+      )}
+
       {/* ── Removed ingredients ── */}
       {removedIngredients.length > 0 && (
         <div className="border-t border-gray-50">
@@ -792,6 +854,121 @@ function IngredientRow({ ing, isConfirmed, onRemove, onUpdateQty }) {
         <button onClick={onRemove} className="text-red-400 p-0.5 shrink-0">
           <X size={13} />
         </button>
+      )}
+    </div>
+  )
+}
+
+
+// ════════════════════════════════════════════════════════════
+// WEEKLY INGREDIENTS — aggregated non-primary for the week
+// ════════════════════════════════════════════════════════════
+function WeeklyIngredients({ date }) {
+  const [weekStart, setWeekStart] = useState(() => getMonday(date))
+  const [ingredients, setIngredients] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  // Recalculate week when date changes
+  useEffect(() => {
+    setWeekStart(getMonday(date))
+  }, [date])
+
+  useEffect(() => {
+    loadWeekly()
+  }, [weekStart])
+
+  async function loadWeekly() {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await menuApi.weeklyIngredients(weekStart)
+      setIngredients(data.ingredients || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function changeWeek(dir) {
+    const d = new Date(weekStart + 'T00:00:00')
+    d.setDate(d.getDate() + (dir * 7))
+    setWeekStart(d.toISOString().split('T')[0])
+  }
+
+  return (
+    <div>
+      {/* Week navigator */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3 mb-3">
+        <button onClick={() => changeWeek(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200">
+          <ChevronLeft size={18} className="text-gray-600" />
+        </button>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 justify-center">
+            <Calendar size={14} className="text-orange-500" />
+            {formatWeekRange(weekStart)}
+          </p>
+          <p className="text-[10px] text-gray-400">Common ingredients across all meals</p>
+        </div>
+        <button onClick={() => changeWeek(1)} className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200">
+          <ChevronRight size={18} className="text-gray-600" />
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3 flex items-center gap-2">
+          <AlertTriangle size={16} className="text-red-500 shrink-0" />
+          <p className="text-sm text-red-700 flex-1">{error}</p>
+        </div>
+      )}
+
+      {loading && <LoadingSpinner message="Loading weekly ingredients..." />}
+
+      {!loading && ingredients.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
+          <Package size={32} className="text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">No weekly ingredients</p>
+          <p className="text-xs text-gray-400 mt-1">Add dishes with recipes to see common ingredients here</p>
+        </div>
+      )}
+
+      {!loading && ingredients.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
+            <span className="text-[11px] font-semibold text-gray-500 flex-1">Ingredient</span>
+            <span className="text-[11px] font-semibold text-gray-500 w-12 text-right">Stock</span>
+            <span className="text-[11px] font-semibold text-gray-500 w-16 text-right">Needed</span>
+            <span className="text-[11px] font-semibold text-gray-500 w-8 text-center">Dishes</span>
+          </div>
+
+          {ingredients.map(ing => {
+            const shortage = ing.total_qty > ing.stock_qty
+            return (
+              <div key={ing.item_id} className="flex items-center gap-2 px-3 py-2 border-b border-gray-50 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-800 truncate">{ing.item_name}</p>
+                </div>
+                <span className="text-[10px] text-gray-400 w-12 text-right flex items-center justify-end gap-0.5">
+                  <Package size={8} />{ing.stock_qty}
+                </span>
+                <span className={`text-xs font-semibold w-16 text-right ${shortage ? 'text-red-600' : 'text-gray-800'}`}>
+                  {ing.total_qty} <span className="text-[9px] text-gray-400 font-normal">{ing.uom}</span>
+                </span>
+                <span className="text-[10px] text-gray-500 w-8 text-center bg-gray-50 rounded-full px-1.5 py-0.5">
+                  {ing.dish_count}
+                </span>
+              </div>
+            )
+          })}
+
+          <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+            <p className="text-[10px] text-gray-400 text-center">
+              {ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} across the week
+            </p>
+          </div>
+        </div>
       )}
     </div>
   )
