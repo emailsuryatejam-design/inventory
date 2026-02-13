@@ -3,7 +3,7 @@ import { useUser, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
-  Users, Settings, LogOut, Wine, Sparkles, GlassWater, Calendar
+  Users, Settings, LogOut, Wine, Sparkles, GlassWater, Calendar, ChefHat
 } from 'lucide-react'
 
 // Role-based nav: access = 'all' | 'manager' | roles array
@@ -19,6 +19,7 @@ const navItems = [
   { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', guide: 'nav-pos' },
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', guide: 'nav-bar-menu' },
   { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all', guide: 'nav-recipes' },
+  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-menu-plan' },
   { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', guide: 'nav-alerts' },
   { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager', guide: 'nav-reports' },
   { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'], guide: 'nav-users' },

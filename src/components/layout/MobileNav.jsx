@@ -5,7 +5,7 @@ import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 import {
   LayoutDashboard, ShoppingCart, Boxes, Wine, Calendar,
   Menu, X, Truck, PackageCheck, FileOutput, Bell, BarChart3,
-  Users, Settings, LogOut, Sparkles, GlassWater, Package
+  Users, Settings, LogOut, Sparkles, GlassWater, Package, ChefHat
 } from 'lucide-react'
 
 // Primary tabs always visible in bottom bar
@@ -29,6 +29,7 @@ const allNavItems = [
   { path: '/app/pos', icon: Wine, label: 'POS', access: 'all' },
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all' },
   { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all' },
+  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
   { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all' },
   { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
   { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },

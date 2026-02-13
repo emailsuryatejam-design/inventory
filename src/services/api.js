@@ -532,6 +532,101 @@ export const kitchen = {
     }),
 }
 
+// ── Kitchen Menu Planning ──────────────────────────
+export const kitchenMenu = {
+  // Get single plan by date + meal
+  plan: (date, meal) =>
+    request(`kitchen-menu.php?action=plan&date=${date}&meal=${meal}`),
+
+  // List plans for a month (YYYY-MM)
+  plans: (month) =>
+    request(`kitchen-menu.php?action=plans&month=${month}`),
+
+  // Get audit trail for a plan
+  audit: (planId) =>
+    request(`kitchen-menu.php?action=audit&plan_id=${planId}`),
+
+  // AI suggest ingredients for a dish
+  suggestIngredients: (dish, portions, course) => {
+    const params = new URLSearchParams({ dish, portions, course: course || '' })
+    return request(`kitchen-menu.php?action=suggest_ingredients&${params}`)
+  },
+
+  // Search stock items for manual ingredient add
+  searchItems: (q) =>
+    request(`kitchen-menu.php?action=search_items&q=${encodeURIComponent(q)}`),
+
+  // Create a new menu plan
+  createPlan: (date, meal, portions) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create_plan', date, meal, portions }),
+    }),
+
+  // Add a dish to a plan
+  addDish: (planId, course, dishName) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_dish', plan_id: planId, course, dish_name: dishName }),
+    }),
+
+  // Remove a dish
+  removeDish: (dishId) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'remove_dish', dish_id: dishId }),
+    }),
+
+  // Accept AI suggestions for a dish
+  acceptSuggestions: (dishId, suggestions, portions) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'accept_suggestions', dish_id: dishId, suggestions, portions }),
+    }),
+
+  // Add a manual ingredient
+  addIngredient: (dishId, itemId, qty, uom) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_ingredient', dish_id: dishId, item_id: itemId, qty, uom }),
+    }),
+
+  // Remove an ingredient
+  removeIngredient: (ingredientId, reason) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'remove_ingredient', ingredient_id: ingredientId, reason }),
+    }),
+
+  // Update ingredient quantity
+  updateQty: (ingredientId, qty) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_qty', ingredient_id: ingredientId, qty }),
+    }),
+
+  // Update portions count
+  updatePortions: (planId, portions) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_portions', plan_id: planId, portions }),
+    }),
+
+  // Confirm plan
+  confirmPlan: (planId) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'confirm_plan', plan_id: planId }),
+    }),
+
+  // Reopen plan
+  reopenPlan: (planId) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'reopen_plan', plan_id: planId }),
+    }),
+}
+
 // ── Daily Overview ─────────────────────────────────
 export const dailyOverview = {
   get: (params = {}) => {
