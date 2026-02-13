@@ -677,6 +677,10 @@ export const kitchenMenu = {
       method: 'POST',
       body: JSON.stringify({ action: 'add_weekly_grocery', week_start: weekStart, item_id: itemId, projected_qty: projectedQty }),
     }),
+
+  // View default menu template for a specific day + meal
+  defaultMenu: (day, meal) =>
+    request(`kitchen-menu.php?action=default_menu&day=${day}&meal=${meal}`),
 }
 
 // ── Daily Overview ─────────────────────────────────

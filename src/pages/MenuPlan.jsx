@@ -582,6 +582,7 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
   const dishPortions = dish.portions || 20
   const hasRecipe = !!dish.recipe_id
   const hasScore = dish.presentation_score > 0
+  const isDefault = !!dish.is_default
   const ingredientCount = dish.ingredients.filter(i => !i.is_removed).length
   const primaryCount = dish.ingredients.filter(i => !i.is_removed && i.is_primary).length
   const weeklyCount = dish.ingredients.filter(i => !i.is_removed && !i.is_primary).length
@@ -600,6 +601,11 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
         </div>
 
         {/* Badges */}
+        {isDefault && (
+          <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+            Default
+          </span>
+        )}
         {hasRecipe && (
           <span className="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
             <BookOpen size={8} />
@@ -614,12 +620,12 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
         {/* Portions */}
         <button
           onClick={() => {
-            if (isConfirmed) return
+            if (isConfirmed || isDefault) return
             const n = prompt('Portions:', dishPortions)
             if (n && parseInt(n) > 0 && parseInt(n) !== dishPortions) onUpdatePortions(parseInt(n))
           }}
           className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-            isConfirmed ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
+            isConfirmed || isDefault ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
           }`}
         >
           <UsersIcon size={10} /> {dishPortions}
@@ -630,8 +636,8 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
           <Camera size={15} />
         </button>
 
-        {/* Delete */}
-        {!isConfirmed && (
+        {/* Delete — hidden for default dishes */}
+        {!isConfirmed && !isDefault && (
           <button
             onClick={onRemoveDish}
             disabled={saving}
