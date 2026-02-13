@@ -8,17 +8,17 @@ import {
 } from 'lucide-react'
 
 // Role-based nav: access = 'all' | 'manager' | roles array
-// Chef only sees: Dashboard, Menu Plan, Issue, Recipes
+// Chef excluded from store tabs — only sees Menu Plan, Groceries, Recipes
 const CHEF_ONLY = ['chef']
 const navItems = [
-  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', guide: 'nav-dashboard' },
+  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY, guide: 'nav-dashboard' },
   { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all', exclude: CHEF_ONLY, guide: 'nav-daily' },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY, guide: 'nav-orders' },
   { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager', guide: 'nav-dispatch' },
   { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', exclude: CHEF_ONLY, guide: 'nav-stock' },
   { path: '/app/items', icon: Package, label: 'Items', access: 'all', exclude: CHEF_ONLY, guide: 'nav-items' },
   { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all', exclude: CHEF_ONLY, guide: 'nav-receive' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', guide: 'nav-issue' },
+  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', exclude: CHEF_ONLY, guide: 'nav-issue' },
   { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY, guide: 'nav-pos' },
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY, guide: 'nav-bar-menu' },
   { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all', guide: 'nav-recipes' },
