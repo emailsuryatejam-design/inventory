@@ -639,6 +639,13 @@ export const kitchenMenu = {
       body: JSON.stringify({ action: 'update_portions', dish_id: dishId, portions }),
     }),
 
+  // Update total pax (covers) for a meal plan
+  updatePlanPax: (planId, pax) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_plan_pax', plan_id: planId, pax }),
+    }),
+
   // Confirm plan
   confirmPlan: (planId) =>
     request('kitchen-menu.php', {

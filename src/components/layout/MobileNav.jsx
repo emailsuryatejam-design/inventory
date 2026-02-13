@@ -9,7 +9,7 @@ import {
   ClipboardList
 } from 'lucide-react'
 
-// Chef only sees: Dashboard, Menu Plan, Issue, Recipes
+// Chef excluded from most store tabs
 const CHEF_ONLY = ['chef']
 
 // Primary tabs always visible in bottom bar
@@ -22,22 +22,22 @@ const defaultTabs = [
 ]
 
 const chefTabs = [
-  { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
-  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue' },
+  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu', end: true },
+  { path: '/app/daily-groceries', icon: ClipboardList, label: 'Daily' },
+  { path: '/app/weekly-groceries', icon: Calendar, label: 'Weekly' },
   { path: '/app/recipes', icon: BookOpen, label: 'Recipes' },
 ]
 
 // All navigation items for the "More" drawer (role-based, same as Sidebar)
 const allNavItems = [
-  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all' },
+  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
   { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
   { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/items', icon: Package, label: 'Items', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all', exclude: CHEF_ONLY },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all' },
+  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all' },

@@ -69,6 +69,7 @@ export default function MenuPlan() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [navigating, setNavigating] = useState(false) // blocks double-clicks on arrows
 
   // Recipes for dropdown
   const [allRecipes, setAllRecipes] = useState([])
@@ -100,6 +101,7 @@ export default function MenuPlan() {
 
   async function loadPlan() {
     setLoading(true)
+    setNavigating(true)
     setError('')
     try {
       const data = await menuApi.plan(date, meal)
@@ -109,11 +111,13 @@ export default function MenuPlan() {
       setError(err.message)
     } finally {
       setLoading(false)
+      setNavigating(false)
     }
   }
 
-  // ── Date navigation ──
+  // ── Date navigation (guarded against double-clicks) ──
   function changeDate(days) {
+    if (navigating || loading) return
     const d = new Date(date + 'T00:00:00')
     d.setDate(d.getDate() + days)
     setDate(d.toISOString().split('T')[0])
@@ -182,6 +186,20 @@ export default function MenuPlan() {
     }
   }
 
+  // ── Update plan-level pax (total covers) ──
+  async function handleUpdatePlanPax(newPax) {
+    if (!plan || newPax < 1) return
+    setSaving(true)
+    try {
+      await menuApi.updatePlanPax(plan.id, newPax)
+      await loadPlan()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // ── Confirm / Reopen plan ──
   async function handleConfirmPlan() {
     if (!confirm('Confirm this menu plan? No further edits until reopened.')) return
@@ -238,20 +256,32 @@ export default function MenuPlan() {
 
       {/* ── Date Picker ── */}
       <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3 mb-3">
-        <button onClick={() => changeDate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200">
-          <ChevronLeft size={20} className="text-gray-600" />
+        <button
+          onClick={() => changeDate(-1)}
+          disabled={navigating}
+          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none"
+        >
+          {navigating ? <Loader2 size={20} className="animate-spin text-gray-400" /> : <ChevronLeft size={20} className="text-gray-600" />}
         </button>
         <div className="text-center">
           <p className="text-sm font-semibold text-gray-900">{formatDate(date)}</p>
           {isToday(date) && <span className="text-[10px] text-green-600 font-medium">Today</span>}
           {!isToday(date) && (
-            <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="text-[10px] text-orange-600 font-medium">
+            <button
+              onClick={() => { if (!navigating) setDate(new Date().toISOString().split('T')[0]) }}
+              disabled={navigating}
+              className="text-[10px] text-orange-600 font-medium disabled:opacity-40"
+            >
               Go to Today
             </button>
           )}
         </div>
-        <button onClick={() => changeDate(1)} className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200">
-          <ChevronRight size={20} className="text-gray-600" />
+        <button
+          onClick={() => changeDate(1)}
+          disabled={navigating}
+          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none"
+        >
+          {navigating ? <Loader2 size={20} className="animate-spin text-gray-400" /> : <ChevronRight size={20} className="text-gray-600" />}
         </button>
       </div>
 
@@ -260,8 +290,9 @@ export default function MenuPlan() {
         {MEALS.map(m => (
           <button
             key={m.value}
-            onClick={() => setMeal(m.value)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            onClick={() => { if (!navigating) setMeal(m.value) }}
+            disabled={navigating}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${
               meal === m.value
                 ? 'bg-orange-500 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200'
@@ -281,39 +312,49 @@ export default function MenuPlan() {
         </div>
       )}
 
-      {/* ── Status Bar (only when plan exists) ── */}
+      {/* ── Pax + Status Bar (only when plan exists) ── */}
       {plan && (
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-2.5 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-              isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {plan.status}
-            </span>
-            <span className="text-[10px] text-gray-400">
-              {dishes.length} dish{dishes.length !== 1 ? 'es' : ''}
-              {totalIngredients > 0 && ` · ${totalIngredients} ingredients`}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {plan.status === 'draft' && (
-              <button
-                onClick={handleConfirmPlan}
-                disabled={saving || dishes.length === 0}
-                className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
-              >
-                <CheckCircle size={13} /> Confirm
-              </button>
-            )}
-            {isConfirmed && (
-              <button
-                onClick={handleReopenPlan}
-                disabled={saving}
-                className="text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-lg flex items-center gap-1"
-              >
-                <RotateCcw size={13} /> Reopen
-              </button>
-            )}
+        <div className="bg-white rounded-xl border border-gray-100 px-4 py-2.5 mb-3 space-y-2">
+          {/* Total Pax row */}
+          <PaxInput
+            pax={plan.portions}
+            onSave={handleUpdatePlanPax}
+            disabled={isConfirmed || saving}
+          />
+
+          {/* Status row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {plan.status}
+              </span>
+              <span className="text-[10px] text-gray-400">
+                {dishes.length} dish{dishes.length !== 1 ? 'es' : ''}
+                {totalIngredients > 0 && ` · ${totalIngredients} ingredients`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {plan.status === 'draft' && (
+                <button
+                  onClick={handleConfirmPlan}
+                  disabled={saving || dishes.length === 0}
+                  className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
+                >
+                  <CheckCircle size={13} /> Confirm
+                </button>
+              )}
+              {isConfirmed && (
+                <button
+                  onClick={handleReopenPlan}
+                  disabled={saving}
+                  className="text-xs text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-lg flex items-center gap-1"
+                >
+                  <RotateCcw size={13} /> Reopen
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -576,6 +617,61 @@ function InlineAddDish({ recipes, recipesLoaded, onAdd, saving }) {
 
 
 // ════════════════════════════════════════════════════════════
+// PAX INPUT — editable total covers for the meal plan
+// ════════════════════════════════════════════════════════════
+function PaxInput({ pax, onSave, disabled }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(pax)
+  const inputRef = useRef(null)
+
+  useEffect(() => { setValue(pax) }, [pax])
+  useEffect(() => { if (editing && inputRef.current) inputRef.current.select() }, [editing])
+
+  function handleSave() {
+    const num = parseInt(value) || 0
+    if (num > 0 && num !== pax) onSave(num)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <UsersIcon size={14} className="text-orange-600 shrink-0" />
+        <span className="text-xs font-medium text-gray-700">Total Pax</span>
+        <input
+          ref={inputRef}
+          type="number"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
+          className="w-20 text-center text-sm font-bold border border-orange-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-200"
+          min="1"
+        />
+        <button onClick={handleSave} className="text-green-600 p-1"><Check size={16} /></button>
+        <button onClick={() => { setValue(pax); setEditing(false) }} className="text-gray-400 p-1"><X size={14} /></button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <UsersIcon size={14} className="text-orange-600 shrink-0" />
+      <span className="text-xs font-medium text-gray-700">Total Pax</span>
+      <button
+        onClick={() => !disabled && setEditing(true)}
+        disabled={disabled}
+        className="text-sm font-bold text-orange-700 bg-orange-50 px-3 py-1 rounded-lg hover:bg-orange-100 active:bg-orange-200 disabled:opacity-40 disabled:pointer-events-none transition"
+      >
+        {pax}
+      </button>
+      {!disabled && <span className="text-[10px] text-gray-400">tap to edit</span>}
+    </div>
+  )
+}
+
+
+// ════════════════════════════════════════════════════════════
 // DISH CARD — compact dish info only (no ingredients)
 // ════════════════════════════════════════════════════════════
 function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdatePortions, saving }) {
@@ -620,12 +716,12 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
         {/* Portions */}
         <button
           onClick={() => {
-            if (isConfirmed || isDefault) return
+            if (isConfirmed) return
             const n = prompt('Portions:', dishPortions)
             if (n && parseInt(n) > 0 && parseInt(n) !== dishPortions) onUpdatePortions(parseInt(n))
           }}
           className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-            isConfirmed || isDefault ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
+            isConfirmed ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
           }`}
         >
           <UsersIcon size={10} /> {dishPortions}

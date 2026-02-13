@@ -34,6 +34,12 @@ function RequireAuth({ children }) {
   return children
 }
 
+function ChefRedirect() {
+  const user = useUser()
+  if (user?.role === 'chef') return <Navigate to="/app/menu-plan" replace />
+  return <Dashboard />
+}
+
 function RedirectIfAuth({ children }) {
   const user = useUser()
   if (user) return <Navigate to="/app" replace />
@@ -49,7 +55,7 @@ export default function App() {
 
       {/* Protected routes — with layout */}
       <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<ChefRedirect />} />
         <Route path="items" element={<Items />} />
         <Route path="items/:id" element={<ItemDetail />} />
         <Route path="stock" element={<Stock />} />
