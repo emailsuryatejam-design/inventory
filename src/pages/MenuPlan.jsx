@@ -12,6 +12,20 @@ import {
   BookOpen, Star, Camera, ChevronDown
 } from 'lucide-react'
 
+// ── Plan cache — instant navigation for visited days ──
+const planCache = new Map()          // key = "date|meal" → { plan, dishes, ts }
+const CACHE_TTL = 5 * 60 * 1000     // 5 min — after this, still show cached but refetch
+
+function cacheKey(date, meal) { return `${date}|${meal}` }
+function getCached(date, meal) {
+  const c = planCache.get(cacheKey(date, meal))
+  if (!c) return null
+  return c // { plan, dishes, ts }
+}
+function setCache(date, meal, plan, dishes) {
+  planCache.set(cacheKey(date, meal), { plan, dishes, ts: Date.now() })
+}
+
 // ── Constants ────────────────────────────────────────
 const COURSES = [
   { value: 'appetizer', label: 'Appetizer' },
@@ -80,27 +94,42 @@ export default function MenuPlan() {
   const [ratingDish, setRatingDish] = useState(null)
   const [showAudit, setShowAudit] = useState(false)
 
-  // ── Load plan + recipes in ONE call when date/meal changes ──
+  // ── Load plan + recipes when date/meal changes ──
+  // Uses stale-while-revalidate: show cached data instantly, refresh in background
   useEffect(() => {
     loadPlan()
   }, [date, meal, campId])
 
   async function loadPlan() {
-    setLoading(true)
-    setNavigating(true)
-    navRef.current = true
     setError('')
+
+    // 1. Instant cache hit — show stale data immediately (0ms)
+    const cached = getCached(date, meal)
+    if (cached) {
+      setPlan(cached.plan)
+      setDishes(cached.dishes)
+      // Don't show spinner — data is already on screen
+      setLoading(false)
+      setNavigating(false)
+      navRef.current = false
+    } else {
+      // No cache — show spinner
+      setLoading(true)
+      setNavigating(true)
+      navRef.current = true
+    }
+
+    // 2. Fetch fresh data from server (runs regardless of cache)
     try {
-      // Combined endpoint: plan + recipes in a single round-trip
       const data = await menuApi.chefInit(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
+      setCache(date, meal, data.plan, data.dishes || [])
       if (data.recipes) {
         setAllRecipes(data.recipes)
         setRecipesLoaded(true)
       }
     } catch {
-      // Fallback: if chefInit not available, use parallel separate calls
       try {
         const [planData, recData] = await Promise.all([
           menuApi.plan(date, meal),
@@ -108,18 +137,23 @@ export default function MenuPlan() {
         ])
         setPlan(planData.plan)
         setDishes(planData.dishes || [])
+        setCache(date, meal, planData.plan, planData.dishes || [])
         if (recData?.recipes) {
           setAllRecipes(recData.recipes)
           setRecipesLoaded(true)
         }
       } catch (err2) {
-        setError(err2.message)
+        // Only show error if no cached data
+        if (!cached) setError(err2.message)
       }
     } finally {
       setLoading(false)
       setNavigating(false)
       navRef.current = false
     }
+
+    // 3. Prefetch adjacent days in background (±1 day, same meal)
+    prefetchAdjacent(date, meal)
   }
 
   // Lightweight refresh after mutations — skip recipes, just reload plan data
@@ -128,8 +162,31 @@ export default function MenuPlan() {
       const data = await menuApi.plan(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
+      // Update cache so navigation back is instant with fresh data
+      setCache(date, meal, data.plan, data.dishes || [])
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  // Prefetch adjacent days so arrow navigation is instant
+  function prefetchAdjacent(d, m) {
+    for (const offset of [-1, 1]) {
+      const adj = new Date(d + 'T00:00:00')
+      adj.setDate(adj.getDate() + offset)
+      const adjDate = adj.toISOString().split('T')[0]
+      const existing = getCached(adjDate, m)
+      // Skip if already cached and fresh (< TTL)
+      if (existing && (Date.now() - existing.ts) < CACHE_TTL) continue
+      // Fire-and-forget prefetch
+      menuApi.chefInit(adjDate, m)
+        .then(data => setCache(adjDate, m, data.plan, data.dishes || []))
+        .catch(() => {
+          // Try fallback
+          menuApi.plan(adjDate, m)
+            .then(data => setCache(adjDate, m, data.plan, data.dishes || []))
+            .catch(() => {}) // silent fail for prefetch
+        })
     }
   }
 
