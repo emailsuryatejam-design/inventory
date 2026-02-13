@@ -70,6 +70,7 @@ export default function MenuPlan() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [navigating, setNavigating] = useState(false) // blocks double-clicks on arrows
+  const navRef = useRef(false) // sync guard — state is async, ref is instant
 
   // Recipes for dropdown
   const [allRecipes, setAllRecipes] = useState([])
@@ -102,6 +103,7 @@ export default function MenuPlan() {
   async function loadPlan() {
     setLoading(true)
     setNavigating(true)
+    navRef.current = true
     setError('')
     try {
       const data = await menuApi.plan(date, meal)
@@ -112,12 +114,16 @@ export default function MenuPlan() {
     } finally {
       setLoading(false)
       setNavigating(false)
+      navRef.current = false
     }
   }
 
   // ── Date navigation (guarded against double-clicks) ──
   function changeDate(days) {
-    if (navigating || loading) return
+    // Use ref for instant sync check — state updates are async
+    if (navRef.current) return
+    navRef.current = true          // block immediately
+    setNavigating(true)            // update UI (spinner)
     const d = new Date(date + 'T00:00:00')
     d.setDate(d.getDate() + days)
     setDate(d.toISOString().split('T')[0])
@@ -268,7 +274,7 @@ export default function MenuPlan() {
           {isToday(date) && <span className="text-[10px] text-green-600 font-medium">Today</span>}
           {!isToday(date) && (
             <button
-              onClick={() => { if (!navigating) setDate(new Date().toISOString().split('T')[0]) }}
+              onClick={() => { if (!navRef.current) setDate(new Date().toISOString().split('T')[0]) }}
               disabled={navigating}
               className="text-[10px] text-orange-600 font-medium disabled:opacity-40"
             >
@@ -290,7 +296,7 @@ export default function MenuPlan() {
         {MEALS.map(m => (
           <button
             key={m.value}
-            onClick={() => { if (!navigating) setMeal(m.value) }}
+            onClick={() => { if (!navRef.current) setMeal(m.value) }}
             disabled={navigating}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${
               meal === m.value

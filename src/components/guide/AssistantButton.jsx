@@ -1,12 +1,18 @@
 import { HelpCircle, X } from 'lucide-react'
 import useGuide from '../../hooks/useGuide'
+import { useUser } from '../../context/AppContext'
 
 /**
  * Floating "?" help button — always visible in the bottom-right corner.
  * When a guide is running, shows an X to exit the guide.
+ * Hidden for chef role — they don't need the guide system.
  */
 export default function AssistantButton() {
   const { isRunning, isPanelOpen, togglePanel, endGuide } = useGuide()
+  const user = useUser()
+
+  // Hide guide button for chef role
+  if (user?.role === 'chef') return null
 
   if (isRunning) {
     // Show exit button during guide
