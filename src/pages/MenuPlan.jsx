@@ -46,7 +46,6 @@ export default function MenuPlan() {
   // Date + meal selection
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [meal, setMeal] = useState('lunch')
-  const [portions, setPortions] = useState(20)
 
   // Plan data
   const [plan, setPlan] = useState(null)
@@ -59,6 +58,7 @@ export default function MenuPlan() {
   const [showAddDish, setShowAddDish] = useState(false)
   const [newDishCourse, setNewDishCourse] = useState('main_course')
   const [newDishName, setNewDishName] = useState('')
+  const [newDishPortions, setNewDishPortions] = useState(20)
 
   // AI suggestions sheet
   const [suggestingDish, setSuggestingDish] = useState(null)
@@ -81,9 +81,6 @@ export default function MenuPlan() {
       const data = await menuApi.plan(date, meal)
       setPlan(data.plan)
       setDishes(data.dishes || [])
-      if (data.plan) {
-        setPortions(data.plan.portions)
-      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -102,7 +99,7 @@ export default function MenuPlan() {
   async function handleCreatePlan() {
     setSaving(true)
     try {
-      const data = await menuApi.createPlan(date, meal, portions)
+      await menuApi.createPlan(date, meal, 20)
       await loadPlan()
     } catch (err) {
       setError(err.message)
@@ -116,8 +113,9 @@ export default function MenuPlan() {
     if (!newDishName.trim()) return
     setSaving(true)
     try {
-      await menuApi.addDish(plan.id, newDishCourse, newDishName.trim())
+      await menuApi.addDish(plan.id, newDishCourse, newDishName.trim(), newDishPortions)
       setNewDishName('')
+      setNewDishPortions(20)
       setShowAddDish(false)
       await loadPlan()
     } catch (err) {
@@ -170,13 +168,12 @@ export default function MenuPlan() {
     }
   }
 
-  // ── Update portions ──
-  async function handleUpdatePortions(newPortions) {
-    if (newPortions < 1 || newPortions === plan.portions) return
+  // ── Update dish portions ──
+  async function handleUpdateDishPortions(dishId, newPortions) {
+    if (newPortions < 1) return
     setSaving(true)
     try {
-      await menuApi.updatePortions(plan.id, newPortions)
-      setPortions(newPortions)
+      await menuApi.updatePortions(dishId, newPortions)
       await loadPlan()
     } catch (err) {
       setError(err.message)
@@ -310,31 +307,6 @@ export default function MenuPlan() {
           <p className="text-sm text-gray-500 mb-1">No menu plan for</p>
           <p className="font-semibold text-gray-800 mb-4">{formatDate(date)} — {meal === 'lunch' ? 'Lunch' : 'Dinner'}</p>
 
-          {/* Portions selector */}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="text-xs text-gray-500">Portions:</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPortions(Math.max(1, portions - 5))}
-                className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200"
-              >
-                <Minus size={14} />
-              </button>
-              <input
-                type="number"
-                value={portions}
-                onChange={e => setPortions(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-16 text-center text-sm font-semibold border border-gray-200 rounded-lg py-1"
-              />
-              <button
-                onClick={() => setPortions(portions + 5)}
-                className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-          </div>
-
           <button
             onClick={handleCreatePlan}
             disabled={saving}
@@ -349,40 +321,22 @@ export default function MenuPlan() {
       {/* ── Plan Exists ── */}
       {!loading && plan && (
         <div>
-          {/* Status + Portions bar */}
+          {/* Status bar */}
           <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-              }`}>
-                {plan.status}
-              </span>
-              <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                <UsersIcon size={14} />
-                <span className="font-semibold">{plan.portions}</span>
-                <span className="text-xs text-gray-400">portions</span>
-              </div>
-            </div>
+            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+              isConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+            }`}>
+              {plan.status}
+            </span>
             <div className="flex items-center gap-2">
               {isDraft && (
-                <>
-                  <button
-                    onClick={() => {
-                      const n = prompt('Number of portions:', plan.portions)
-                      if (n && parseInt(n) > 0) handleUpdatePortions(parseInt(n))
-                    }}
-                    className="text-xs text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded-lg"
-                  >
-                    Change
-                  </button>
-                  <button
-                    onClick={handleConfirmPlan}
-                    disabled={saving || dishes.length === 0}
-                    className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
-                  >
-                    <CheckCircle size={13} /> Confirm
-                  </button>
-                </>
+                <button
+                  onClick={handleConfirmPlan}
+                  disabled={saving || dishes.length === 0}
+                  className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-40"
+                >
+                  <CheckCircle size={13} /> Confirm
+                </button>
               )}
               {isConfirmed && (
                 <button
@@ -422,6 +376,7 @@ export default function MenuPlan() {
                     onAddManual={() => setAddIngDish(dish)}
                     onRemoveIngredient={handleRemoveIngredient}
                     onUpdateQty={handleUpdateQty}
+                    onUpdatePortions={(p) => handleUpdateDishPortions(dish.id, p)}
                     saving={saving}
                   />
                 ))}
@@ -443,7 +398,7 @@ export default function MenuPlan() {
           {isDraft && (
             <button
               onClick={() => setShowAddDish(true)}
-              className="fixed bottom-20 right-4 bg-orange-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center active:bg-orange-600 z-30"
+              className="fixed bottom-24 right-4 lg:bottom-8 bg-orange-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center active:bg-orange-600 z-30"
             >
               <Plus size={24} />
             </button>
@@ -456,10 +411,12 @@ export default function MenuPlan() {
         <AddDishSheet
           course={newDishCourse}
           dishName={newDishName}
+          portions={newDishPortions}
           onCourseChange={setNewDishCourse}
           onDishNameChange={setNewDishName}
+          onPortionsChange={setNewDishPortions}
           onAdd={handleAddDish}
-          onClose={() => { setShowAddDish(false); setNewDishName('') }}
+          onClose={() => { setShowAddDish(false); setNewDishName(''); setNewDishPortions(20) }}
           saving={saving}
         />
       )}
@@ -468,7 +425,7 @@ export default function MenuPlan() {
       {suggestingDish && plan && (
         <AISuggestSheet
           dish={suggestingDish}
-          portions={plan.portions}
+          portions={suggestingDish.portions || 20}
           onAccepted={onSuggestionsAccepted}
           onClose={() => setSuggestingDish(null)}
         />
@@ -498,33 +455,47 @@ export default function MenuPlan() {
 // ════════════════════════════════════════════════════════════
 // DISH CARD — shows a dish with its ingredients
 // ════════════════════════════════════════════════════════════
-function DishCard({ dish, isConfirmed, onRemoveDish, onSuggest, onAddManual, onRemoveIngredient, onUpdateQty, saving }) {
+function DishCard({ dish, isConfirmed, onRemoveDish, onSuggest, onAddManual, onRemoveIngredient, onUpdateQty, onUpdatePortions, saving }) {
   const activeIngredients = dish.ingredients.filter(i => !i.is_removed)
   const removedIngredients = dish.ingredients.filter(i => i.is_removed)
   const [showRemoved, setShowRemoved] = useState(false)
+  const dishPortions = dish.portions || 20
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 mb-2 overflow-hidden">
       {/* Dish header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed size={16} className="text-orange-500" />
-          <span className="font-semibold text-sm text-gray-900">{dish.dish_name}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <UtensilsCrossed size={16} className="text-orange-500 shrink-0" />
+          <span className="font-semibold text-sm text-gray-900 truncate">{dish.dish_name}</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Per-dish portions badge */}
+          <button
+            onClick={() => {
+              if (isConfirmed) return
+              const n = prompt('Portions for this dish:', dishPortions)
+              if (n && parseInt(n) > 0 && parseInt(n) !== dishPortions) onUpdatePortions(parseInt(n))
+            }}
+            className={`text-[10px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 ${
+              isConfirmed ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
+            }`}
+          >
+            <UsersIcon size={11} /> {dishPortions}
+          </button>
           {!isConfirmed && (
             <>
               <button
                 onClick={onSuggest}
                 className="text-[10px] font-medium text-purple-700 bg-purple-50 px-2 py-1 rounded-lg flex items-center gap-1"
               >
-                <Sparkles size={12} /> AI Suggest
+                <Sparkles size={12} /> AI
               </button>
               <button
                 onClick={onAddManual}
                 className="text-[10px] font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded-lg flex items-center gap-1"
               >
-                <Plus size={12} /> Add
+                <Plus size={12} />
               </button>
               <button
                 onClick={onRemoveDish}
@@ -666,7 +637,7 @@ function IngredientRow({ ing, isConfirmed, onRemove, onUpdateQty }) {
 // ════════════════════════════════════════════════════════════
 // ADD DISH BOTTOM SHEET
 // ════════════════════════════════════════════════════════════
-function AddDishSheet({ course, dishName, onCourseChange, onDishNameChange, onAdd, onClose, saving }) {
+function AddDishSheet({ course, dishName, portions, onCourseChange, onDishNameChange, onPortionsChange, onAdd, onClose, saving }) {
   const [closing, setClosing] = useState(false)
   const closingRef = useRef(null)
   const inputRef = useRef(null)
@@ -688,7 +659,7 @@ function AddDishSheet({ course, dishName, onCourseChange, onDishNameChange, onAd
   return createPortal(
     <div className="fixed inset-0 z-[10010]">
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
-      <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70dvh] flex flex-col ${closing ? 'animate-slide-down' : 'animate-slide-up'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[75dvh] flex flex-col ${closing ? 'animate-slide-down' : 'animate-slide-up'}`}>
         {/* Handle */}
         <div className="flex justify-center pt-2 pb-1">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -731,9 +702,32 @@ function AddDishSheet({ course, dishName, onCourseChange, onDishNameChange, onAd
             value={dishName}
             onChange={e => onDishNameChange(e.target.value)}
             placeholder="e.g. Grilled Chicken with Herbs"
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-            onKeyDown={e => e.key === 'Enter' && onAdd()}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 mb-4"
           />
+
+          {/* Portions */}
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Portions</label>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPortionsChange(Math.max(1, portions - 5))}
+              className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200"
+            >
+              <Minus size={14} />
+            </button>
+            <input
+              type="number"
+              value={portions}
+              onChange={e => onPortionsChange(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-20 text-center text-sm font-semibold border border-gray-200 rounded-lg py-1.5"
+            />
+            <button
+              onClick={() => onPortionsChange(portions + 5)}
+              className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200"
+            >
+              <Plus size={14} />
+            </button>
+            <span className="text-xs text-gray-400 ml-1">guests</span>
+          </div>
         </div>
 
         {/* Footer */}

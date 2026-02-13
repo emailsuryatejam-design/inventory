@@ -564,10 +564,10 @@ export const kitchenMenu = {
     }),
 
   // Add a dish to a plan
-  addDish: (planId, course, dishName) =>
+  addDish: (planId, course, dishName, portions) =>
     request('kitchen-menu.php', {
       method: 'POST',
-      body: JSON.stringify({ action: 'add_dish', plan_id: planId, course, dish_name: dishName }),
+      body: JSON.stringify({ action: 'add_dish', plan_id: planId, course, dish_name: dishName, portions }),
     }),
 
   // Remove a dish
@@ -605,11 +605,11 @@ export const kitchenMenu = {
       body: JSON.stringify({ action: 'update_qty', ingredient_id: ingredientId, qty }),
     }),
 
-  // Update portions count
-  updatePortions: (planId, portions) =>
+  // Update portions count per dish
+  updatePortions: (dishId, portions) =>
     request('kitchen-menu.php', {
       method: 'POST',
-      body: JSON.stringify({ action: 'update_portions', plan_id: planId, portions }),
+      body: JSON.stringify({ action: 'update_portions', dish_id: dishId, portions }),
     }),
 
   // Confirm plan
