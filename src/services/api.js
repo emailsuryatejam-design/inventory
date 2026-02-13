@@ -656,6 +656,27 @@ export const kitchenMenu = {
   // Weekly ingredients (aggregated non-primary for a week)
   weeklyIngredients: (weekStart) =>
     request(`kitchen-menu.php?action=weekly_ingredients&week_start=${weekStart}`),
+
+  // Update daily tracking (ordered/received/consumed)
+  updateDailyTracking: (ingredientId, data) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_daily_tracking', ingredient_id: ingredientId, ...data }),
+    }),
+
+  // Update weekly grocery tracking (ordered/received)
+  updateWeeklyGrocery: (weekStart, itemId, data) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_weekly_grocery', week_start: weekStart, item_id: itemId, ...data }),
+    }),
+
+  // Add manual weekly grocery item
+  addWeeklyGrocery: (weekStart, itemId, projectedQty) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_weekly_grocery', week_start: weekStart, item_id: itemId, projected_qty: projectedQty }),
+    }),
 }
 
 // ── Daily Overview ─────────────────────────────────

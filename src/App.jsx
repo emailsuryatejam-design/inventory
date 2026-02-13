@@ -24,6 +24,8 @@ import BarMenu from './pages/BarMenu'
 import Recipes from './pages/Recipes'
 import DailyOverview from './pages/DailyOverview'
 import MenuPlan from './pages/MenuPlan'
+import DailyGroceries from './pages/DailyGroceries'
+import WeeklyGroceries from './pages/WeeklyGroceries'
 import AppLayout from './components/layout/AppLayout'
 
 function RequireAuth({ children }) {
@@ -69,6 +71,8 @@ export default function App() {
         <Route path="recipes" element={<Recipes />} />
         <Route path="daily" element={<DailyOverview />} />
         <Route path="menu-plan" element={<MenuPlan />} />
+        <Route path="daily-groceries" element={<DailyGroceries />} />
+        <Route path="weekly-groceries" element={<WeeklyGroceries />} />
       </Route>
 
       {/* Default redirect */}

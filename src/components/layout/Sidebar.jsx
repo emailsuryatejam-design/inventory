@@ -3,7 +3,8 @@ import { useUser, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
-  Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat
+  Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
+  ClipboardList
 } from 'lucide-react'
 
 // Role-based nav: access = 'all' | 'manager' | roles array
@@ -22,6 +23,8 @@ const navItems = [
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY, guide: 'nav-bar-menu' },
   { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all', guide: 'nav-recipes' },
   { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-menu-plan' },
+  { path: '/app/daily-groceries', icon: ClipboardList, label: 'Daily Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-daily-groceries' },
+  { path: '/app/weekly-groceries', icon: Calendar, label: 'Weekly Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-weekly-groceries' },
   { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY, guide: 'nav-alerts' },
   { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager', guide: 'nav-reports' },
   { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'], guide: 'nav-users' },
