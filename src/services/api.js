@@ -101,13 +101,18 @@ async function request(endpoint, options = {}) {
   const token = getToken()
   const method = (options.method || 'GET').toUpperCase()
 
+  // For FormData uploads, don't set Content-Type (browser adds boundary)
+  const isFormData = options.isFormData || options.body instanceof FormData
+  const headers = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...options.headers,
+  }
+
+  const { isFormData: _drop, ...restOptions } = options
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-    ...options,
+    headers,
+    ...restOptions,
   }
 
   // ── Writes: invalidate memory cache + handle offline queue ──
@@ -530,6 +535,12 @@ export const kitchen = {
       method: 'POST',
       body: JSON.stringify({ action: 'learn' }),
     }),
+
+  deleteRecipe: (id) =>
+    request('kitchen.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete_recipe', id }),
+    }),
 }
 
 // ── Kitchen Menu Planning ──────────────────────────
@@ -546,11 +557,9 @@ export const kitchenMenu = {
   audit: (planId) =>
     request(`kitchen-menu.php?action=audit&plan_id=${planId}`),
 
-  // AI suggest ingredients for a dish
-  suggestIngredients: (dish, portions, course) => {
-    const params = new URLSearchParams({ dish, portions, course: course || '' })
-    return request(`kitchen-menu.php?action=suggest_ingredients&${params}`)
-  },
+  // Get recipe ingredients scaled to portions
+  recipeIngredients: (recipeId, portions) =>
+    request(`kitchen-menu.php?action=recipe_ingredients&recipe_id=${recipeId}&portions=${portions || 0}`),
 
   // Search stock items for manual ingredient add
   searchItems: (q) =>
@@ -563,11 +572,11 @@ export const kitchenMenu = {
       body: JSON.stringify({ action: 'create_plan', date, meal, portions }),
     }),
 
-  // Add a dish to a plan
-  addDish: (planId, course, dishName, portions) =>
+  // Add a dish to a plan (optionally linked to recipe)
+  addDish: (planId, course, dishName, portions, recipeId) =>
     request('kitchen-menu.php', {
       method: 'POST',
-      body: JSON.stringify({ action: 'add_dish', plan_id: planId, course, dish_name: dishName, portions }),
+      body: JSON.stringify({ action: 'add_dish', plan_id: planId, course, dish_name: dishName, portions, recipe_id: recipeId || null }),
     }),
 
   // Remove a dish
@@ -577,12 +586,30 @@ export const kitchenMenu = {
       body: JSON.stringify({ action: 'remove_dish', dish_id: dishId }),
     }),
 
-  // Accept AI suggestions for a dish
-  acceptSuggestions: (dishId, suggestions, portions) =>
+  // Load recipe ingredients into a dish
+  loadRecipe: (dishId, recipeId, portions) =>
     request('kitchen-menu.php', {
       method: 'POST',
-      body: JSON.stringify({ action: 'accept_suggestions', dish_id: dishId, suggestions, portions }),
+      body: JSON.stringify({ action: 'load_recipe', dish_id: dishId, recipe_id: recipeId, portions }),
     }),
+
+  // Rate dish presentation (photo upload + AI scoring)
+  ratePresentation: (dishId, photoUrl) =>
+    request('kitchen-menu.php', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'rate_presentation', dish_id: dishId, photo_url: photoUrl }),
+    }),
+
+  // Upload dish photo (returns URL)
+  uploadDishPhoto: (file) => {
+    const formData = new FormData()
+    formData.append('photo', file)
+    return request('upload-dish-photo.php', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+    })
+  },
 
   // Add a manual ingredient
   addIngredient: (dishId, itemId, qty, uom) =>

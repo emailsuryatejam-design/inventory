@@ -5,7 +5,7 @@ import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 import {
   LayoutDashboard, ShoppingCart, Boxes, Wine, Calendar,
   Menu, X, Truck, PackageCheck, FileOutput, Bell, BarChart3,
-  Users, Settings, LogOut, Sparkles, GlassWater, Package, ChefHat
+  Users, Settings, LogOut, BookOpen, GlassWater, Package, ChefHat
 } from 'lucide-react'
 
 // Chef only sees: Dashboard, Menu Plan, Issue, Recipes
@@ -24,7 +24,7 @@ const chefTabs = [
   { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
   { path: '/app/menu-plan', icon: ChefHat, label: 'Menu' },
   { path: '/app/issue', icon: FileOutput, label: 'Issue' },
-  { path: '/app/recipes', icon: Sparkles, label: 'Recipes' },
+  { path: '/app/recipes', icon: BookOpen, label: 'Recipes' },
 ]
 
 // All navigation items for the "More" drawer (role-based, same as Sidebar)
@@ -39,7 +39,7 @@ const allNavItems = [
   { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all' },
   { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
-  { path: '/app/recipes', icon: Sparkles, label: 'Recipes', access: 'all' },
+  { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all' },
   { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
   { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY },
   { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
