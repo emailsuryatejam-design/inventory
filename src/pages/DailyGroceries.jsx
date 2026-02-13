@@ -108,6 +108,20 @@ export default function DailyGroceries() {
     }
   }
 
+  // ── Update stock balance ──
+  async function handleUpdateStock(itemId, value) {
+    const numVal = value === '' ? 0 : parseFloat(value)
+    try {
+      await menuApi.updateStock(itemId, numVal)
+      // Optimistic update — update all ingredients with this item_id
+      setIngredients(prev => prev.map(ing =>
+        ing.item_id === itemId ? { ...ing, stock_qty: numVal } : ing
+      ))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="pb-8">
       {/* ── Header ── */}
@@ -201,12 +215,11 @@ export default function DailyGroceries() {
 
               {/* Column Headers */}
               {ingredients.length > 0 && (
-                <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-1 px-3 py-2 bg-gray-50 border-y border-gray-100 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                <div className="grid grid-cols-[1fr_60px_60px_60px] gap-1 px-3 py-2 bg-gray-50 border-y border-gray-100 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                   <span>Item</span>
                   <span className="text-center">Stock</span>
                   <span className="text-center">Order</span>
                   <span className="text-center">Recv</span>
-                  <span className="text-center">Used</span>
                 </div>
               )}
 
@@ -216,6 +229,7 @@ export default function DailyGroceries() {
                   key={ing.id}
                   ingredient={ing}
                   onUpdate={handleUpdateField}
+                  onUpdateStock={handleUpdateStock}
                 />
               ))}
             </div>
@@ -397,20 +411,20 @@ function AddItemRow({ dishes, onAdded, onError }) {
 
 
 // ════════════════════════════════════════════════════════════
-// INGREDIENT ROW — editable fields for Order, Received, Consumed
+// INGREDIENT ROW — editable fields for Stock, Order, Received
 // ════════════════════════════════════════════════════════════
-function IngredientRow({ ingredient, onUpdate }) {
+function IngredientRow({ ingredient, onUpdate, onUpdateStock }) {
   const ing = ingredient
+  const [stock, setStock] = useState(ing.stock_qty != null ? String(ing.stock_qty) : '')
   const [ordered, setOrdered] = useState(ing.ordered_qty ?? '')
   const [received, setReceived] = useState(ing.received_qty ?? '')
-  const [consumed, setConsumed] = useState(ing.consumed_qty ?? '')
 
   // Sync from props when data reloads
   useEffect(() => {
+    setStock(ing.stock_qty != null ? String(ing.stock_qty) : '')
     setOrdered(ing.ordered_qty ?? '')
     setReceived(ing.received_qty ?? '')
-    setConsumed(ing.consumed_qty ?? '')
-  }, [ing.ordered_qty, ing.received_qty, ing.consumed_qty])
+  }, [ing.stock_qty, ing.ordered_qty, ing.received_qty])
 
   function handleBlur(field, localValue, originalValue) {
     const numLocal = localValue === '' ? null : parseFloat(localValue)
@@ -420,8 +434,16 @@ function IngredientRow({ ingredient, onUpdate }) {
     }
   }
 
+  function handleStockBlur() {
+    const numLocal = stock === '' ? null : parseFloat(stock)
+    const numOrig = ing.stock_qty != null ? ing.stock_qty : null
+    if (numLocal !== numOrig) {
+      onUpdateStock(ing.item_id, stock)
+    }
+  }
+
   return (
-    <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-1 px-3 py-2.5 border-b border-gray-50 items-center">
+    <div className="grid grid-cols-[1fr_60px_60px_60px] gap-1 px-3 py-2.5 border-b border-gray-50 items-center">
       {/* Item name + dish */}
       <div className="min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{ing.item_name}</p>
@@ -430,9 +452,16 @@ function IngredientRow({ ingredient, onUpdate }) {
         </p>
       </div>
 
-      {/* Stock */}
-      <div className="text-center">
-        <span className="text-xs text-gray-600">{ing.stock_qty != null ? ing.stock_qty : '—'}</span>
+      {/* Stock (editable) */}
+      <div>
+        <input
+          type="number"
+          value={stock}
+          onChange={e => setStock(e.target.value)}
+          onBlur={handleStockBlur}
+          placeholder="—"
+          className="w-full text-center text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400"
+        />
       </div>
 
       {/* Order */}
@@ -454,18 +483,6 @@ function IngredientRow({ ingredient, onUpdate }) {
           value={received}
           onChange={e => setReceived(e.target.value)}
           onBlur={() => handleBlur('received_qty', received, ing.received_qty)}
-          placeholder="—"
-          className="w-full text-center text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400"
-        />
-      </div>
-
-      {/* Consumed */}
-      <div>
-        <input
-          type="number"
-          value={consumed}
-          onChange={e => setConsumed(e.target.value)}
-          onBlur={() => handleBlur('consumed_qty', consumed, ing.consumed_qty)}
           placeholder="—"
           className="w-full text-center text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400"
         />

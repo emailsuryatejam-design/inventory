@@ -102,6 +102,20 @@ export default function WeeklyGroceries() {
     }
   }
 
+  // ── Update stock balance ──
+  async function handleUpdateStock(itemId, value) {
+    const numVal = value === '' ? 0 : parseFloat(value)
+    try {
+      await menuApi.updateStock(itemId, numVal)
+      // Optimistic update
+      setItems(prev => prev.map(item =>
+        item.item_id === itemId ? { ...item, stock_qty: numVal } : item
+      ))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="pb-8">
       {/* ── Header ── */}
@@ -175,6 +189,7 @@ export default function WeeklyGroceries() {
               key={item.item_id}
               item={item}
               onUpdate={handleUpdateField}
+              onUpdateStock={handleUpdateStock}
             />
           ))}
 
@@ -338,23 +353,33 @@ function AddWeeklyRow({ weekStart, onAdded, onError }) {
 
 
 // ════════════════════════════════════════════════════════════
-// WEEKLY ITEM ROW — editable fields for Order, Received
+// WEEKLY ITEM ROW — editable fields for Stock, Order, Received
 // ════════════════════════════════════════════════════════════
-function WeeklyItemRow({ item, onUpdate }) {
+function WeeklyItemRow({ item, onUpdate, onUpdateStock }) {
+  const [stock, setStock] = useState(item.stock_qty != null ? String(item.stock_qty) : '')
   const [ordered, setOrdered] = useState(item.ordered_qty ?? '')
   const [received, setReceived] = useState(item.received_qty ?? '')
 
   // Sync from props when data reloads
   useEffect(() => {
+    setStock(item.stock_qty != null ? String(item.stock_qty) : '')
     setOrdered(item.ordered_qty ?? '')
     setReceived(item.received_qty ?? '')
-  }, [item.ordered_qty, item.received_qty])
+  }, [item.stock_qty, item.ordered_qty, item.received_qty])
 
   function handleBlur(field, localValue, originalValue) {
     const numLocal = localValue === '' ? null : parseFloat(localValue)
     const numOrig = originalValue ?? null
     if (numLocal !== numOrig) {
       onUpdate(item.item_id, field, localValue)
+    }
+  }
+
+  function handleStockBlur() {
+    const numLocal = stock === '' ? null : parseFloat(stock)
+    const numOrig = item.stock_qty != null ? item.stock_qty : null
+    if (numLocal !== numOrig) {
+      onUpdateStock(item.item_id, stock)
     }
   }
 
@@ -369,9 +394,16 @@ function WeeklyItemRow({ item, onUpdate }) {
         </p>
       </div>
 
-      {/* Physical Stock */}
-      <div className="text-center">
-        <span className="text-xs text-gray-600">{item.stock_qty != null ? item.stock_qty : '—'}</span>
+      {/* Physical Stock (editable) */}
+      <div>
+        <input
+          type="number"
+          value={stock}
+          onChange={e => setStock(e.target.value)}
+          onBlur={handleStockBlur}
+          placeholder="—"
+          className="w-full text-center text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-purple-300 focus:border-purple-400"
+        />
       </div>
 
       {/* Order */}
