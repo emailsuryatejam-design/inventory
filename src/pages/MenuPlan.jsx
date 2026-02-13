@@ -42,13 +42,25 @@ const CATEGORY_TO_COURSE = {
   other: 'main_course',
 }
 
+// Format YYYY-MM-DD from a Date using LOCAL time (never UTC — avoids timezone bugs)
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function todayStr() {
+  return toDateStr(new Date())
+}
+
 function isToday(dateStr) {
-  return dateStr === new Date().toISOString().split('T')[0]
+  return dateStr === todayStr()
 }
 
 
@@ -60,7 +72,7 @@ export default function MenuPlan() {
   const { campId } = useSelectedCamp()
 
   // Date + meal
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(todayStr())
   const [meal, setMeal] = useState('lunch')
 
   // Plan data
@@ -143,7 +155,7 @@ export default function MenuPlan() {
     for (const offset of [-1, 1]) {
       const adj = new Date(d + 'T00:00:00')
       adj.setDate(adj.getDate() + offset)
-      const adjDate = adj.toISOString().split('T')[0]
+      const adjDate = toDateStr(adj)
       // Fire-and-forget — api.js memCache will store the result
       menuApi.chefInit(adjDate, m).catch(() => {
         menuApi.plan(adjDate, m).catch(() => {})
@@ -153,11 +165,12 @@ export default function MenuPlan() {
 
   // ── Date navigation — NEVER blocks, always instant ──
   // Uses functional updater so rapid clicks always read the LATEST date
+  // Uses toDateStr() instead of toISOString() to avoid UTC timezone shift
   function changeDate(days) {
     setDate(prev => {
       const d = new Date(prev + 'T00:00:00')
       d.setDate(d.getDate() + days)
-      return d.toISOString().split('T')[0]
+      return toDateStr(d)
     })
   }
 
@@ -308,7 +321,7 @@ export default function MenuPlan() {
           {isToday(date) && <span className="text-[10px] text-green-600 font-medium">Today</span>}
           {!isToday(date) && (
             <button
-              onClick={() => setDate(new Date().toISOString().split('T')[0])}
+              onClick={() => setDate(todayStr())}
               className="text-[10px] text-orange-600 font-medium"
             >
               Go to Today
