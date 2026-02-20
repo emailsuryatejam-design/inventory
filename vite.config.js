@@ -10,7 +10,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://darkblue-goshawk-672880.hostingersite.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       }

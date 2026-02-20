@@ -193,30 +193,29 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ── Collapse Toggle ── */}
-      <button
-        onClick={() => setCollapsed(c => !c)}
-        className="mx-2 mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn"
-        style={{
-          color: 'var(--sidebar-text)',
-          backgroundColor: 'transparent',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)' }}
-        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
-      >
-        {collapsed ? <ChevronRight size={16} /> : (
-          <>
-            <ChevronLeft size={16} />
-            <span>Collapse</span>
-          </>
-        )}
-      </button>
+      {/* ── Bottom section (collapse + user) — always visible ── */}
+      <div className="shrink-0" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+        {/* Collapse Toggle */}
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="mx-2 mt-2 mb-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn"
+          style={{
+            color: 'var(--sidebar-text)',
+            backgroundColor: 'transparent',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+        >
+          {collapsed ? <ChevronRight size={16} /> : (
+            <>
+              <ChevronLeft size={16} />
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
 
-      {/* ── User + Logout ── */}
-      <div
-        className="shrink-0 px-3 py-3"
-        style={{ borderTop: '1px solid var(--sidebar-border)' }}
-      >
+        {/* User + Logout */}
+        <div className="px-3 py-2">
         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''} mb-2`}>
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
@@ -246,6 +245,7 @@ export default function Sidebar() {
           <LogOut size={16} />
           {!collapsed && <span>Sign Out</span>}
         </button>
+        </div>
       </div>
     </aside>
   )
