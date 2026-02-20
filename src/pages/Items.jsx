@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { items as itemsApi } from '../services/api'
+import { loadFilters, saveFilters } from '../services/filterStore'
 import { Package, Filter, ChevronRight } from 'lucide-react'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
@@ -12,14 +13,18 @@ export default function Items() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => loadFilters('items', {
     search: '',
     group: '',
     abc_class: '',
     storage_type: '',
     page: 1,
-  })
+  }))
   const [showFilters, setShowFilters] = useState(false)
+
+  useEffect(() => {
+    saveFilters('items', { search: filters.search, group: filters.group, abc_class: filters.abc_class, storage_type: filters.storage_type })
+  }, [filters.search, filters.group, filters.abc_class, filters.storage_type])
 
   useEffect(() => {
     loadItems()

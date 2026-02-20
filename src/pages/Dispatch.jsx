@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUser, useSelectedCamp, isManager } from '../context/AppContext'
 import { dispatch as dispatchApi } from '../services/api'
+import { loadFilters, saveFilters } from '../services/filterStore'
 import { Truck, ChevronRight } from 'lucide-react'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
@@ -22,11 +23,15 @@ export default function Dispatch() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => loadFilters('dispatch', {
     status: '',
     search: '',
     page: 1,
-  })
+  }))
+
+  useEffect(() => {
+    saveFilters('dispatch', { status: filters.status, search: filters.search })
+  }, [filters.status, filters.search])
 
   useEffect(() => {
     loadDispatches()

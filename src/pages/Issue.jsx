@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUser, useSelectedCamp } from '../context/AppContext'
 import { issue as issueApi } from '../services/api'
+import { loadFilters, saveFilters } from '../services/filterStore'
 import { FileOutput, Plus, ChevronRight } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import Pagination from '../components/ui/Pagination'
@@ -25,10 +26,14 @@ export default function Issue() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => loadFilters('issue', {
     type: '',
     page: 1,
-  })
+  }))
+
+  useEffect(() => {
+    saveFilters('issue', { type: filters.type })
+  }, [filters.type])
 
   useEffect(() => {
     loadIssues()

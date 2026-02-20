@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUser, useSelectedCamp, isManager } from '../context/AppContext'
 import { stock as stockApi } from '../services/api'
+import { loadFilters, saveFilters } from '../services/filterStore'
 import { Boxes, Filter, AlertTriangle, ChevronRight } from 'lucide-react'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
@@ -15,18 +16,22 @@ export default function Stock() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => loadFilters('stock', {
     camp_id: campId || user?.camp_id || '',
     search: '',
     status: '',
     group: '',
     page: 1,
-  })
+  }))
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     setFilters(prev => ({ ...prev, camp_id: campId || user?.camp_id || '', page: 1 }))
   }, [campId])
+
+  useEffect(() => {
+    saveFilters('stock', { search: filters.search, status: filters.status, group: filters.group })
+  }, [filters.search, filters.status, filters.group])
 
   useEffect(() => {
     loadStock()

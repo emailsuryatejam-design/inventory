@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUser, useSelectedCamp } from '../context/AppContext'
 import { receive as receiveApi } from '../services/api'
+import { loadFilters, saveFilters } from '../services/filterStore'
 import { PackageCheck, ChevronRight } from 'lucide-react'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
@@ -21,11 +22,15 @@ export default function Receive() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => loadFilters('receive', {
     status: '',
     search: '',
     page: 1,
-  })
+  }))
+
+  useEffect(() => {
+    saveFilters('receive', { status: filters.status, search: filters.search })
+  }, [filters.status, filters.search])
 
   useEffect(() => {
     loadReceipts()
