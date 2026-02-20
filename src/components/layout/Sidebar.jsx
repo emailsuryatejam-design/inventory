@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useUser, isManager } from '../../context/AppContext'
+import { useUser, useApp, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
@@ -25,6 +25,7 @@ const CHEF_ONLY = ['chef']
 const navSections = [
   {
     id: 'stores',
+    module: 'stores',
     label: 'Stores',
     items: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
@@ -40,6 +41,7 @@ const navSections = [
   },
   {
     id: 'kitchen',
+    module: 'kitchen',
     label: 'Kitchen',
     items: [
       { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
@@ -50,6 +52,7 @@ const navSections = [
   },
   {
     id: 'stores', // reusing color
+    module: 'bar',
     label: 'Bar & POS',
     items: [
       { path: '/app/pos', icon: Wine, label: 'Point of Sale', access: 'all', exclude: CHEF_ONLY },
@@ -58,6 +61,7 @@ const navSections = [
   },
   {
     id: 'admin',
+    module: 'admin',
     label: 'Admin',
     items: [
       { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
@@ -75,8 +79,15 @@ function canAccess(item, role) {
   return true
 }
 
+function isModuleEnabled(moduleId, modules) {
+  // If modules list not loaded (legacy session), show everything
+  if (!modules || modules.length === 0) return true
+  return modules.includes(moduleId)
+}
+
 export default function Sidebar() {
   const user = useUser()
+  const { state } = useApp()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('kcl_sidebar_collapsed')
@@ -96,8 +107,9 @@ export default function Sidebar() {
     window.location.reload()
   }
 
-  // Filter sections — remove sections with no accessible items
+  // Filter sections — remove disabled modules and inaccessible items
   const visibleSections = navSections
+    .filter(section => isModuleEnabled(section.module, state.modules))
     .map(section => ({
       ...section,
       items: section.items.filter(item => canAccess(item, user?.role)),

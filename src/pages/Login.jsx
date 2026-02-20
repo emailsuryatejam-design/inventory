@@ -23,7 +23,12 @@ export default function Login() {
       localStorage.setItem('kcl_token', data.token)
       dispatch({
         type: 'LOGIN',
-        payload: { user: data.user, camps: data.camps }
+        payload: {
+          user: data.user,
+          camps: data.camps,
+          modules: data.modules || [],
+          permissions: data.permissions || {},
+        }
       })
       navigate('/app')
     } catch (err) {

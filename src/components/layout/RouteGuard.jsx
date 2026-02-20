@@ -1,4 +1,5 @@
 import { useUser, isManager } from '../../context/AppContext'
+import { useCanAccess } from '../../hooks/usePermissions'
 import AccessDenied from '../../pages/AccessDenied'
 
 /**
@@ -8,17 +9,23 @@ import AccessDenied from '../../pages/AccessDenied'
  *   access   — 'all' (any logged-in user) | 'manager' (managers only)
  *   roles    — Array of specific roles allowed (overrides access)
  *   exclude  — Array of roles explicitly denied
- *   module   — Module ID (for future camp_modules check)
+ *   module   — Module ID — checked against camp's enabled modules
  *   children — The page component to render if allowed
  */
 export default function RouteGuard({ children, access = 'all', roles, exclude, module }) {
   const user = useUser()
+  const moduleEnabled = useCanAccess(module)
 
   if (!user) return null // RequireAuth handles redirect
 
   const role = user.role
 
-  // Check exclusions first
+  // Check module availability for camp
+  if (module && !moduleEnabled) {
+    return <AccessDenied message="This module is not enabled for your camp. Contact your administrator." />
+  }
+
+  // Check exclusions
   if (exclude && exclude.includes(role)) {
     return <AccessDenied />
   }
@@ -35,11 +42,6 @@ export default function RouteGuard({ children, access = 'all', roles, exclude, m
   if (access === 'manager' && !isManager(role)) {
     return <AccessDenied />
   }
-
-  // Future: check module availability for camp
-  // if (module && user.modules && !user.modules.includes(module)) {
-  //   return <AccessDenied message="This module is not enabled for your camp." />
-  // }
 
   return children
 }

@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
-import { useUser, isManager } from '../../context/AppContext'
+import { useUser, useApp, isManager } from '../../context/AppContext'
 import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 import {
   LayoutDashboard, ShoppingCart, Boxes, Wine, Calendar,
@@ -30,6 +30,7 @@ const chefTabs = [
 const drawerSections = [
   {
     label: 'Stores',
+    module: 'stores',
     color: '#3b82f6',
     items: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
@@ -45,6 +46,7 @@ const drawerSections = [
   },
   {
     label: 'Kitchen',
+    module: 'kitchen',
     color: '#10b981',
     items: [
       { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
@@ -55,6 +57,7 @@ const drawerSections = [
   },
   {
     label: 'Bar & POS',
+    module: 'bar',
     color: '#3b82f6',
     items: [
       { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
@@ -63,6 +66,7 @@ const drawerSections = [
   },
   {
     label: 'Admin',
+    module: 'admin',
     color: '#64748b',
     items: [
       { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
@@ -80,10 +84,16 @@ function canAccess(item, role) {
   return true
 }
 
+function isModuleEnabled(moduleId, modules) {
+  if (!modules || modules.length === 0) return true
+  return modules.includes(moduleId)
+}
+
 export default function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [closing, setClosing] = useState(false)
   const user = useUser()
+  const { state } = useApp()
   const location = useLocation()
   const closingTimerRef = useRef(null)
 
@@ -135,8 +145,9 @@ export default function MobileNav() {
     window.location.reload()
   }
 
-  // Filter sections for drawer
+  // Filter sections — remove disabled modules and inaccessible items
   const visibleSections = drawerSections
+    .filter(section => isModuleEnabled(section.module, state.modules))
     .map(section => ({
       ...section,
       items: section.items.filter(item => canAccess(item, user?.role)),

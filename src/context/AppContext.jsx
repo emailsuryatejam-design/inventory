@@ -19,6 +19,8 @@ const initialState = {
   user: null,         // { id, name, username, role, camp_id, camp_code, camp_name, token }
   selectedCampId: null, // For managers who can switch camp views
   camps: [],          // All camps list
+  modules: [],        // Enabled module IDs for user's camp: ['stores', 'kitchen', ...]
+  permissions: {},    // Per-module permissions: { stores: ['view', 'create'], ... }
   notifications: [],
   isLoading: false,
 }
@@ -30,6 +32,8 @@ function reducer(state, action) {
         ...state,
         user: action.payload.user,
         camps: action.payload.camps || state.camps,
+        modules: action.payload.modules || [],
+        permissions: action.payload.permissions || {},
         selectedCampId: action.payload.user.camp_id || null,
       }
 
@@ -87,6 +91,8 @@ export function AppProvider({ children }) {
         user: state.user,
         selectedCampId: state.selectedCampId,
         camps: state.camps,
+        modules: state.modules,
+        permissions: state.permissions,
       }))
     }
   }, [state.user, state.selectedCampId, state.camps])
