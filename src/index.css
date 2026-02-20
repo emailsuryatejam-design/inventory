@@ -1,27 +1,127 @@
 @import "tailwindcss";
 
-/* KCL Stores — Karibu Camps color system */
+/* ═══════════════════════════════════════════════════════════════
+   KCL Stores — Karibu Camps Design System
+   Premium SaaS-grade design tokens
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
-  --kcl-green: #16a34a;
-  --kcl-green-dark: #15803d;
-  --kcl-green-light: #dcfce7;
-  --kcl-amber: #f59e0b;
-  --kcl-amber-light: #fef3c7;
-  --kcl-red: #ef4444;
-  --kcl-red-light: #fee2e2;
-  --kcl-blue: #3b82f6;
-  --kcl-blue-light: #dbeafe;
-  --kcl-gray: #9ca3af;
+  /* ── Brand ─────────────────────────────── */
+  --kcl-primary: #10b981;
+  --kcl-primary-dark: #059669;
+  --kcl-primary-light: #d1fae5;
+  --kcl-primary-50: #ecfdf5;
+
+  /* ── Department Colors ─────────────────── */
+  --dept-stores: #3b82f6;        /* Blue */
+  --dept-stores-light: #dbeafe;
+  --dept-kitchen: #10b981;       /* Emerald */
+  --dept-kitchen-light: #d1fae5;
+  --dept-housekeeping: #8b5cf6;  /* Purple */
+  --dept-housekeeping-light: #ede9fe;
+  --dept-fuel: #f59e0b;          /* Amber */
+  --dept-fuel-light: #fef3c7;
+  --dept-admin: #64748b;         /* Slate */
+  --dept-admin-light: #f1f5f9;
+  --dept-ho: #06b6d4;            /* Cyan */
+  --dept-ho-light: #cffafe;
+
+  /* ── Semantic ──────────────────────────── */
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --error: #ef4444;
+  --error-light: #fee2e2;
+  --info: #3b82f6;
+  --info-light: #dbeafe;
+
+  /* ── Sidebar ───────────────────────────── */
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-active: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #f8fafc;
+  --sidebar-border: #1e293b;
+  --sidebar-section: #475569;
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 68px;
+
+  /* ── Surface ───────────────────────────── */
+  --surface-bg: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(0, 0, 0, 0.5);
+
+  /* ── Text ──────────────────────────────── */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #f8fafc;
+
+  /* ── Border ────────────────────────────── */
+  --border-light: #f1f5f9;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* ── Shadows ───────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* ── Radius ────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Spacing (4px grid) ────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Transitions ───────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  /* ── Z-Index Scale ─────────────────────── */
+  --z-sidebar: 40;
+  --z-topbar: 30;
+  --z-mobilenav: 50;
+  --z-dropdown: 60;
+  --z-drawer: 70;
+  --z-modal: 80;
+  --z-toast: 90;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════════ */
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
+
+/* Tabular numbers for data columns */
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
 /* Body scroll lock when modals/drawers are open */
 body.overflow-locked {
@@ -31,46 +131,177 @@ body.overflow-locked {
   touch-action: none;
 }
 
-/* Mobile: minimum 48px touch targets (override with .compact-btn or style="minHeight:auto") */
+/* Mobile: minimum touch targets */
 @media (max-width: 768px) {
   button:not(.compact-btn), a:not(.compact-btn), [role="button"]:not(.compact-btn) {
     min-height: 36px;
   }
 }
 
-/* Hide scrollbar for horizontal tab strips */
+/* ═══════════════════════════════════════════════════════════════
+   Utility Classes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hide scrollbar for tab strips */
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
-/* Status badge colors */
-.status-excess { background-color: var(--kcl-blue-light); color: #1d4ed8; }
-.status-ok { background-color: var(--kcl-green-light); color: #15803d; }
-.status-low { background-color: var(--kcl-amber-light); color: #b45309; }
-.status-critical { background-color: var(--kcl-red-light); color: #dc2626; }
-.status-out { background-color: #f3f4f6; color: #6b7280; }
+/* Custom thin scrollbar */
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
 
-/* Scrollbar styling */
+/* Content area scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
-/* ── Guide Assistant Animations ──────────────────── */
+/* Smooth momentum scrolling (iOS/Android) */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Status Badge Colors
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-excess { background-color: var(--info-light); color: #1d4ed8; }
+.status-ok { background-color: var(--success-light); color: #047857; }
+.status-low { background-color: var(--warning-light); color: #b45309; }
+.status-critical { background-color: var(--error-light); color: #dc2626; }
+.status-out { background-color: #f1f5f9; color: #64748b; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Animations & Keyframes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Page Transitions ──────────────────────────── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-normal) var(--ease-out) forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in var(--duration-fast) var(--ease-out) forwards;
+}
+
+/* ── Slide animations ──────────────────────────── */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s var(--ease-out) forwards;
+}
+.animate-slide-down {
+  animation: slide-down 0.2s ease-in forwards;
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s var(--ease-out) forwards;
+}
+.animate-slide-out-right {
+  animation: slide-out-right 0.2s ease-in forwards;
+}
+
+/* ── Backdrop ──────────────────────────── */
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.animate-backdrop-in {
+  animation: backdrop-in 0.2s var(--ease-out) forwards;
+}
+.animate-backdrop-out {
+  animation: backdrop-out 0.2s ease-in forwards;
+}
+
+/* ── Skeleton loader pulse ─────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-skeleton {
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* ── Toast slide-in ────────────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(16px); }
+}
+.animate-toast-in {
+  animation: toast-in 0.3s var(--ease-out) forwards;
+}
+.animate-toast-out {
+  animation: toast-out 0.2s ease-in forwards;
+}
+
+/* ── Number count-up shimmer ───────────────────── */
+@keyframes count-up-shimmer {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* ── Card hover lift ───────────────────────────── */
+.card-hover {
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Button press ──────────────────────────────── */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ── Guide Assistant Animations ──────────────── */
 @keyframes guide-cursor-click {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(0.8); }
 }
 @keyframes guide-spotlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
 }
 @keyframes guide-tooltip-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes guide-fab-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3); }
-  50% { box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3), 0 0 0 10px rgba(22, 163, 74, 0); }
+  0%, 100% { box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3), 0 0 0 10px rgba(16, 185, 129, 0); }
 }
 @keyframes guide-tap-ring {
   0% { transform: scale(0.8); opacity: 1; }
@@ -101,10 +332,10 @@ body.overflow-locked {
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ── Coaching Mode Animations (real-time guide) ──── */
+/* ── Coaching Mode Animations ──── */
 @keyframes guide-coaching-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5), inset 0 0 12px rgba(22, 163, 74, 0.08); }
-  50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0), inset 0 0 12px rgba(22, 163, 74, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5), inset 0 0 12px rgba(16, 185, 129, 0.08); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0), inset 0 0 12px rgba(16, 185, 129, 0.15); }
 }
 @keyframes guide-coaching-cursor-bounce {
   0%, 100% { transform: translateY(0); }
@@ -125,51 +356,17 @@ body.overflow-locked {
   50% { transform: scale(1.15); }
 }
 @keyframes guide-coaching-prompt {
-  0%, 100% { background-color: rgba(240, 253, 244, 1); }
-  50% { background-color: rgba(220, 252, 231, 1); }
+  0%, 100% { background-color: rgba(236, 253, 245, 1); }
+  50% { background-color: rgba(209, 250, 229, 1); }
 }
 @keyframes guide-coaching-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.5); }
 }
 
-/* ── Mobile Drawer Animations ──────────────────── */
-@keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-@keyframes slide-down {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
-}
-@keyframes backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes backdrop-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-.animate-slide-up {
-  animation: slide-up 0.25s ease-out forwards;
-}
-.animate-slide-down {
-  animation: slide-down 0.2s ease-in forwards;
-}
-.animate-backdrop-in {
-  animation: backdrop-in 0.2s ease-out forwards;
-}
-.animate-backdrop-out {
-  animation: backdrop-out 0.2s ease-in forwards;
-}
-
-/* ── Smooth momentum scrolling (iOS/Android) ──── */
-.scroll-touch {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-/* ── Reduced Motion ────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   Reduced Motion
+   ═══════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

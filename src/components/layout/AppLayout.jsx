@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import TopBar from './TopBar'
 import OfflineBanner from '../ui/OfflineBanner'
+import { ToastProvider } from '../ui/Toast'
 import { GuideProvider } from '../../context/GuideContext'
 import AssistantButton from '../guide/AssistantButton'
 import AssistantPanel from '../guide/AssistantPanel'
@@ -10,30 +12,55 @@ import GuideOverlay from '../guide/GuideOverlay'
 import ReportForm from '../guide/ReportForm'
 
 export default function AppLayout() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('kcl_sidebar_collapsed') === 'true'
+  )
+
+  // Listen for sidebar toggle events
+  useEffect(() => {
+    function handleToggle(e) {
+      setSidebarCollapsed(e.detail.collapsed)
+    }
+    window.addEventListener('sidebar-toggle', handleToggle)
+    return () => window.removeEventListener('sidebar-toggle', handleToggle)
+  }, [])
+
   return (
     <GuideProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Desktop sidebar */}
-        <Sidebar />
+      <ToastProvider>
+        <div className="min-h-screen" style={{ backgroundColor: 'var(--surface-bg)' }}>
+          {/* Desktop sidebar */}
+          <Sidebar />
 
-        {/* Main content area */}
-        <div className="lg:ml-64">
-          <TopBar />
-          <OfflineBanner />
-          <main className="p-4 lg:p-6 pb-24 lg:pb-6">
-            <Outlet />
-          </main>
+          {/* Main content area — offset by sidebar width on desktop */}
+          <div
+            className="lg:transition-all lg:duration-200 lg:ease-out"
+            style={{ '--sidebar-w': sidebarCollapsed ? '68px' : '260px' }}
+          >
+            <style>{`
+              @media (min-width: 1024px) {
+                .main-content { margin-left: var(--sidebar-w); }
+              }
+            `}</style>
+            <div className="main-content">
+              <TopBar />
+              <OfflineBanner />
+              <main className="p-4 lg:p-6 pb-24 lg:pb-6 max-w-[1400px]">
+                <Outlet />
+              </main>
+            </div>
+          </div>
+
+          {/* Mobile bottom nav */}
+          <MobileNav />
+
+          {/* Guide Assistant */}
+          <AssistantButton />
+          <AssistantPanel />
+          <GuideOverlay />
+          <ReportForm />
         </div>
-
-        {/* Mobile bottom nav */}
-        <MobileNav />
-
-        {/* Guide Assistant */}
-        <AssistantButton />
-        <AssistantPanel />
-        <GuideOverlay />
-        <ReportForm />
-      </div>
+      </ToastProvider>
     </GuideProvider>
   )
 }

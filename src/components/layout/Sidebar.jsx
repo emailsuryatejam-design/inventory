@@ -1,34 +1,70 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useUser, isManager } from '../../context/AppContext'
 import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
-  ClipboardList
+  ClipboardList, ChevronLeft, ChevronRight, Fuel, Wrench, Building2,
+  ClipboardCheck, Warehouse, FileText
 } from 'lucide-react'
 
-// Role-based nav: access = 'all' | 'manager' | roles array
-// Chef excluded from store tabs — only sees Menu Plan, Groceries, Recipes
+// ── Department color map ──────────────────────────
+const DEPT_COLORS = {
+  stores: { accent: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' },
+  kitchen: { accent: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
+  housekeeping: { accent: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' },
+  fuel: { accent: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' },
+  admin: { accent: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
+  ho: { accent: '#06b6d4', bg: 'rgba(6, 182, 212, 0.12)' },
+}
+
+// ── Navigation sections (department-grouped) ──────
 const CHEF_ONLY = ['chef']
-const navItems = [
-  { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY, guide: 'nav-dashboard' },
-  { path: '/app/daily', icon: Calendar, label: 'Daily View', access: 'all', exclude: CHEF_ONLY, guide: 'nav-daily' },
-  { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY, guide: 'nav-orders' },
-  { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager', guide: 'nav-dispatch' },
-  { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', exclude: CHEF_ONLY, guide: 'nav-stock' },
-  { path: '/app/items', icon: Package, label: 'Items', access: 'all', exclude: CHEF_ONLY, guide: 'nav-items' },
-  { path: '/app/receive', icon: PackageCheck, label: 'Receive', access: 'all', exclude: CHEF_ONLY, guide: 'nav-receive' },
-  { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', exclude: CHEF_ONLY, guide: 'nav-issue' },
-  { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY, guide: 'nav-pos' },
-  { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY, guide: 'nav-bar-menu' },
-  { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all', guide: 'nav-recipes' },
-  { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-menu-plan' },
-  { path: '/app/daily-groceries', icon: ClipboardList, label: 'Daily Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-daily-groceries' },
-  { path: '/app/weekly-groceries', icon: Calendar, label: 'Weekly Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'], guide: 'nav-weekly-groceries' },
-  { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY, guide: 'nav-alerts' },
-  { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager', guide: 'nav-reports' },
-  { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'], guide: 'nav-users' },
-  { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager', guide: 'nav-settings' },
+
+const navSections = [
+  {
+    id: 'stores',
+    label: 'Stores',
+    items: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/stock', icon: Boxes, label: 'Stock Levels', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/items', icon: Package, label: 'Items Catalog', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/issue', icon: FileOutput, label: 'Issue Goods', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/receive', icon: PackageCheck, label: 'Receive Goods', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
+      { path: '/app/daily', icon: Calendar, label: 'Daily Overview', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY },
+    ],
+  },
+  {
+    id: 'kitchen',
+    label: 'Kitchen',
+    items: [
+      { path: '/app/menu-plan', icon: ChefHat, label: 'Menu Plan', roles: ['chef', 'camp_manager', 'admin', 'director'] },
+      { path: '/app/daily-groceries', icon: ClipboardList, label: 'Daily Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'] },
+      { path: '/app/weekly-groceries', icon: Calendar, label: 'Weekly Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'] },
+      { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all' },
+    ],
+  },
+  {
+    id: 'stores', // reusing color
+    label: 'Bar & POS',
+    items: [
+      { path: '/app/pos', icon: Wine, label: 'Point of Sale', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
+    ],
+  },
+  {
+    id: 'admin',
+    label: 'Admin',
+    items: [
+      { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+      { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
+      { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
+    ],
+  },
 ]
 
 function canAccess(item, role) {
@@ -41,6 +77,17 @@ function canAccess(item, role) {
 
 export default function Sidebar() {
   const user = useUser()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('kcl_sidebar_collapsed')
+    return saved === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('kcl_sidebar_collapsed', collapsed)
+    // Dispatch event so AppLayout can adjust margins
+    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }))
+  }, [collapsed])
 
   function handleLogout() {
     localStorage.removeItem('kcl_token')
@@ -49,67 +96,162 @@ export default function Sidebar() {
     window.location.reload()
   }
 
+  // Filter sections — remove sections with no accessible items
+  const visibleSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => canAccess(item, user?.role)),
+    }))
+    .filter(section => section.items.length > 0)
+
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
-        <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+    <aside
+      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 transition-all duration-200 ease-out ${
+        collapsed ? 'lg:w-[68px]' : 'lg:w-[260px]'
+      }`}
+      style={{ backgroundColor: 'var(--sidebar-bg)', zIndex: 'var(--z-sidebar)' }}
+    >
+      {/* ── Logo ── */}
+      <div
+        className="flex items-center gap-3 px-4 h-[60px] shrink-0"
+        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
+      >
+        <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
           <span className="text-white font-bold text-sm">KC</span>
         </div>
-        <div>
-          <h1 className="font-bold text-gray-900 text-sm">KCL Stores</h1>
-          <p className="text-xs text-gray-500">Karibu Camps</p>
-        </div>
-      </div>
-
-      {/* Nav Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems
-          .filter(item => canAccess(item, user?.role))
-          .map(item => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.end}
-              data-guide={item.guide}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-green-50 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`
-              }
-            >
-              <item.icon size={20} />
-              {item.label}
-            </NavLink>
-          ))
-        }
-      </nav>
-
-      {/* User info + Logout */}
-      <div className="border-t border-gray-100 p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
-            <span className="text-green-700 font-medium text-sm">
-              {user?.name?.charAt(0) || '?'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-            <p className="text-xs text-gray-500 truncate">
-              {user?.camp_name || 'Head Office'} · {user?.role?.replace(/_/g, ' ')}
+        {!collapsed && (
+          <div className="min-w-0 overflow-hidden">
+            <h1 className="font-semibold text-sm text-white truncate">KCL Stores</h1>
+            <p className="text-[11px] truncate" style={{ color: 'var(--sidebar-text)' }}>
+              Karibu Camps
             </p>
           </div>
+        )}
+      </div>
+
+      {/* ── Navigation ── */}
+      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin">
+        {visibleSections.map((section, sIdx) => {
+          const colors = DEPT_COLORS[section.id] || DEPT_COLORS.stores
+          return (
+            <div key={`${section.id}-${sIdx}`} className="mb-1">
+              {/* Section label */}
+              {!collapsed && (
+                <div
+                  className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ color: 'var(--sidebar-section)' }}
+                >
+                  {section.label}
+                </div>
+              )}
+              {collapsed && sIdx > 0 && (
+                <div className="mx-3 my-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }} />
+              )}
+
+              {/* Items */}
+              <div className="px-2 space-y-0.5">
+                {section.items.map(item => {
+                  const isActive = item.end
+                    ? location.pathname === item.path || location.pathname === item.path + '/'
+                    : location.pathname.startsWith(item.path) && item.path !== '/app'
+
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.end}
+                      title={collapsed ? item.label : undefined}
+                      className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                        collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
+                      }`}
+                      style={{
+                        color: isActive ? colors.accent : 'var(--sidebar-text)',
+                        backgroundColor: isActive ? colors.bg : 'transparent',
+                        borderLeft: isActive && !collapsed ? `3px solid ${colors.accent}` : '3px solid transparent',
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'
+                          e.currentTarget.style.color = 'var(--sidebar-text-active)'
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                          e.currentTarget.style.color = 'var(--sidebar-text)'
+                        }
+                      }}
+                    >
+                      <item.icon size={collapsed ? 20 : 18} className="shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </NavLink>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </nav>
+
+      {/* ── Collapse Toggle ── */}
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        className="mx-2 mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn"
+        style={{
+          color: 'var(--sidebar-text)',
+          backgroundColor: 'transparent',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)' }}
+        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+      >
+        {collapsed ? <ChevronRight size={16} /> : (
+          <>
+            <ChevronLeft size={16} />
+            <span>Collapse</span>
+          </>
+        )}
+      </button>
+
+      {/* ── User + Logout ── */}
+      <div
+        className="shrink-0 px-3 py-3"
+        style={{ borderTop: '1px solid var(--sidebar-border)' }}
+      >
+        <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''} mb-2`}>
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
+            style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7' }}
+          >
+            {user?.name?.charAt(0) || '?'}
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+              <p className="text-[11px] truncate" style={{ color: 'var(--sidebar-text)' }}>
+                {user?.camp_name || 'Head Office'}
+              </p>
+            </div>
+          )}
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+          title={collapsed ? 'Sign Out' : undefined}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          style={{ color: '#f87171' }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
         >
-          <LogOut size={18} />
-          Sign Out
+          <LogOut size={16} />
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>
   )
+}
+
+// Export for other components to check sidebar state
+export function getSidebarWidth() {
+  return localStorage.getItem('kcl_sidebar_collapsed') === 'true' ? 68 : 260
 }
