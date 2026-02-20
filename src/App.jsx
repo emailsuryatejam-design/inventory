@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useUser } from './context/AppContext'
+import RouteGuard from './components/layout/RouteGuard'
 import Login from './pages/Login'
 import PinLogin from './pages/PinLogin'
 import Dashboard from './pages/Dashboard'
@@ -28,16 +29,26 @@ import DailyGroceries from './pages/DailyGroceries'
 import WeeklyGroceries from './pages/WeeklyGroceries'
 import AppLayout from './components/layout/AppLayout'
 
+const CHEF_ONLY = ['chef']
+const KITCHEN_ROLES = ['chef', 'camp_manager', 'admin', 'director']
+const ADMIN_ROLES = ['admin', 'director', 'stores_manager']
+
 function RequireAuth({ children }) {
   const user = useUser()
   if (!user) return <Navigate to="/login" replace />
   return children
 }
 
-function ChefRedirect() {
+/** Role-based smart home — each role lands on their primary workflow */
+function SmartHome() {
   const user = useUser()
-  if (user?.role === 'chef') return <Navigate to="/app/menu-plan" replace />
-  return <Dashboard />
+  switch (user?.role) {
+    case 'chef':                return <Navigate to="/app/menu-plan" replace />
+    case 'housekeeping':        return <Navigate to="/app/issue" replace />
+    case 'stores_manager':
+    case 'procurement_officer': return <Navigate to="/app/orders" replace />
+    default:                    return <Dashboard />
+  }
 }
 
 function RedirectIfAuth({ children }) {
@@ -53,32 +64,40 @@ export default function App() {
       <Route path="/login" element={<RedirectIfAuth><Login /></RedirectIfAuth>} />
       <Route path="/pin-login" element={<RedirectIfAuth><PinLogin /></RedirectIfAuth>} />
 
-      {/* Protected routes — with layout */}
+      {/* Protected routes — with layout + route guards */}
       <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
-        <Route index element={<ChefRedirect />} />
-        <Route path="items" element={<Items />} />
-        <Route path="items/:id" element={<ItemDetail />} />
-        <Route path="stock" element={<Stock />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="orders/new" element={<OrderNew />} />
-        <Route path="orders/:id" element={<OrderDetail />} />
-        <Route path="dispatch" element={<Dispatch />} />
-        <Route path="dispatch/:id" element={<DispatchDetail />} />
-        <Route path="receive" element={<Receive />} />
-        <Route path="receive/:id" element={<ReceiveDetail />} />
-        <Route path="issue" element={<Issue />} />
-        <Route path="issue/new" element={<IssueNew />} />
-        <Route path="alerts" element={<Alerts />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="users" element={<UserManagement />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="pos" element={<POS />} />
-        <Route path="bar-menu" element={<BarMenu />} />
-        <Route path="recipes" element={<Recipes />} />
-        <Route path="daily" element={<DailyOverview />} />
-        <Route path="menu-plan" element={<MenuPlan />} />
-        <Route path="daily-groceries" element={<DailyGroceries />} />
-        <Route path="weekly-groceries" element={<WeeklyGroceries />} />
+        <Route index element={<SmartHome />} />
+
+        {/* ── Stores module ── */}
+        <Route path="items" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Items /></RouteGuard>} />
+        <Route path="items/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><ItemDetail /></RouteGuard>} />
+        <Route path="stock" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Stock /></RouteGuard>} />
+        <Route path="orders" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Orders /></RouteGuard>} />
+        <Route path="orders/new" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><OrderNew /></RouteGuard>} />
+        <Route path="orders/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><OrderDetail /></RouteGuard>} />
+        <Route path="dispatch" element={<RouteGuard module="stores" access="manager"><Dispatch /></RouteGuard>} />
+        <Route path="dispatch/:id" element={<RouteGuard module="stores" access="manager"><DispatchDetail /></RouteGuard>} />
+        <Route path="receive" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Receive /></RouteGuard>} />
+        <Route path="receive/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><ReceiveDetail /></RouteGuard>} />
+        <Route path="issue" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Issue /></RouteGuard>} />
+        <Route path="issue/new" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><IssueNew /></RouteGuard>} />
+        <Route path="daily" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><DailyOverview /></RouteGuard>} />
+        <Route path="alerts" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Alerts /></RouteGuard>} />
+
+        {/* ── Kitchen module ── */}
+        <Route path="menu-plan" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><MenuPlan /></RouteGuard>} />
+        <Route path="daily-groceries" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><DailyGroceries /></RouteGuard>} />
+        <Route path="weekly-groceries" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><WeeklyGroceries /></RouteGuard>} />
+        <Route path="recipes" element={<RouteGuard module="kitchen"><Recipes /></RouteGuard>} />
+
+        {/* ── Bar & POS module ── */}
+        <Route path="pos" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><POS /></RouteGuard>} />
+        <Route path="bar-menu" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><BarMenu /></RouteGuard>} />
+
+        {/* ── Admin module ── */}
+        <Route path="reports" element={<RouteGuard module="reports" access="manager"><Reports /></RouteGuard>} />
+        <Route path="users" element={<RouteGuard module="admin" roles={ADMIN_ROLES}><UserManagement /></RouteGuard>} />
+        <Route path="settings" element={<RouteGuard module="admin" access="manager"><Settings /></RouteGuard>} />
       </Route>
 
       {/* Default redirect */}

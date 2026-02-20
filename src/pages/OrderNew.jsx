@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useUser } from '../context/AppContext'
 import { items as itemsApi, orders as ordersApi } from '../services/api'
+import { useToast } from '../components/ui/Toast'
 import {
   ArrowLeft, Search, Plus, Minus, Trash2, ShoppingCart,
   Loader2, AlertTriangle, X
@@ -11,6 +12,7 @@ import Badge from '../components/ui/Badge'
 export default function OrderNew() {
   const user = useUser()
   const navigate = useNavigate()
+  const toast = useToast()
   const [lines, setLines] = useState([])
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -90,6 +92,7 @@ export default function OrderNew() {
           qty: l.qty,
         })),
       })
+      toast.success(`Order ${result.order.order_number || ''} created`)
       navigate(`/app/orders/${result.order.id}`)
     } catch (err) {
       setError(err.message)
@@ -216,9 +219,16 @@ export default function OrderNew() {
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="w-14 h-9 flex items-center justify-center text-sm font-bold text-gray-900 bg-gray-50 rounded-lg border border-gray-200">
-                    {line.qty}
-                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={line.qty}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value)
+                      if (v > 0) updateQty(index, v)
+                    }}
+                    className="w-14 h-9 text-center text-sm font-bold text-gray-900 bg-gray-50 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                   <button
                     onClick={() => updateQty(index, line.qty + 1)}
                     className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 transition"

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useUser, isManager } from '../context/AppContext'
 import { orders as ordersApi } from '../services/api'
+import { useToast } from '../components/ui/Toast'
 import {
   ArrowLeft, Check, X, MessageSquare, AlertTriangle,
   Clock, Loader2, Send
@@ -12,6 +13,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 export default function OrderDetail() {
   const { id } = useParams()
   const user = useUser()
+  const toast = useToast()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -64,6 +66,7 @@ export default function OrderDetail() {
         action: 'approved',
       }))
       await ordersApi.approve(id, lines)
+      toast.success('Order approved')
       await loadOrder()
       setReviewing(false)
     } catch (err) {
@@ -81,6 +84,7 @@ export default function OrderDetail() {
     setSubmittingReview(true)
     try {
       await ordersApi.reject(id, reviewNotes)
+      toast.warning('Order rejected')
       await loadOrder()
       setReviewing(false)
     } catch (err) {
@@ -100,6 +104,7 @@ export default function OrderDetail() {
         note: action.note || undefined,
       }))
       await ordersApi.approve(id, lines)
+      toast.success('Review submitted')
       await loadOrder()
       setReviewing(false)
     } catch (err) {

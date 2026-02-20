@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useUser } from '../context/AppContext'
 import { items as itemsApi, issue as issueApi, users as usersApi, kitchen as kitchenApi } from '../services/api'
+import { useToast } from '../components/ui/Toast'
 import {
   ArrowLeft, Search, Plus, Minus, Trash2, FileOutput,
   Loader2, AlertTriangle, X, ChevronDown, ChefHat, Sparkles, Star
@@ -34,10 +35,11 @@ const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50]
 export default function IssueNew() {
   const user = useUser()
   const navigate = useNavigate()
+  const toast = useToast()
   const [lines, setLines] = useState([])
   const [issueType, setIssueType] = useState('kitchen')
   const [costCenterId, setCostCenterId] = useState('')
-  const [receivedByName, setReceivedByName] = useState('')
+  const [receivedByName, setReceivedByName] = useState(user?.name || '')
   const [department, setDepartment] = useState('')
   const [roomNumbers, setRoomNumbers] = useState('')
   const [guestCount, setGuestCount] = useState('')
@@ -95,6 +97,16 @@ export default function IssueNew() {
     }
     loadData()
   }, [])
+
+  // Auto-select cost center matching issue type
+  useEffect(() => {
+    if (costCenters.length > 0) {
+      const match = costCenters.find(c =>
+        c.name?.toLowerCase().includes(issueType.toLowerCase())
+      )
+      if (match) setCostCenterId(String(match.id))
+    }
+  }, [issueType, costCenters])
 
   // Load suggested items when issue type is kitchen
   useEffect(() => {
@@ -239,10 +251,6 @@ export default function IssueNew() {
       setError('Add at least one item')
       return
     }
-    if (!receivedByName.trim()) {
-      setError('Select the person receiving the items')
-      return
-    }
     if (!costCenterId) {
       setError('Select a cost center')
       return
@@ -274,6 +282,7 @@ export default function IssueNew() {
         result?.voucher?.id
       ).catch(() => {})
 
+      toast.success(`Issue voucher created — ${lines.length} items`)
       navigate('/app/issue')
     } catch (err) {
       setError(err.message)

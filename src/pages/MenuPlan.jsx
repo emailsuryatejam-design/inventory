@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser, useSelectedCamp } from '../context/AppContext'
 import { kitchenMenu as menuApi, kitchen as kitchenApi } from '../services/api'
+import { useToast } from '../components/ui/Toast'
 import { lockScroll, unlockScroll } from '../utils/scrollLock'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import {
@@ -70,6 +71,7 @@ function isToday(dateStr) {
 export default function MenuPlan() {
   const user = useUser()
   const { campId } = useSelectedCamp()
+  const toast = useToast()
 
   // Date + meal
   const [date, setDate] = useState(todayStr())
@@ -257,6 +259,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.confirmPlan(plan.id)
+      toast.success('Menu plan confirmed')
       await refreshPlan()
     } catch (err) {
       setError(err.message)
@@ -269,6 +272,7 @@ export default function MenuPlan() {
     setSaving(true)
     try {
       await menuApi.reopenPlan(plan.id)
+      toast.info('Menu plan reopened for editing')
       await refreshPlan()
     } catch (err) {
       setError(err.message)
@@ -722,6 +726,50 @@ function PaxInput({ pax, onSave, disabled }) {
 
 
 // ════════════════════════════════════════════════════════════
+// INLINE PORTIONS EDITOR — click to edit, enter to save
+// ════════════════════════════════════════════════════════════
+function InlinePortions({ value, disabled, onChange }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef(null)
+
+  useEffect(() => { setDraft(value) }, [value])
+  useEffect(() => { if (editing && inputRef.current) inputRef.current.select() }, [editing])
+
+  function commit() {
+    const n = parseInt(draft)
+    if (n > 0) onChange(n)
+    setEditing(false)
+  }
+
+  if (editing && !disabled) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        min="1"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
+        className="w-12 h-5 text-[10px] font-medium text-center text-orange-700 bg-orange-50 border border-orange-300 rounded-full outline-none focus:ring-1 focus:ring-orange-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+    )
+  }
+
+  return (
+    <button
+      onClick={() => { if (!disabled) setEditing(true) }}
+      className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+        disabled ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
+      }`}
+    >
+      <UsersIcon size={10} /> {value}
+    </button>
+  )
+}
+
+// ════════════════════════════════════════════════════════════
 // DISH CARD — compact dish info only (no ingredients)
 // ════════════════════════════════════════════════════════════
 function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdatePortions, saving }) {
@@ -763,19 +811,12 @@ function DishCard({ dish, isConfirmed, onRemoveDish, onRatePresentation, onUpdat
           </span>
         )}
 
-        {/* Portions */}
-        <button
-          onClick={() => {
-            if (isConfirmed) return
-            const n = prompt('Portions:', dishPortions)
-            if (n && parseInt(n) > 0 && parseInt(n) !== dishPortions) onUpdatePortions(parseInt(n))
-          }}
-          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-            isConfirmed ? 'text-gray-500 bg-gray-50' : 'text-orange-700 bg-orange-50 active:bg-orange-100'
-          }`}
-        >
-          <UsersIcon size={10} /> {dishPortions}
-        </button>
+        {/* Portions — inline editable */}
+        <InlinePortions
+          value={dishPortions}
+          disabled={isConfirmed}
+          onChange={(n) => { if (n !== dishPortions) onUpdatePortions(n) }}
+        />
 
         {/* Camera */}
         <button onClick={onRatePresentation} className="text-amber-600 p-0.5 shrink-0">
