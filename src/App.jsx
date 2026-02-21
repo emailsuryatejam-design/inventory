@@ -27,6 +27,13 @@ import DailyOverview from './pages/DailyOverview'
 import MenuPlan from './pages/MenuPlan'
 import DailyGroceries from './pages/DailyGroceries'
 import WeeklyGroceries from './pages/WeeklyGroceries'
+import ItemNew from './pages/ItemNew'
+import Suppliers from './pages/Suppliers'
+import SupplierNew from './pages/SupplierNew'
+import SupplierDetail from './pages/SupplierDetail'
+import StockAdjustments from './pages/StockAdjustments'
+import StockAdjustmentNew from './pages/StockAdjustmentNew'
+import StockAdjustmentDetail from './pages/StockAdjustmentDetail'
 import AppLayout from './components/layout/AppLayout'
 
 const CHEF_ONLY = ['chef']
@@ -70,6 +77,7 @@ export default function App() {
 
         {/* ── Stores module ── */}
         <Route path="items" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Items /></RouteGuard>} />
+        <Route path="items/new" element={<RouteGuard module="stores" access="manager"><ItemNew /></RouteGuard>} />
         <Route path="items/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><ItemDetail /></RouteGuard>} />
         <Route path="stock" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Stock /></RouteGuard>} />
         <Route path="orders" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Orders /></RouteGuard>} />
@@ -81,6 +89,12 @@ export default function App() {
         <Route path="receive/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><ReceiveDetail /></RouteGuard>} />
         <Route path="issue" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Issue /></RouteGuard>} />
         <Route path="issue/new" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><IssueNew /></RouteGuard>} />
+        <Route path="suppliers" element={<RouteGuard module="stores" access="manager"><Suppliers /></RouteGuard>} />
+        <Route path="suppliers/new" element={<RouteGuard module="stores" access="manager"><SupplierNew /></RouteGuard>} />
+        <Route path="suppliers/:id" element={<RouteGuard module="stores" access="manager"><SupplierDetail /></RouteGuard>} />
+        <Route path="stock-adjustments" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><StockAdjustments /></RouteGuard>} />
+        <Route path="stock-adjustments/new" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><StockAdjustmentNew /></RouteGuard>} />
+        <Route path="stock-adjustments/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><StockAdjustmentDetail /></RouteGuard>} />
         <Route path="daily" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><DailyOverview /></RouteGuard>} />
         <Route path="alerts" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Alerts /></RouteGuard>} />
 

@@ -67,6 +67,11 @@ function getCacheTTL(endpoint) {
   if (endpoint.includes('pos.php?action=categories')) return 60
   if (endpoint.includes('menu.php?action=categories')) return 60
   if (endpoint.includes('items.php')) return 30
+  if (endpoint.includes('item-groups.php')) return 60
+  if (endpoint.includes('uom.php')) return 60
+  if (endpoint.includes('suppliers.php')) return 15
+  if (endpoint.includes('item-suppliers.php')) return 15
+  if (endpoint.includes('stock-adjustments.php')) return 10
   if (endpoint.includes('dashboard.php')) return 30
   if (endpoint.includes('stock')) return 30
   if (endpoint.includes('users.php') && !endpoint.includes('?id=')) return 30
@@ -266,6 +271,76 @@ export const items = {
   },
 
   get: (id) => request(`items-detail.php?id=${id}`),
+
+  create: (data) =>
+    request('items.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id, data) =>
+    request('items.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...data }),
+    }),
+
+  deactivate: (id) =>
+    request(`items.php?id=${id}`, { method: 'DELETE' }),
+}
+
+// ── Item Groups & UOMs ─────────────────────────────
+export const itemGroups = {
+  list: () => request('item-groups.php'),
+  create: (data) =>
+    request('item-groups.php', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+export const uom = {
+  list: () => request('uom.php'),
+  create: (data) =>
+    request('uom.php', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ── Suppliers ──────────────────────────────────────
+export const suppliers = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`suppliers.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`suppliers.php?id=${id}`),
+  create: (data) =>
+    request('suppliers.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) =>
+    request('suppliers.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  deactivate: (id) =>
+    request(`suppliers.php?id=${id}`, { method: 'DELETE' }),
+}
+
+// ── Item-Supplier Links ────────────────────────────
+export const itemSuppliers = {
+  forItem: (itemId) => request(`item-suppliers.php?item_id=${itemId}`),
+  forSupplier: (supplierId) => request(`item-suppliers.php?supplier_id=${supplierId}`),
+  link: (data) =>
+    request('item-suppliers.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) =>
+    request('item-suppliers.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  remove: (id) =>
+    request(`item-suppliers.php?id=${id}`, { method: 'DELETE' }),
+}
+
+// ── Stock Adjustments ──────────────────────────────
+export const stockAdjustments = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`stock-adjustments.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`stock-adjustments.php?id=${id}`),
+  create: (data) =>
+    request('stock-adjustments.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) =>
+    request('stock-adjustments.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  reject: (id) =>
+    request('stock-adjustments.php', { method: 'PUT', body: JSON.stringify({ id, action: 'reject' }) }),
 }
 
 // ── Stock ───────────────────────────────────────────

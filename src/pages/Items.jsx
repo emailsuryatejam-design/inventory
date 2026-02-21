@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { items as itemsApi } from '../services/api'
 import { loadFilters, saveFilters } from '../services/filterStore'
-import { Package, Filter, ChevronRight } from 'lucide-react'
+import { useUser, isManager } from '../context/AppContext'
+import { Package, Filter, ChevronRight, Plus } from 'lucide-react'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
 import Pagination from '../components/ui/Pagination'
@@ -10,6 +11,8 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 
 export default function Items() {
+  const user = useUser()
+  const canCreate = isManager(user?.role) || ['stores_manager', 'admin', 'director', 'procurement_officer'].includes(user?.role)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -70,6 +73,15 @@ export default function Items() {
             {data?.pagination?.total?.toLocaleString() || '—'} items
           </p>
         </div>
+        {canCreate && (
+          <Link
+            to="/app/items/new"
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">New Item</span>
+          </Link>
+        )}
       </div>
 
       {/* Search + Filter Toggle */}

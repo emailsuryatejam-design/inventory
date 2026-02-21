@@ -34,6 +34,8 @@ const navSections = [
       { path: '/app/issue', icon: FileOutput, label: 'Issue Goods', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/receive', icon: PackageCheck, label: 'Receive Goods', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/orders', icon: ShoppingCart, label: 'Orders', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/suppliers', icon: Building2, label: 'Suppliers', access: 'manager' },
+      { path: '/app/stock-adjustments', icon: ClipboardCheck, label: 'Adjustments', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
       { path: '/app/daily', icon: Calendar, label: 'Daily Overview', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY },
@@ -172,6 +174,7 @@ export default function Sidebar() {
                       key={item.path}
                       to={item.path}
                       end={item.end}
+                      data-guide={`nav-${item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '').replace(/\//g, '-')}`}
                       title={collapsed ? item.label : undefined}
                       className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
                         collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
