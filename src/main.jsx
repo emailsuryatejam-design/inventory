@@ -19,15 +19,11 @@ createRoot(document.getElementById('root')).render(
 // Start offline sync listener (flushes queue when back online)
 startSyncListener()
 
-// Register service worker in production (web only, not Capacitor native)
-// On Capacitor, assets are already local — SW can cause blank screen by caching stale index.html
+// Service Worker is registered automatically by vite-plugin-pwa (registerType: 'autoUpdate')
+// On Capacitor, SW is not generated — assets are bundled natively
+// Safety: unregister any stale SW on Capacitor
 const isCapacitor = window.Capacitor?.isNativePlatform?.() || false
-if ('serviceWorker' in navigator && import.meta.env.PROD && !isCapacitor) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {})
-  })
-} else if (isCapacitor && 'serviceWorker' in navigator) {
-  // Unregister any previously registered SW on Capacitor
+if (isCapacitor && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => {
     regs.forEach(r => r.unregister())
   }).catch(() => {})

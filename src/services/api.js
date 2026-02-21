@@ -714,3 +714,31 @@ export const dailyOverview = {
 export const health = {
   check: () => request('health.php'),
 }
+
+// ── Settings ───────────────────────────────────────
+export const settings = {
+  get: (keys = []) => {
+    const qs = keys.length ? `?keys=${keys.join(',')}` : ''
+    return request(`settings.php${qs}`)
+  },
+
+  save: (data) =>
+    request('settings.php', {
+      method: 'POST',
+      body: JSON.stringify({ settings: data }),
+    }),
+}
+
+// ── Tally ERP ──────────────────────────────────────
+export const tally = {
+  preview: (type, params = {}) => {
+    const qs = new URLSearchParams({ type, ...params }).toString()
+    return request(`tally-export.php?${qs}`)
+  },
+
+  exportXml: (data) =>
+    rawRequest('tally-export.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}

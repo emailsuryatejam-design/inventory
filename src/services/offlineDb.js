@@ -1,10 +1,10 @@
 /**
  * WebSquare — IndexedDB Offline Storage
- * Provides API response caching and sync queue management
+ * Provides API response caching, sync queue management, and receipt storage
  */
 
 const DB_NAME = 'ws_offline'
-const DB_VERSION = 1
+const DB_VERSION = 2 // v2: added receipts store
 
 let dbInstance = null
 
@@ -28,10 +28,22 @@ function openDB() {
         store.createIndex('status', 'status', { unique: false })
         store.createIndex('timestamp', 'timestamp', { unique: false })
       }
+
+      // Receipts store: for offline reprint capability (v2)
+      if (!db.objectStoreNames.contains('receipts')) {
+        const store = db.createObjectStore('receipts', { keyPath: 'id', autoIncrement: true })
+        store.createIndex('voucher_number', 'voucher_number', { unique: true })
+        store.createIndex('created_at', 'created_at', { unique: false })
+      }
     }
 
     request.onsuccess = () => {
       dbInstance = request.result
+      // Handle version change (e.g., another tab triggers upgrade)
+      dbInstance.onversionchange = () => {
+        dbInstance.close()
+        dbInstance = null
+      }
       resolve(dbInstance)
     }
 
@@ -103,6 +115,35 @@ export async function clearExpiredCache() {
       }
     }
   } catch { /* ignore */ }
+}
+
+export async function clearAllCache() {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('apiCache', 'readwrite')
+      tx.objectStore('apiCache').clear()
+      tx.oncomplete = () => resolve(true)
+      tx.onerror = () => resolve(false)
+    })
+  } catch {
+    return false
+  }
+}
+
+export async function getCacheStats() {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('apiCache', 'readonly')
+      const store = tx.objectStore('apiCache')
+      const req = store.count()
+      req.onsuccess = () => resolve({ entries: req.result || 0 })
+      req.onerror = () => resolve({ entries: 0 })
+    })
+  } catch {
+    return { entries: 0 }
+  }
 }
 
 // ── Sync Queue ────────────────────────────────────
@@ -206,5 +247,87 @@ export async function clearQueue() {
     })
   } catch {
     return false
+  }
+}
+
+// ── Receipts ──────────────────────────────────────
+
+export async function saveReceipt(receipt) {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('receipts', 'readwrite')
+      const store = tx.objectStore('receipts')
+      store.put({
+        ...receipt,
+        created_at: receipt.created_at || Date.now(),
+      })
+      tx.oncomplete = () => resolve(true)
+      tx.onerror = () => resolve(false)
+    })
+  } catch {
+    return false
+  }
+}
+
+export async function getReceipts(limit = 50) {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('receipts', 'readonly')
+      const store = tx.objectStore('receipts')
+      const index = store.index('created_at')
+      const req = index.openCursor(null, 'prev') // newest first
+      const results = []
+      req.onsuccess = () => {
+        const cursor = req.result
+        if (cursor && results.length < limit) {
+          results.push(cursor.value)
+          cursor.continue()
+        } else {
+          resolve(results)
+        }
+      }
+      req.onerror = () => resolve([])
+    })
+  } catch {
+    return []
+  }
+}
+
+export async function getReceiptByVoucher(voucherNumber) {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction('receipts', 'readonly')
+      const store = tx.objectStore('receipts')
+      const index = store.index('voucher_number')
+      const req = index.get(voucherNumber)
+      req.onsuccess = () => resolve(req.result || null)
+      req.onerror = () => resolve(null)
+    })
+  } catch {
+    return null
+  }
+}
+
+// ── Pre-cache Critical Data ───────────────────────
+
+export async function precacheCriticalData() {
+  try {
+    // Dynamic import to avoid circular dependency (api.js imports offlineDb.js)
+    const api = await import('./api')
+
+    // Fire all requests in parallel — api.js caches responses automatically
+    await Promise.allSettled([
+      api.pos.categories(),
+      api.pos.items({ limit: 200 }),
+      api.menu.categories(),
+      api.menu.items({}),
+      api.items.list({ limit: 200 }),
+    ])
+    console.log('[offlineDb] Critical data pre-cached for offline use')
+  } catch (e) {
+    console.warn('[offlineDb] Pre-cache partial failure:', e)
   }
 }

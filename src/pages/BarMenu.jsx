@@ -8,6 +8,12 @@ import {
 } from 'lucide-react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import RecipeSheet from '../components/bar/RecipeSheet'
+import PrintPortal from '../components/print/PrintPortal'
+import ReceiptTemplate from '../components/print/ReceiptTemplate'
+import PrintButton from '../components/print/PrintButton'
+import { saveReceipt } from '../services/offlineDb'
+import { usePrinterConfig } from '../hooks/useSettings'
+import { generateReceiptCommands, sendToNetworkPrinter } from '../services/escpos'
 
 const STATUS_STYLES = {
   available: { bg: 'bg-green-100', text: 'text-green-700', label: 'In Stock' },
@@ -38,6 +44,25 @@ export default function BarMenu() {
   const [cart, setCart] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [lastReceipt, setLastReceipt] = useState(null)
+  const [printing, setPrinting] = useState(false)
+  const printerConfig = usePrinterConfig()
+
+  // Handle print receipt
+  function handlePrint() {
+    if (printerConfig.type === 'thermal' && printerConfig.endpoint) {
+      const commands = generateReceiptCommands(lastReceipt, {
+        campName: user?.camp_name,
+        headerText: printerConfig.headerText,
+        footerText: printerConfig.footerText,
+        printerWidth: printerConfig.width === 58 ? 32 : 48,
+      })
+      sendToNetworkPrinter(commands, printerConfig.endpoint)
+        .then(() => window.__ws_toast?.success('Receipt sent to printer'))
+        .catch(() => window.__ws_toast?.error('Printer error. Check connection.'))
+    } else {
+      setPrinting(true)
+    }
+  }
 
   // Filters
   const [activeCategory, setActiveCategory] = useState(null)
@@ -173,13 +198,25 @@ export default function BarMenu() {
         })),
       })
 
-      setLastReceipt({
+      const receiptData = {
         ...result.order,
         cartItems: [...cart],
+        items: [...cart], // normalized for ReceiptTemplate
         time: new Date().toLocaleTimeString(),
-      })
+      }
+      setLastReceipt(receiptData)
       setView('receipt')
       setCart([])
+      // Save receipt to IndexedDB for offline reprint
+      saveReceipt({
+        voucher_number: receiptData.voucher_number,
+        total_value: receiptData.total_value,
+        items: [...cart],
+        service_type: 'bar',
+        camp_name: user?.camp_name,
+        created_by: user?.name,
+        created_at: Date.now(),
+      }).catch(() => {})
       setTableNumber('')
       setGuestCount('')
       setReceivedBy('')
@@ -229,14 +266,31 @@ export default function BarMenu() {
             )}
           </div>
           <div className="p-4 border-t border-gray-100 space-y-2">
-            <button
-              onClick={() => { setView('menu'); setLastReceipt(null) }}
-              className="w-full bg-amber-700 text-white py-3 rounded-xl font-semibold text-sm hover:bg-amber-800 transition"
-            >
-              New Order
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setView('menu'); setLastReceipt(null) }}
+                className="flex-1 bg-amber-700 text-white py-3 rounded-xl font-semibold text-sm hover:bg-amber-800 transition"
+              >
+                New Order
+              </button>
+              <PrintButton onClick={handlePrint} variant="icon" />
+            </div>
           </div>
         </div>
+
+        {/* Print Portal */}
+        <PrintPortal
+          pageType="receipt"
+          trigger={printing}
+          onDone={() => setPrinting(false)}
+        >
+          <ReceiptTemplate
+            receipt={lastReceipt}
+            campName={user?.camp_name}
+            headerText={printerConfig.headerText}
+            footerText={printerConfig.footerText}
+          />
+        </PrintPortal>
       </div>
     )
   }

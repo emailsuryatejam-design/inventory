@@ -9,6 +9,12 @@ import {
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import PrintPortal from '../components/print/PrintPortal'
+import ReceiptTemplate from '../components/print/ReceiptTemplate'
+import PrintButton from '../components/print/PrintButton'
+import { saveReceipt } from '../services/offlineDb'
+import { usePrinterConfig } from '../hooks/useSettings'
+import { generateReceiptCommands, sendToNetworkPrinter } from '../services/escpos'
 
 const SERVICE_TYPES = [
   { value: 'bar', label: 'Bar', icon: Wine, color: 'bg-purple-500', costCenter: 'BAR' },
@@ -63,6 +69,27 @@ export default function POS() {
   // Recent transactions
   const [recentTx, setRecentTx] = useState([])
   const [showRecent, setShowRecent] = useState(false)
+  const [printing, setPrinting] = useState(false)
+  const printerConfig = usePrinterConfig()
+
+  // Handle print receipt
+  function handlePrint() {
+    if (printerConfig.type === 'thermal' && printerConfig.endpoint) {
+      // Thermal printer: send ESC/POS commands
+      const commands = generateReceiptCommands(lastReceipt, {
+        campName: user?.camp_name,
+        headerText: printerConfig.headerText,
+        footerText: printerConfig.footerText,
+        printerWidth: printerConfig.width === 58 ? 32 : 48,
+      })
+      sendToNetworkPrinter(commands, printerConfig.endpoint)
+        .then(() => window.__ws_toast?.success('Receipt sent to printer'))
+        .catch(() => window.__ws_toast?.error('Printer error. Check connection.'))
+    } else {
+      // Browser print dialog
+      setPrinting(true)
+    }
+  }
 
   // Load today stats on mount
   useEffect(() => {
@@ -225,14 +252,25 @@ export default function POS() {
         })),
       })
 
-      setLastReceipt({
+      const receiptData = {
         ...result.transaction,
         items: [...cart],
         service: serviceType,
         time: new Date().toLocaleTimeString(),
-      })
+      }
+      setLastReceipt(receiptData)
       setView('receipt')
       setCart([])
+      // Save receipt to IndexedDB for offline reprint
+      saveReceipt({
+        voucher_number: receiptData.voucher_number,
+        total_value: receiptData.total_value,
+        items: [...cart],
+        service_type: serviceType?.value,
+        camp_name: user?.camp_name,
+        created_by: user?.name,
+        created_at: Date.now(),
+      }).catch(() => {})
       setTableNumber('')
       setGuestCount('')
       setRoomNumbers('')
@@ -321,12 +359,15 @@ export default function POS() {
 
           {/* Actions */}
           <div className="p-4 border-t border-gray-100 space-y-2">
-            <button
-              onClick={newTransaction}
-              className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
-            >
-              New Transaction
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={newTransaction}
+                className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
+              >
+                New Transaction
+              </button>
+              <PrintButton onClick={handlePrint} variant="icon" />
+            </div>
             <button
               onClick={() => { setView('service'); setServiceType(null) }}
               className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition"
@@ -335,6 +376,20 @@ export default function POS() {
             </button>
           </div>
         </div>
+
+        {/* Print Portal — hidden on screen, shown in print */}
+        <PrintPortal
+          pageType="receipt"
+          trigger={printing}
+          onDone={() => setPrinting(false)}
+        >
+          <ReceiptTemplate
+            receipt={lastReceipt}
+            campName={user?.camp_name}
+            headerText={printerConfig.headerText}
+            footerText={printerConfig.footerText}
+          />
+        </PrintPortal>
       </div>
     )
   }

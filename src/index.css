@@ -374,3 +374,80 @@ body.overflow-locked {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Print Styles — Receipt & Report Templates
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hide print portal on screen */
+#print-portal {
+  display: none;
+}
+
+@media print {
+  /* Hide everything except the print portal */
+  #root {
+    display: none !important;
+  }
+
+  #print-portal {
+    display: block !important;
+  }
+
+  /* Reset page defaults */
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Remove shadows, backgrounds */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Receipt: 80mm thermal paper */
+  #print-portal[data-page-type="receipt"] {
+    padding: 4mm;
+  }
+
+  @page {
+    margin: 0;
+  }
+
+  /* Report: A4 paper with margins */
+  #print-portal[data-page-type="report"] {
+    padding: 15mm 20mm;
+    font-size: 10pt;
+  }
+
+  #print-portal[data-page-type="report"] table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #print-portal[data-page-type="report"] th,
+  #print-portal[data-page-type="report"] td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+    font-size: 9pt;
+  }
+
+  #print-portal[data-page-type="report"] th {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-weight: bold;
+  }
+
+  #print-portal[data-page-type="report"] thead {
+    display: table-header-group;
+  }
+
+  #print-portal[data-page-type="report"] tr {
+    page-break-inside: avoid;
+  }
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { auth } from '../services/api'
+import { precacheCriticalData } from '../services/offlineDb'
 import { LogIn, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function Login() {
@@ -31,6 +32,8 @@ export default function Login() {
         }
       })
       navigate('/app')
+      // Pre-cache critical data for offline use (fire-and-forget)
+      precacheCriticalData()
     } catch (err) {
       setError(err.message)
     } finally {

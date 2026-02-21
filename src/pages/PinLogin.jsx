@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { auth, users as usersApi } from '../services/api'
+import { precacheCriticalData } from '../services/offlineDb'
 import { Delete, Loader2, ChevronDown } from 'lucide-react'
 
 export default function PinLogin() {
@@ -64,6 +65,8 @@ export default function PinLogin() {
         }
       })
       navigate('/app')
+      // Pre-cache critical data for offline use (fire-and-forget)
+      precacheCriticalData()
     } catch (err) {
       setError(err.message)
       setPin('')
