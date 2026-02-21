@@ -93,7 +93,7 @@ export default function TopBar({ onMobileMenuToggle }) {
 
         {/* Mobile logo */}
         <div className="lg:hidden w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-xs">KC</span>
+          <span className="text-white font-bold text-xs">WS</span>
         </div>
 
         {/* Breadcrumbs (desktop only) */}
@@ -170,7 +170,7 @@ export default function TopBar({ onMobileMenuToggle }) {
         {/* Non-manager camp name */}
         {!isManager(user?.role) && (
           <span className="hidden sm:inline text-sm font-medium text-gray-500 px-2">
-            {user?.camp_name || 'KCL Stores'}
+            {user?.camp_name || 'WebSquare'}
           </span>
         )}
 
@@ -192,7 +192,7 @@ export default function TopBar({ onMobileMenuToggle }) {
         <div className="hidden lg:flex items-center gap-2 pl-2 ml-1" style={{ borderLeft: '1px solid var(--border-light)' }}>
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-            style={{ backgroundColor: 'var(--kcl-primary-light)', color: 'var(--kcl-primary-dark)' }}
+            style={{ backgroundColor: 'var(--ws-primary-light)', color: 'var(--ws-primary-dark)' }}
           >
             {user?.name?.charAt(0) || '?'}
           </div>

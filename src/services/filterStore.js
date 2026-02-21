@@ -3,7 +3,7 @@
  * so users don't lose their filter state when navigating away and back.
  */
 
-const PREFIX = 'kcl_filters_'
+const PREFIX = 'ws_filters_'
 
 export function saveFilters(pageKey, filters) {
   try {

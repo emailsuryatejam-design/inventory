@@ -13,8 +13,8 @@ export default function Settings() {
   const toast = useToast()
 
   function handleLogout() {
-    localStorage.removeItem('kcl_token')
-    localStorage.removeItem('kcl_stores')
+    localStorage.removeItem('ws_token')
+    localStorage.removeItem('ws_state')
     window.location.hash = '#/login'
     window.location.reload()
   }
@@ -87,15 +87,15 @@ export default function Settings() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-500">Application</span>
-            <span className="text-gray-900 font-medium">KCL Stores</span>
+            <span className="text-gray-900 font-medium">WebSquare</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Version</span>
-            <span className="text-gray-900 font-medium">1.0.0</span>
+            <span className="text-gray-900 font-medium">2.0.0</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Organisation</span>
-            <span className="text-gray-900 font-medium">Karibu Camps Limited</span>
+            <span className="text-gray-500">Powered by</span>
+            <span className="text-gray-900 font-medium">Vyoma AI Studios</span>
           </div>
         </div>
       </div>

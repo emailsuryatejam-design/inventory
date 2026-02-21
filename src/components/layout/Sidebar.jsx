@@ -90,19 +90,19 @@ export default function Sidebar() {
   const { state } = useApp()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(() => {
-    const saved = localStorage.getItem('kcl_sidebar_collapsed')
+    const saved = localStorage.getItem('ws_sidebar_collapsed')
     return saved === 'true'
   })
 
   useEffect(() => {
-    localStorage.setItem('kcl_sidebar_collapsed', collapsed)
+    localStorage.setItem('ws_sidebar_collapsed', collapsed)
     // Dispatch event so AppLayout can adjust margins
     window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }))
   }, [collapsed])
 
   function handleLogout() {
-    localStorage.removeItem('kcl_token')
-    localStorage.removeItem('kcl_stores')
+    localStorage.removeItem('ws_token')
+    localStorage.removeItem('ws_state')
     window.location.hash = '#/login'
     window.location.reload()
   }
@@ -129,13 +129,13 @@ export default function Sidebar() {
         style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
         <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">KC</span>
+          <span className="text-white font-bold text-sm">WS</span>
         </div>
         {!collapsed && (
           <div className="min-w-0 overflow-hidden">
-            <h1 className="font-semibold text-sm text-white truncate">KCL Stores</h1>
+            <h1 className="font-semibold text-sm text-white truncate">WebSquare</h1>
             <p className="text-[11px] truncate" style={{ color: 'var(--sidebar-text)' }}>
-              Karibu Camps
+              Vyoma AI Studios
             </p>
           </div>
         )}
@@ -265,5 +265,5 @@ export default function Sidebar() {
 
 // Export for other components to check sidebar state
 export function getSidebarWidth() {
-  return localStorage.getItem('kcl_sidebar_collapsed') === 'true' ? 68 : 260
+  return localStorage.getItem('ws_sidebar_collapsed') === 'true' ? 68 : 260
 }

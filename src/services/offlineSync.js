@@ -1,5 +1,5 @@
 /**
- * KCL Stores — Offline Sync Manager
+ * WebSquare — Offline Sync Manager
  * Flushes queued operations when connectivity returns
  */
 

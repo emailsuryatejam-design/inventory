@@ -53,7 +53,7 @@ export default function PinLogin() {
 
     try {
       const data = await auth.pinLogin(username, pinValue)
-      localStorage.setItem('kcl_token', data.token)
+      localStorage.setItem('ws_token', data.token)
       dispatch({
         type: 'LOGIN',
         payload: {
@@ -89,9 +89,9 @@ export default function PinLogin() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">KC</span>
+            <span className="text-white text-2xl font-bold">WS</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">KCL Stores</h1>
+          <h1 className="text-2xl font-bold text-gray-900">WebSquare</h1>
           <p className="text-gray-500 mt-1">Camp Staff Login</p>
         </div>
 

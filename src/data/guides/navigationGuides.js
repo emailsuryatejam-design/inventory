@@ -2,7 +2,7 @@ export const navigationGuides = [
   {
     id: 'app-overview',
     title: 'App Overview Tour',
-    description: 'Get familiar with the KCL Stores dashboard and navigation',
+    description: 'Get familiar with the WebSquare dashboard and navigation',
     icon: 'LayoutDashboard',
     category: 'Navigation',
     keywords: ['tour', 'overview', 'dashboard', 'start', 'begin', 'help', 'new', 'getting started'],

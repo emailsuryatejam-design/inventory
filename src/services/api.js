@@ -1,5 +1,5 @@
 /**
- * KCL Stores — API Client
+ * WebSquare — API Client
  * Handles all HTTP requests to the PHP backend
  * With offline caching and sync queue support
  */
@@ -13,7 +13,7 @@ const BASE_URL = import.meta.env.DEV
   : 'https://darkblue-goshawk-672880.hostingersite.com'
 
 function getToken() {
-  return localStorage.getItem('kcl_token')
+  return localStorage.getItem('ws_token')
 }
 
 // ── In-memory cache (instant, sync) ─────────────────
@@ -165,8 +165,8 @@ async function fetchAndCache(endpoint, url, config, method = 'GET') {
     const response = await fetch(url, config)
 
     if (response.status === 401 && !endpoint.includes('auth-login')) {
-      localStorage.removeItem('kcl_token')
-      localStorage.removeItem('kcl_stores')
+      localStorage.removeItem('ws_token')
+      localStorage.removeItem('ws_state')
       window.location.hash = '#/login'
       throw new Error('Session expired. Please login again.')
     }

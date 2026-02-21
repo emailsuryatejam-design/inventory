@@ -49,7 +49,7 @@ export function ToastProvider({ children }) {
 
   // Expose toast globally for non-component usage
   useEffect(() => {
-    window.__kcl_toast = toast
+    window.__ws_toast = toast
   }, [toast])
 
   return (

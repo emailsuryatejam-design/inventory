@@ -139,8 +139,8 @@ export default function MobileNav() {
   }
 
   function handleLogout() {
-    localStorage.removeItem('kcl_token')
-    localStorage.removeItem('kcl_stores')
+    localStorage.removeItem('ws_token')
+    localStorage.removeItem('ws_state')
     window.location.hash = '#/login'
     window.location.reload()
   }
@@ -223,7 +223,7 @@ export default function MobileNav() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold"
-                  style={{ backgroundColor: 'var(--kcl-primary-light)', color: 'var(--kcl-primary-dark)' }}
+                  style={{ backgroundColor: 'var(--ws-primary-light)', color: 'var(--ws-primary-dark)' }}
                 >
                   {user?.name?.charAt(0) || '?'}
                 </div>
@@ -275,7 +275,7 @@ export default function MobileNav() {
                               : 'text-gray-500'
                           }`}
                           style={{
-                            backgroundColor: isActive ? 'var(--kcl-primary-light)' : 'transparent',
+                            backgroundColor: isActive ? 'var(--ws-primary-light)' : 'transparent',
                           }}
                         >
                           <item.icon size={20} />

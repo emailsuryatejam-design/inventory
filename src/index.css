@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   KCL Stores — Karibu Camps Design System
+   WebSquare — Design System by Vyoma AI Studios
    Premium SaaS-grade design tokens
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
   /* ── Brand ─────────────────────────────── */
-  --kcl-primary: #10b981;
-  --kcl-primary-dark: #059669;
-  --kcl-primary-light: #d1fae5;
-  --kcl-primary-50: #ecfdf5;
+  --ws-primary: #10b981;
+  --ws-primary-dark: #059669;
+  --ws-primary-light: #d1fae5;
+  --ws-primary-50: #ecfdf5;
 
   /* ── Department Colors ─────────────────── */
   --dept-stores: #3b82f6;        /* Blue */

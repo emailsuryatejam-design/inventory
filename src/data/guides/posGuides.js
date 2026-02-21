@@ -53,7 +53,7 @@ export const posGuides = [
   {
     id: 'place-bar-order',
     title: 'Place a Bar Order',
-    description: 'Order drinks from the Karibu Camps bar menu',
+    description: 'Order drinks from the bar menu',
     icon: 'GlassWater',
     category: 'POS & Bar Menu',
     keywords: ['bar', 'drinks', 'cocktail', 'beer', 'menu', 'order', 'beverage', 'wine'],
@@ -62,7 +62,7 @@ export const posGuides = [
       {
         target: '[data-guide="nav-bar-menu"]',
         title: 'Open Bar Menu',
-        description: 'Click Bar Menu to see the full Karibu Camps drinks menu.',
+        description: 'Click Bar Menu to see the full drinks menu.',
         placement: 'right',
         route: '/app',
         advanceOn: 'click',

@@ -13,7 +13,7 @@ import ReportForm from '../guide/ReportForm'
 
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
-    localStorage.getItem('kcl_sidebar_collapsed') === 'true'
+    localStorage.getItem('ws_sidebar_collapsed') === 'true'
   )
 
   // Listen for sidebar toggle events

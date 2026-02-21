@@ -1,7 +1,7 @@
 {
-  "name": "KCL Stores",
-  "short_name": "KCL Stores",
-  "description": "Karibu Camps Inventory Management",
+  "name": "WebSquare",
+  "short_name": "WebSquare",
+  "description": "Operations Platform by Vyoma AI Studios",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

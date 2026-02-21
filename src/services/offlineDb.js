@@ -1,9 +1,9 @@
 /**
- * KCL Stores — IndexedDB Offline Storage
+ * WebSquare — IndexedDB Offline Storage
  * Provides API response caching and sync queue management
  */
 
-const DB_NAME = 'kcl_offline'
+const DB_NAME = 'ws_offline'
 const DB_VERSION = 1
 
 let dbInstance = null

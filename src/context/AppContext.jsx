@@ -2,7 +2,7 @@ import { createContext, useContext, useReducer, useEffect } from 'react'
 
 const AppContext = createContext(null)
 
-const STORAGE_KEY = 'kcl_stores'
+const STORAGE_KEY = 'ws_state'
 
 // Load persisted state
 function loadState() {
@@ -39,7 +39,7 @@ function reducer(state, action) {
 
     case 'LOGOUT':
       localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem('kcl_token')
+      localStorage.removeItem('ws_token')
       return { ...initialState }
 
     case 'SET_CAMPS':

@@ -478,7 +478,7 @@ export default function BarMenu() {
             <Wine size={24} className="text-amber-700" />
             Drinks Menu
           </h1>
-          <p className="text-sm text-gray-500">{user?.camp_name || 'Karibu Camps'}</p>
+          <p className="text-sm text-gray-500">{user?.camp_name || 'WebSquare'}</p>
         </div>
         <div className="flex gap-2">
           <button

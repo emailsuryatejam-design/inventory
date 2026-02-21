@@ -1,6 +1,6 @@
 {
-  "appId": "com.karibucamps.stores",
-  "appName": "KCL Stores",
+  "appId": "com.vyomaai.websquare",
+  "appName": "WebSquare",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

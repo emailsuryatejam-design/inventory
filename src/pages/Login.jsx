@@ -20,7 +20,7 @@ export default function Login() {
 
     try {
       const data = await auth.login(username, password)
-      localStorage.setItem('kcl_token', data.token)
+      localStorage.setItem('ws_token', data.token)
       dispatch({
         type: 'LOGIN',
         payload: {
@@ -44,10 +44,10 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">KC</span>
+            <span className="text-white text-2xl font-bold">WS</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">KCL Stores</h1>
-          <p className="text-gray-500 mt-1">Karibu Camps — Inventory Management</p>
+          <h1 className="text-2xl font-bold text-gray-900">WebSquare</h1>
+          <p className="text-gray-500 mt-1">Powered by Vyoma AI Studios</p>
         </div>
 
         {/* Login Form */}
