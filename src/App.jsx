@@ -34,11 +34,19 @@ import SupplierDetail from './pages/SupplierDetail'
 import StockAdjustments from './pages/StockAdjustments'
 import StockAdjustmentNew from './pages/StockAdjustmentNew'
 import StockAdjustmentDetail from './pages/StockAdjustmentDetail'
+import PurchaseOrders from './pages/PurchaseOrders'
+import PurchaseOrderNew from './pages/PurchaseOrderNew'
+import PurchaseOrderDetail from './pages/PurchaseOrderDetail'
+import GRNList from './pages/GRN'
+import GRNNew from './pages/GRNNew'
+import GRNDetail from './pages/GRNDetail'
 import AppLayout from './components/layout/AppLayout'
 
 const CHEF_ONLY = ['chef']
 const KITCHEN_ROLES = ['chef', 'camp_manager', 'admin', 'director']
 const ADMIN_ROLES = ['admin', 'director', 'stores_manager']
+const PROCUREMENT_ROLES = ['procurement_officer', 'stores_manager', 'admin', 'director']
+const GRN_ROLES = ['procurement_officer', 'stores_manager', 'camp_storekeeper', 'admin', 'director']
 
 function RequireAuth({ children }) {
   const user = useUser()
@@ -97,6 +105,14 @@ export default function App() {
         <Route path="stock-adjustments/:id" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><StockAdjustmentDetail /></RouteGuard>} />
         <Route path="daily" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><DailyOverview /></RouteGuard>} />
         <Route path="alerts" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Alerts /></RouteGuard>} />
+
+        {/* ── Procurement module ── */}
+        <Route path="purchase-orders" element={<RouteGuard module="stores" roles={PROCUREMENT_ROLES}><PurchaseOrders /></RouteGuard>} />
+        <Route path="purchase-orders/new" element={<RouteGuard module="stores" roles={PROCUREMENT_ROLES}><PurchaseOrderNew /></RouteGuard>} />
+        <Route path="purchase-orders/:id" element={<RouteGuard module="stores" roles={PROCUREMENT_ROLES}><PurchaseOrderDetail /></RouteGuard>} />
+        <Route path="grn" element={<RouteGuard module="stores" roles={GRN_ROLES}><GRNList /></RouteGuard>} />
+        <Route path="grn/new" element={<RouteGuard module="stores" roles={GRN_ROLES}><GRNNew /></RouteGuard>} />
+        <Route path="grn/:id" element={<RouteGuard module="stores" roles={GRN_ROLES}><GRNDetail /></RouteGuard>} />
 
         {/* ── Kitchen module ── */}
         <Route path="menu-plan" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><MenuPlan /></RouteGuard>} />

@@ -52,6 +52,12 @@ function memInvalidate(endpoint) {
   for (const key of memCache.keys()) {
     if (key.includes('dashboard.php') || key.includes('alerts.php')) memCache.delete(key)
   }
+  // GRN confirm affects stock data
+  if (endpoint.includes('grn.php')) {
+    for (const key of memCache.keys()) {
+      if (key.includes('stock')) memCache.delete(key)
+    }
+  }
 }
 
 // ── Offline helpers ─────────────────────────────────
@@ -72,6 +78,8 @@ function getCacheTTL(endpoint) {
   if (endpoint.includes('suppliers.php')) return 15
   if (endpoint.includes('item-suppliers.php')) return 15
   if (endpoint.includes('stock-adjustments.php')) return 10
+  if (endpoint.includes('purchase-orders.php')) return 15
+  if (endpoint.includes('grn.php')) return 15
   if (endpoint.includes('dashboard.php')) return 30
   if (endpoint.includes('stock')) return 30
   if (endpoint.includes('users.php') && !endpoint.includes('?id=')) return 30
@@ -775,6 +783,70 @@ export const kitchenMenu = {
   // View default menu template for a specific day + meal
   defaultMenu: (day, meal) =>
     request(`kitchen-menu.php?action=default_menu&day=${day}&meal=${meal}`),
+}
+
+// ── Purchase Orders ──────────────────────────────────
+export const purchaseOrders = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`purchase-orders.php${qs ? `?${qs}` : ''}`)
+  },
+
+  get: (id) => request(`purchase-orders.php?id=${id}`),
+
+  create: (data) =>
+    request('purchase-orders.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id, data) =>
+    request('purchase-orders.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, action: 'update', ...data }),
+    }),
+
+  approve: (id) =>
+    request('purchase-orders.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, action: 'approve' }),
+    }),
+
+  send: (id) =>
+    request('purchase-orders.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, action: 'send' }),
+    }),
+
+  cancel: (id) =>
+    request('purchase-orders.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, action: 'cancel' }),
+    }),
+}
+
+// ── Goods Received Notes ─────────────────────────────
+export const grn = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`grn.php${qs ? `?${qs}` : ''}`)
+  },
+
+  get: (id) => request(`grn.php?id=${id}`),
+
+  poLines: (poId) => request(`grn.php?po_id=${poId}`),
+
+  create: (data) =>
+    request('grn.php', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  confirm: (id) =>
+    request('grn.php', {
+      method: 'PUT',
+      body: JSON.stringify({ id, action: 'confirm' }),
+    }),
 }
 
 // ── Daily Overview ─────────────────────────────────

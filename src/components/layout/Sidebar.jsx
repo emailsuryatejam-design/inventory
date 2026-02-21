@@ -6,7 +6,7 @@ import {
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
   ClipboardList, ChevronLeft, ChevronRight, Fuel, Wrench, Building2,
-  ClipboardCheck, Warehouse, FileText
+  ClipboardCheck, Warehouse, FileText, PackagePlus
 } from 'lucide-react'
 
 // ── Department color map ──────────────────────────
@@ -39,6 +39,15 @@ const navSections = [
       { path: '/app/dispatch', icon: Truck, label: 'Dispatch', access: 'manager' },
       { path: '/app/daily', icon: Calendar, label: 'Daily Overview', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/alerts', icon: Bell, label: 'Alerts', access: 'all', exclude: CHEF_ONLY },
+    ],
+  },
+  {
+    id: 'stores',
+    module: 'stores',
+    label: 'Procurement',
+    items: [
+      { path: '/app/purchase-orders', icon: FileText, label: 'Purchase Orders', roles: ['procurement_officer', 'stores_manager', 'admin', 'director'] },
+      { path: '/app/grn', icon: PackagePlus, label: 'Goods Received', roles: ['procurement_officer', 'stores_manager', 'camp_storekeeper', 'admin', 'director'] },
     ],
   },
   {
