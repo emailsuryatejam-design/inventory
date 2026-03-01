@@ -4,7 +4,7 @@ import {
   Search, X, Clock, CheckCircle2, ChevronRight, AlertCircle,
   LayoutDashboard, ShoppingCart, Truck, Boxes, Package,
   PackageCheck, FileOutput, Wine, GlassWater, Sparkles,
-  Bell, BarChart3, Users, Play
+  Bell, BarChart3, Users, Play, MousePointerClick, Zap
 } from 'lucide-react'
 import useGuide from '../../hooks/useGuide'
 import useIsMobile from '../../hooks/useIsMobile'
@@ -29,7 +29,7 @@ const SUGGESTIONS = [
 ]
 
 export default function AssistantPanel() {
-  const { isPanelOpen, closePanel, startGuide, completedGuides, openReport } = useGuide()
+  const { isPanelOpen, closePanel, startGuide, completedGuides, openReport, guideMode, setGuideMode } = useGuide()
   const isMobile = useIsMobile()
   const location = useLocation()
   const [query, setQuery] = useState('')
@@ -157,6 +157,39 @@ export default function AssistantPanel() {
           </div>
         </div>
 
+        {/* Mode Toggle */}
+        <div className="px-5 pt-3 pb-2">
+          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-full">
+            <button
+              onClick={() => setGuideMode('coaching')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-semibold transition-all compact-btn ${
+                guideMode === 'coaching'
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={{ minHeight: 'auto' }}
+            >
+              <MousePointerClick size={13} />
+              I'll Click
+            </button>
+            <button
+              onClick={() => setGuideMode('auto')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-semibold transition-all compact-btn ${
+                guideMode === 'auto'
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={{ minHeight: 'auto' }}
+            >
+              <Zap size={13} />
+              Auto Demo
+            </button>
+          </div>
+        </div>
+
+        {/* Overall Progress Summary */}
+        <ProgressSummary completedGuides={completedGuides} totalGuides={allGuides.length} />
+
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 py-3 scroll-touch">
           {/* Search results */}
@@ -247,9 +280,41 @@ export default function AssistantPanel() {
   )
 }
 
+// ── Progress Summary ──────────────────────────────
+function ProgressSummary({ completedGuides, totalGuides }) {
+  const completedCount = completedGuides.length
+  const percent = totalGuides > 0 ? Math.round((completedCount / totalGuides) * 100) : 0
+
+  return (
+    <div className="px-5 pb-2">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-semibold text-gray-600">
+          {completedCount} of {totalGuides} completed ({percent}%)
+        </span>
+        {percent === 100 && (
+          <span className="text-[10px] font-bold text-green-600 flex items-center gap-0.5">
+            <CheckCircle2 size={11} />
+            All done!
+          </span>
+        )}
+      </div>
+      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${percent}%`,
+            backgroundColor: percent === 100 ? '#22c55e' : '#f59e0b',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ── Guide Card ────────────────────────────────────
 function GuideCard({ guide, completed, onSelect, highlightQuery, highlightMatch }) {
   const IconComp = ICON_MAP[guide.icon] || Package
+  const stepCount = guide.steps?.length || 0
 
   return (
     <button
@@ -263,19 +328,32 @@ function GuideCard({ guide, completed, onSelect, highlightQuery, highlightMatch 
         {completed ? <CheckCircle2 size={18} /> : <IconComp size={18} />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">
-          {highlightMatch ? highlightMatch(guide.title, highlightQuery || '') : guide.title}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            {highlightMatch ? highlightMatch(guide.title, highlightQuery || '') : guide.title}
+          </p>
+          {completed && (
+            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-bold">
+              <CheckCircle2 size={9} />
+              Done
+            </span>
+          )}
+        </div>
         <p className="text-[11px] text-gray-500 truncate">
           {highlightMatch ? highlightMatch(guide.description, highlightQuery || '') : guide.description}
         </p>
       </div>
-      <div className="flex-shrink-0 flex items-center gap-1.5">
-        <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
-          <Clock size={10} />
-          {guide.estimatedTime}
+      <div className="flex-shrink-0 flex flex-col items-end gap-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+            <Clock size={10} />
+            {guide.estimatedTime}
+          </span>
+          <Play size={14} className="text-gray-300 group-hover:text-green-500 transition" />
+        </div>
+        <span className="text-[9px] text-gray-400 font-medium">
+          {stepCount} step{stepCount !== 1 ? 's' : ''}
         </span>
-        <Play size={14} className="text-gray-300 group-hover:text-green-500 transition" />
       </div>
     </button>
   )

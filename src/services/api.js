@@ -7,10 +7,10 @@
 import { getCached, setCached, addToQueue } from './offlineDb'
 
 // In dev, Vite proxy forwards /api → localhost:8000
-// In production, points to the Hostinger API domain
+// In production, uses VITE_API_URL env var (fallback to Hostinger domain)
 const BASE_URL = import.meta.env.DEV
   ? '/api'
-  : 'https://darkblue-goshawk-672880.hostingersite.com'
+  : (import.meta.env.VITE_API_URL || 'https://darkblue-goshawk-672880.hostingersite.com')
 
 function getToken() {
   return localStorage.getItem('ws_token')

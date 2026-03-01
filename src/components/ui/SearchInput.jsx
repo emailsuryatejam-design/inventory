@@ -9,6 +9,12 @@ export default function SearchInput({ value = '', onChange, placeholder = 'Searc
     setLocalValue(value)
   }, [value])
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   function handleChange(e) {
     const val = e.target.value
     setLocalValue(val)

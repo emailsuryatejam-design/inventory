@@ -17,6 +17,8 @@ const initialState = {
   activeGuide: null,
   currentStepIndex: 0,
   isRunning: false,
+  // Guide mode: 'coaching' (user clicks) or 'auto' (auto-advance)
+  guideMode: 'coaching',
   // Target tracking
   targetRect: null,
   // Cursor
@@ -24,6 +26,8 @@ const initialState = {
   cursorVisible: false,
   // Report form
   isReportFormOpen: false,
+  // Section skip tracking
+  skippedSections: [],
   // Persistence
   completedGuides: [],
   reports: [],
@@ -48,6 +52,7 @@ function guideReducer(state, action) {
         cursorVisible: false,
         targetRect: null,
         cursorPosition: getSafeCenter(),
+        skippedSections: [],
       }
     case 'NEXT_STEP': {
       const nextIndex = state.currentStepIndex + 1
@@ -95,6 +100,54 @@ function guideReducer(state, action) {
     case 'HIDE_CURSOR':
       return { ...state, cursorVisible: false }
 
+    case 'SKIP_SECTION': {
+      const currentSection = state.activeGuide?.steps?.[state.currentStepIndex]?.section
+      if (!currentSection || !state.activeGuide) return state
+      const steps = state.activeGuide.steps
+      let nextSectionIndex = -1
+      for (let i = state.currentStepIndex + 1; i < steps.length; i++) {
+        if (steps[i].section !== currentSection) {
+          nextSectionIndex = i
+          break
+        }
+      }
+      if (nextSectionIndex === -1) {
+        return {
+          ...state,
+          activeGuide: null,
+          currentStepIndex: 0,
+          isRunning: false,
+          targetRect: null,
+          cursorVisible: false,
+          cursorPosition: getSafeCenter(),
+          completedGuides: state.activeGuide
+            ? [...new Set([...state.completedGuides, state.activeGuide.id])]
+            : state.completedGuides,
+          skippedSections: [...state.skippedSections, currentSection],
+        }
+      }
+      return {
+        ...state,
+        currentStepIndex: nextSectionIndex,
+        cursorVisible: false,
+        targetRect: null,
+        skippedSections: [...state.skippedSections, currentSection],
+      }
+    }
+
+    case 'GO_TO_SECTION': {
+      const sectionName = action.payload
+      if (!state.activeGuide) return state
+      const idx = state.activeGuide.steps.findIndex(s => s.section === sectionName)
+      if (idx === -1) return state
+      return {
+        ...state,
+        currentStepIndex: idx,
+        cursorVisible: false,
+        targetRect: null,
+      }
+    }
+
     case 'END_GUIDE': {
       const completed = state.activeGuide && state.currentStepIndex >= (state.activeGuide.steps?.length || 0) - 1
       return {
@@ -105,11 +158,21 @@ function guideReducer(state, action) {
         targetRect: null,
         cursorVisible: false,
         cursorPosition: getSafeCenter(),
+        skippedSections: [],
         completedGuides: completed && state.activeGuide
           ? [...new Set([...state.completedGuides, state.activeGuide.id])]
           : state.completedGuides,
       }
     }
+
+    case 'SET_GUIDE_MODE':
+      return { ...state, guideMode: action.payload }
+
+    case 'COMPLETE_GUIDE':
+      return {
+        ...state,
+        completedGuides: [...new Set([...state.completedGuides, action.payload])],
+      }
 
     case 'OPEN_REPORT':
       return { ...state, isReportFormOpen: true }
@@ -123,6 +186,7 @@ function guideReducer(state, action) {
         ...state,
         completedGuides: action.payload.completedGuides || [],
         reports: action.payload.reports || [],
+        guideMode: action.payload.guideMode || 'coaching',
       }
 
     default:
@@ -149,9 +213,10 @@ export function GuideProvider({ children }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         completedGuides: state.completedGuides,
         reports: state.reports,
+        guideMode: state.guideMode,
       }))
     } catch { /* ignore */ }
-  }, [state.completedGuides, state.reports])
+  }, [state.completedGuides, state.reports, state.guideMode])
 
   return (
     <GuideContext.Provider value={{ state, dispatch }}>

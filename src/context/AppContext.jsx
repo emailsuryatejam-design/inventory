@@ -21,6 +21,7 @@ const initialState = {
   camps: [],          // All camps list
   modules: [],        // Enabled module IDs for user's camp: ['stores', 'kitchen', ...]
   permissions: {},    // Per-module permissions: { stores: ['view', 'create'], ... }
+  tenant: null,       // { id, company_name, status, plan, trial_start, trial_end, max_users, max_camps }
   notifications: [],
   isLoading: false,
 }
@@ -34,6 +35,7 @@ function reducer(state, action) {
         camps: action.payload.camps || state.camps,
         modules: action.payload.modules || [],
         permissions: action.payload.permissions || {},
+        tenant: action.payload.tenant || state.tenant,
         selectedCampId: action.payload.user.camp_id || null,
       }
 
@@ -93,6 +95,7 @@ export function AppProvider({ children }) {
         camps: state.camps,
         modules: state.modules,
         permissions: state.permissions,
+        tenant: state.tenant,
       }))
     }
   }, [state.user, state.selectedCampId, state.camps])
@@ -114,6 +117,11 @@ export function useApp() {
 export function useUser() {
   const { state } = useApp()
   return state.user
+}
+
+export function useTenant() {
+  const { state } = useApp()
+  return state.tenant
 }
 
 export function useSelectedCamp() {

@@ -174,7 +174,7 @@ export default function MobileNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg min-w-[52px] transition-colors ${
                   isActive && !drawerOpen
-                    ? 'text-emerald-600'
+                    ? 'text-amber-600'
                     : 'text-gray-400'
                 }`
               }
@@ -188,7 +188,7 @@ export default function MobileNav() {
           <button
             onClick={toggleDrawer}
             className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg min-w-[52px] transition-colors ${
-              drawerOpen || isOnMorePage ? 'text-emerald-600' : 'text-gray-400'
+              drawerOpen || isOnMorePage ? 'text-amber-600' : 'text-gray-400'
             }`}
           >
             <Menu size={22} />
@@ -271,7 +271,7 @@ export default function MobileNav() {
                           onClick={closeDrawer}
                           className={`flex flex-col items-center gap-1 px-1.5 py-2.5 rounded-xl transition-colors ${
                             isActive
-                              ? 'text-emerald-700'
+                              ? 'text-amber-700'
                               : 'text-gray-500'
                           }`}
                           style={{

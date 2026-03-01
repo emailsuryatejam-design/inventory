@@ -1,0 +1,8 @@
+# WebSquare — Safari Inventory Management
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://websquare.io/sitemap.xml

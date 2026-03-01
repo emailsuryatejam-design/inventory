@@ -5,6 +5,7 @@ import useGuide from '../../hooks/useGuide'
 import SpotlightMask from './SpotlightMask'
 import AnimatedCursor from './AnimatedCursor'
 import GuideTooltip from './GuideTooltip'
+import AutoCountdown from './AutoCountdown'
 
 /**
  * Real-time coaching overlay that guides users through actual task performance:
@@ -15,22 +16,11 @@ import GuideTooltip from './GuideTooltip'
  * - Animates the cursor to the target
  * - Shows spotlight + tooltip with coaching prompts
  *
- * For advanceOn: 'click' steps:
- *   - Overlay becomes click-through (pointer-events: none)
- *   - Watches for real user clicks on the target element
- *   - Monitors route changes after navigation-type clicks
- *   - Auto-advances when the user performs the expected action
+ * Supports action types: click, type, clear-and-type, select, observe
+ * In auto mode: executes actions automatically (typewriter for text, programmatic select/click)
+ * In coaching mode: shows instructions for the user to perform manually
  *
- * For advanceOn: 'next-button' steps:
- *   - Traditional mode — user reads info and clicks Next
- *
- * Fixes:
- * - Scroll/resize listeners cleaned up properly (single memoized handler)
- * - Longer polling timeout (5s) with user feedback
- * - Scroll lock during guide (overflow:hidden, not touch-action:none)
- * - Passive scroll listeners
- * - ResizeObserver cleaned up per step
- * - Abort flag for async runStep
+ * Section skip: users can skip entire sections of a demo guide.
  */
 export default function GuideOverlay() {
   const {
@@ -44,12 +34,15 @@ export default function GuideOverlay() {
     targetRect,
     cursorPosition,
     cursorVisible,
+    guideMode,
     nextStep,
     prevStep,
     endGuide,
     setTargetRect,
     setCursor,
     hideCursor,
+    skipSection,
+    currentSection,
   } = useGuide()
 
   const navigate = useNavigate()
@@ -60,42 +53,41 @@ export default function GuideOverlay() {
   const routeWatchRef = useRef(null)
   const advancePendingRef = useRef(false)
   const stepRef = useRef(null)
-  const abortRef = useRef(false) // abort flag for async runStep
+  const abortRef = useRef(false)
+
+  // Determine effective action for current step
+  const effectiveAction = currentStep?.action || (currentStep?.advanceOn === 'click' ? 'click' : 'observe')
 
   // Track whether current step is coaching mode (click-through)
-  const isCoachingStep = currentStep?.advanceOn === 'click'
+  // Only click actions in coaching mode get click-through overlay
+  const isCoachingStep = effectiveAction === 'click' && guideMode !== 'auto'
 
-  // Keep stepRef current
+  // Auto-advance state
+  const autoTimerRef = useRef(null)
+  const [autoCountdown, setAutoCountdown] = useState(0)
+  const [isTyping, setIsTyping] = useState(false)
+  const isAutoMode = guideMode === 'auto'
+
   useEffect(() => {
     stepRef.current = currentStep
   }, [currentStep])
 
-  // Cleanup function
   const cleanup = useCallback(() => {
     abortRef.current = true
-    if (pollRef.current) {
-      clearTimeout(pollRef.current)
-      pollRef.current = null
-    }
+    if (pollRef.current) { clearTimeout(pollRef.current); pollRef.current = null }
     if (clickHandlerRef.current) {
       clickHandlerRef.current.el?.removeEventListener('click', clickHandlerRef.current.fn, true)
       clickHandlerRef.current = null
     }
-    if (resizeObsRef.current) {
-      resizeObsRef.current.disconnect()
-      resizeObsRef.current = null
-    }
-    if (routeWatchRef.current) {
-      clearInterval(routeWatchRef.current)
-      routeWatchRef.current = null
-    }
+    if (resizeObsRef.current) { resizeObsRef.current.disconnect(); resizeObsRef.current = null }
+    if (routeWatchRef.current) { clearInterval(routeWatchRef.current); routeWatchRef.current = null }
+    if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null }
+    setAutoCountdown(0)
+    setIsTyping(false)
     advancePendingRef.current = false
   }, [])
 
   // Lock body scroll while guide is running
-  // NOTE: We use overflow:hidden instead of lockScroll() because
-  // lockScroll() sets touch-action:none which blocks tap events on the
-  // spotlight target elements. We only need to prevent background scrolling.
   useEffect(() => {
     if (isRunning) {
       document.body.style.overflow = 'hidden'
@@ -106,32 +98,24 @@ export default function GuideOverlay() {
   // Run step logic whenever the step changes
   useEffect(() => {
     if (!isRunning || !currentStep) return
-
     cleanup()
     abortRef.current = false
     runStep(currentStep)
-
     return cleanup
   }, [isRunning, currentStepIndex, activeGuide?.id])
 
   // Watch for route changes to auto-advance coaching steps
-  // (user clicked a nav link → route changes → advance to next step)
   useEffect(() => {
     if (!isRunning || !advancePendingRef.current) return
-
-    // The route changed, and we had a pending advance — trigger it
     const step = stepRef.current
     if (step?.advanceOn === 'click' && step?.route) {
-      // Check if the new route matches what the next step expects
       const nextStepData = activeGuide?.steps?.[currentStepIndex + 1]
       if (nextStepData?.route && location.pathname === nextStepData.route) {
-        // Route matches next step's expected route — advance!
         advancePendingRef.current = false
         cleanup()
         nextStep()
         return
       }
-      // Also advance if route changed away from current step's route
       if (location.pathname !== step.route) {
         advancePendingRef.current = false
         cleanup()
@@ -141,22 +125,61 @@ export default function GuideOverlay() {
     }
   }, [location.pathname, isRunning])
 
-  // Re-measure on scroll/resize (single memoized handler)
+  // Auto-advance effect for 'auto' mode — action-aware
+  useEffect(() => {
+    if (!isRunning || !isAutoMode || !targetRect || !currentStep) return
+
+    const step = currentStep
+    const action = step.action || (step.advanceOn === 'click' ? 'click' : 'observe')
+    const delay = step.delay ?? 2000
+
+    // For observe steps, just countdown then advance
+    if (action === 'observe') {
+      setAutoCountdown(delay / 1000)
+      autoTimerRef.current = setTimeout(() => {
+        if (abortRef.current) return
+        setAutoCountdown(0)
+        advanceAfterAction()
+      }, delay)
+      return cleanupAutoTimer
+    }
+
+    // For action steps, brief countdown then execute
+    const preDelay = Math.min(delay, 1500)
+    setAutoCountdown(preDelay / 1000)
+    autoTimerRef.current = setTimeout(async () => {
+      if (abortRef.current) return
+      setAutoCountdown(0)
+
+      const el = document.querySelector(step.target)
+      if (!el) { advanceAfterAction(); return }
+
+      try {
+        await executeAction(el, step, action)
+      } catch (err) {
+        console.warn('Auto-action failed:', err)
+      }
+
+      if (abortRef.current) return
+      const settleDelay = (action === 'type' || action === 'clear-and-type') ? 300 : 400
+      await wait(settleDelay)
+      if (abortRef.current) return
+      advanceAfterAction()
+    }, preDelay)
+
+    return cleanupAutoTimer
+  }, [isRunning, isAutoMode, targetRect, currentStepIndex])
+
+  // Re-measure on scroll/resize
   useEffect(() => {
     if (!isRunning || !currentStep) return
-
     function remeasure() {
       const el = document.querySelector(currentStep.target)
       if (el) {
         const rect = el.getBoundingClientRect()
-        setTargetRect({
-          top: rect.top, left: rect.left,
-          width: rect.width, height: rect.height,
-          bottom: rect.bottom, right: rect.right,
-        })
+        setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height, bottom: rect.bottom, right: rect.right })
       }
     }
-
     window.addEventListener('scroll', remeasure, { capture: true, passive: true })
     window.addEventListener('resize', remeasure, { passive: true })
     return () => {
@@ -165,81 +188,155 @@ export default function GuideOverlay() {
     }
   }, [isRunning, currentStepIndex])
 
+  // ─── Action Execution Engine ───
+
+  async function executeAction(el, step, action) {
+    switch (action) {
+      case 'click':
+        el.click()
+        break
+
+      case 'type':
+      case 'clear-and-type': {
+        const text = step.typeText || ''
+        const speed = step.typeSpeed || 50
+
+        el.focus()
+        await wait(200)
+        if (abortRef.current) return
+
+        // Clear existing value using native setter for React compatibility
+        if (action === 'clear-and-type' || el.value) {
+          setNativeValue(el, '')
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+          await wait(100)
+          if (abortRef.current) return
+        }
+
+        // Typewriter: type character by character
+        setIsTyping(true)
+        for (let i = 0; i < text.length; i++) {
+          if (abortRef.current) { setIsTyping(false); return }
+          setNativeValue(el, text.slice(0, i + 1))
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+          el.dispatchEvent(new Event('change', { bubbles: true }))
+          await wait(speed)
+        }
+        setIsTyping(false)
+        break
+      }
+
+      case 'select': {
+        const value = step.selectValue || ''
+        el.focus()
+        await wait(200)
+        if (abortRef.current) return
+
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+        if (nativeSetter) {
+          nativeSetter.call(el, value)
+        } else {
+          el.value = value
+        }
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+        break
+      }
+
+      case 'focus':
+        el.focus()
+        break
+
+      default:
+        break
+    }
+  }
+
+  /** Set input/textarea value using native setter to work with React controlled inputs */
+  function setNativeValue(el, value) {
+    const proto = el instanceof HTMLTextAreaElement
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+    if (setter) {
+      setter.call(el, value)
+    } else {
+      el.value = value
+    }
+  }
+
+  function advanceAfterAction() {
+    if (isLastStep) {
+      endGuide()
+    } else {
+      if (pollRef.current) { clearTimeout(pollRef.current); pollRef.current = null }
+      if (clickHandlerRef.current) {
+        clickHandlerRef.current.el?.removeEventListener('click', clickHandlerRef.current.fn, true)
+        clickHandlerRef.current = null
+      }
+      if (resizeObsRef.current) { resizeObsRef.current.disconnect(); resizeObsRef.current = null }
+      if (routeWatchRef.current) { clearInterval(routeWatchRef.current); routeWatchRef.current = null }
+      if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null }
+      advancePendingRef.current = false
+      nextStep()
+    }
+  }
+
+  function cleanupAutoTimer() {
+    if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null }
+    setAutoCountdown(0)
+  }
+
+  // ─── Step Runner ───
+
   async function runStep(step) {
-    // 1. Navigate to route if needed
     if (step.route) {
       const currentPath = location.pathname
       if (currentPath !== step.route) {
         navigate(step.route)
-        await wait(500) // wait for route change render
+        await wait(500)
         if (abortRef.current) return
       }
     }
 
-    // 2. Find target element (poll up to 5s)
     const el = await findElement(step.target, 5000)
     if (abortRef.current) return
     if (!el) {
       console.warn(`Guide target not found: ${step.target}`)
-      // Auto-skip to next step if target missing
-      if (!isLastStep) {
-        nextStep()
-      }
+      if (!isLastStep) nextStep()
       return
     }
 
-    // 3. Scroll into view
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     await wait(400)
     if (abortRef.current) return
 
-    // 4. Measure target rect
     const rect = el.getBoundingClientRect()
-    setTargetRect({
-      top: rect.top, left: rect.left,
-      width: rect.width, height: rect.height,
-      bottom: rect.bottom, right: rect.right,
-    })
+    setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height, bottom: rect.bottom, right: rect.right })
 
-    // 5. Animate cursor to target center
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
     setCursor({ x: cx, y: cy })
 
-    // 6. Set up ResizeObserver to track target position changes
     if (window.ResizeObserver) {
       resizeObsRef.current = new ResizeObserver(() => {
         if (abortRef.current) return
         const r = el.getBoundingClientRect()
-        setTargetRect({
-          top: r.top, left: r.left,
-          width: r.width, height: r.height,
-          bottom: r.bottom, right: r.right,
-        })
+        setTargetRect({ top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom, right: r.right })
       })
       resizeObsRef.current.observe(el)
     }
 
-    // 7. Set up advance trigger based on step type
-    if (step.advanceOn === 'click') {
+    // For click-type steps in coaching mode, set up click listener
+    const action = step.action || (step.advanceOn === 'click' ? 'click' : 'observe')
+    if (action === 'click' && guideMode !== 'auto') {
       setupCoachingAdvance(el, step)
     }
-    // For 'next-button' — user clicks Next in tooltip (default behavior)
   }
 
-  /**
-   * Real-time coaching: watch for the user's actual click on the target
-   * and auto-advance. The overlay is click-through so clicks reach the target.
-   */
   function setupCoachingAdvance(el, step) {
-    // Use capture phase to detect the click BEFORE it triggers navigation
-    const handler = (e) => {
-      // Mark that we're expecting a route change after this click
+    const handler = () => {
       advancePendingRef.current = true
-
-      // Small delay to let the click event propagate and trigger navigation/action
       setTimeout(() => {
-        // If route hasn't changed yet (non-navigation click), advance immediately
         if (advancePendingRef.current) {
           advancePendingRef.current = false
           cleanup()
@@ -247,12 +344,9 @@ export default function GuideOverlay() {
         }
       }, 600)
     }
-
-    // Listen on capture phase so we catch it before React handles navigation
     el.addEventListener('click', handler, { capture: true, once: true })
     clickHandlerRef.current = { el, fn: handler }
 
-    // Backup: watch for route changes via polling (for hash router edge cases)
     if (step.route) {
       const startPath = window.location.hash || window.location.pathname
       routeWatchRef.current = setInterval(() => {
@@ -290,11 +384,8 @@ export default function GuideOverlay() {
 
   function handleNext() {
     cleanup()
-    if (isLastStep) {
-      endGuide()
-    } else {
-      nextStep()
-    }
+    if (isLastStep) endGuide()
+    else nextStep()
   }
 
   function handlePrev() {
@@ -305,6 +396,11 @@ export default function GuideOverlay() {
   function handleEnd() {
     cleanup()
     endGuide()
+  }
+
+  function handleSkipSection() {
+    cleanup()
+    skipSection()
   }
 
   if (!isRunning || !activeGuide) return null
@@ -329,10 +425,20 @@ export default function GuideOverlay() {
         onNext={handleNext}
         onPrev={handlePrev}
         onEnd={handleEnd}
+        onSkipSection={handleSkipSection}
         isFirst={isFirstStep}
         isLast={isLastStep}
         coaching={isCoachingStep}
+        isAutoMode={isAutoMode}
+        isTyping={isTyping}
+        currentSection={currentSection}
       />
+      {isAutoMode && autoCountdown > 0 && targetRect && (
+        <AutoCountdown
+          targetRect={targetRect}
+          duration={autoCountdown}
+        />
+      )}
     </>,
     document.body
   )

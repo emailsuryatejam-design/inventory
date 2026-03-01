@@ -1,22 +1,18 @@
 import { useRef, useEffect, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, MousePointerClick } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, MousePointerClick, Zap, SkipForward } from 'lucide-react'
 import GuideProgress from './GuideProgress'
 
 /**
  * Positioned tooltip showing step instructions.
  * Auto-positions relative to target, flips if near viewport edge.
  *
- * In coaching mode (advanceOn: 'click'), shows:
- *  - "Go ahead, click it!" prompt instead of Next button
- *  - Animated coaching indicator
- *  - Still shows Back and Exit controls
- *
- * Fixes:
- * - Safe flip logic (no infinite flip)
- * - Arrow position recalculates after bounds clamping
- * - Transition synced with AnimatedCursor (0.5s)
- * - Touch-friendly with touch-action: manipulation
- * - Key-based re-animation on step change
+ * Features:
+ * - Section badge (amber) when step has a section
+ * - Typing indicator (animated dots) during typewriter
+ * - Coaching hints for type/select steps ("Type: admin", "Select: kitchen")
+ * - "Skip Section" button to skip entire section groups
+ * - Auto-mode "Auto-advancing..." indicator
+ * - Coaching mode "Go ahead, click it!" prompt
  */
 export default function GuideTooltip({
   step,
@@ -26,9 +22,13 @@ export default function GuideTooltip({
   onNext,
   onPrev,
   onEnd,
+  onSkipSection,
   isFirst,
   isLast,
   coaching = false,
+  isAutoMode = false,
+  isTyping = false,
+  currentSection = null,
 }) {
   const tooltipRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, arrowSide: 'top', arrowOffset: '50%' })
@@ -40,12 +40,11 @@ export default function GuideTooltip({
     const vw = window.innerWidth
     const vh = window.innerHeight
     const gap = 14
-    const margin = 16 // min distance from viewport edge
+    const margin = 16
     const placement = step?.placement || 'bottom'
 
     let top, left, arrowSide
 
-    // Calculate preferred position
     if (placement === 'bottom' || placement === 'top') {
       left = targetRect.left + targetRect.width / 2 - tt.width / 2
       if (placement === 'bottom') {
@@ -65,26 +64,17 @@ export default function GuideTooltip({
       arrowSide = 'right'
     }
 
-    // Vertical flip — try once, then clamp
     if (top + tt.height > vh - margin && arrowSide === 'top') {
       const flipped = targetRect.top - tt.height - gap
-      if (flipped >= margin) {
-        top = flipped
-        arrowSide = 'bottom'
-      }
+      if (flipped >= margin) { top = flipped; arrowSide = 'bottom' }
     } else if (top < margin && arrowSide === 'bottom') {
       const flipped = targetRect.bottom + gap
-      if (flipped + tt.height <= vh - margin) {
-        top = flipped
-        arrowSide = 'top'
-      }
+      if (flipped + tt.height <= vh - margin) { top = flipped; arrowSide = 'top' }
     }
 
-    // Final clamp — ensure tooltip stays within viewport
     top = Math.max(margin, Math.min(top, vh - tt.height - margin))
     left = Math.max(margin, Math.min(left, vw - tt.width - margin))
 
-    // Compute arrow offset relative to tooltip (track where target center is)
     let arrowOffset = '50%'
     if (arrowSide === 'top' || arrowSide === 'bottom') {
       const targetCenterX = targetRect.left + targetRect.width / 2
@@ -96,6 +86,8 @@ export default function GuideTooltip({
   }, [targetRect, step])
 
   if (!step || !targetRect) return null
+
+  const action = step.action || (step.advanceOn === 'click' ? 'click' : 'observe')
 
   return (
     <div
@@ -112,6 +104,17 @@ export default function GuideTooltip({
         pointerEvents: 'auto',
       }}
     >
+      {/* Step progress bar at top */}
+      <div className="w-full h-1 bg-gray-100 rounded-t-xl overflow-hidden">
+        <div
+          className="h-full rounded-t-xl transition-all duration-500 ease-out"
+          style={{
+            width: `${totalSteps > 0 ? ((currentIndex + 1) / totalSteps) * 100 : 0}%`,
+            backgroundColor: '#f59e0b',
+          }}
+        />
+      </div>
+
       {/* Arrow indicator */}
       <div
         className="absolute w-3 h-3 bg-white border-gray-200 rotate-45"
@@ -125,6 +128,15 @@ export default function GuideTooltip({
 
       {/* Content */}
       <div className="p-4">
+        {/* Section badge */}
+        {currentSection && (
+          <div className="mb-2">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              {currentSection}
+            </span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 pr-4">
@@ -149,15 +161,51 @@ export default function GuideTooltip({
 
         <p className="text-xs text-gray-600 leading-relaxed mb-3">{step.description}</p>
 
-        {/* Coaching prompt for click-advance steps */}
-        {coaching && (
+        {/* Typing indicator (auto mode, during typewriter) */}
+        {isAutoMode && isTyping && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-blue-50 border border-blue-100">
+            <div className="flex gap-0.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" style={{ animation: 'guide-coaching-dot 0.6s ease-in-out infinite' }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" style={{ animation: 'guide-coaching-dot 0.6s ease-in-out 0.2s infinite' }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" style={{ animation: 'guide-coaching-dot 0.6s ease-in-out 0.4s infinite' }} />
+            </div>
+            <span className="text-[11px] font-semibold text-blue-700">Typing...</span>
+          </div>
+        )}
+
+        {/* Auto-mode prompt (non-typing) */}
+        {isAutoMode && !isTyping && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-50 border border-amber-100">
+            <Zap size={12} className="text-amber-500 flex-shrink-0" style={{ animation: 'guide-coaching-dot 1s ease-in-out infinite' }} />
+            <span className="text-[11px] font-semibold text-amber-700">Auto-advancing...</span>
+          </div>
+        )}
+
+        {/* Coaching: click prompt */}
+        {coaching && !isAutoMode && action === 'click' && (
           <div
             className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-green-50 border border-green-100"
             style={{ animation: 'guide-coaching-prompt 2s ease-in-out infinite' }}
           >
             <div className="w-1.5 h-1.5 rounded-full bg-green-500" style={{ animation: 'guide-coaching-dot 1s ease-in-out infinite' }} />
-            <span className="text-[11px] font-semibold text-green-700">
-              Go ahead, click it!
+            <span className="text-[11px] font-semibold text-green-700">Go ahead, click it!</span>
+          </div>
+        )}
+
+        {/* Coaching: type instruction */}
+        {!isAutoMode && (action === 'type' || action === 'clear-and-type') && step.typeText && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-blue-50 border border-blue-100">
+            <span className="text-[11px] font-semibold text-blue-700">
+              Type: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 text-[10px]">{step.typeText}</code>
+            </span>
+          </div>
+        )}
+
+        {/* Coaching: select instruction */}
+        {!isAutoMode && action === 'select' && step.selectValue && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-purple-50 border border-purple-100">
+            <span className="text-[11px] font-semibold text-purple-700">
+              Select: <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-900 text-[10px]">{step.selectValue}</code>
             </span>
           </div>
         )}
@@ -177,8 +225,20 @@ export default function GuideTooltip({
               </button>
             )}
 
-            {coaching ? (
-              /* In coaching mode: show a subtle Skip button instead of prominent Next */
+            {/* Skip Section button */}
+            {currentSection && !isLast && onSkipSection && (
+              <button
+                onClick={onSkipSection}
+                className="compact-btn flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 text-[10px] font-medium transition border border-amber-200"
+                style={{ minHeight: 'auto' }}
+                title={`Skip "${currentSection}" section`}
+              >
+                <SkipForward size={10} />
+                Skip
+              </button>
+            )}
+
+            {coaching && action === 'click' ? (
               !isLast && (
                 <button
                   onClick={onNext}
@@ -190,35 +250,26 @@ export default function GuideTooltip({
                 </button>
               )
             ) : (
-              /* Normal mode: prominent Next/Done button */
               <button
                 onClick={onNext}
                 className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition"
                 style={{ minHeight: 'auto' }}
               >
                 {isLast ? (
-                  <>
-                    <Check size={12} />
-                    Done
-                  </>
+                  <><Check size={12} /> Done</>
                 ) : (
-                  <>
-                    Next
-                    <ChevronRight size={12} />
-                  </>
+                  <>Next <ChevronRight size={12} /></>
                 )}
               </button>
             )}
 
-            {/* Always show Done button on last step, even in coaching mode */}
-            {coaching && isLast && (
+            {coaching && action === 'click' && isLast && (
               <button
                 onClick={onEnd}
                 className="compact-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition"
                 style={{ minHeight: 'auto' }}
               >
-                <Check size={12} />
-                Done
+                <Check size={12} /> Done
               </button>
             )}
           </div>
@@ -227,7 +278,8 @@ export default function GuideTooltip({
         {/* Step counter */}
         <p className="text-[10px] text-gray-400 mt-2 text-center">
           Step {currentIndex + 1} of {totalSteps}
-          {coaching && <span className="ml-1 text-green-500">- watching your action</span>}
+          {isAutoMode && <span className="ml-1 text-amber-500">- auto demo</span>}
+          {coaching && !isAutoMode && <span className="ml-1 text-green-500">- watching your action</span>}
         </p>
       </div>
     </div>

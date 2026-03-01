@@ -29,6 +29,22 @@ export default function useGuide() {
 
   const hideCursor = useCallback(() => dispatch({ type: 'HIDE_CURSOR' }), [dispatch])
 
+  const setGuideMode = useCallback((mode) => {
+    dispatch({ type: 'SET_GUIDE_MODE', payload: mode })
+  }, [dispatch])
+
+  const completeGuide = useCallback((guideId) => {
+    dispatch({ type: 'COMPLETE_GUIDE', payload: guideId })
+  }, [dispatch])
+
+  const skipSection = useCallback(() => {
+    dispatch({ type: 'SKIP_SECTION' })
+  }, [dispatch])
+
+  const goToSection = useCallback((sectionName) => {
+    dispatch({ type: 'GO_TO_SECTION', payload: sectionName })
+  }, [dispatch])
+
   const openReport = useCallback(() => dispatch({ type: 'OPEN_REPORT' }), [dispatch])
   const closeReport = useCallback(() => dispatch({ type: 'CLOSE_REPORT' }), [dispatch])
 
@@ -56,6 +72,21 @@ export default function useGuide() {
   const isLastStep = state.currentStepIndex >= totalSteps - 1
   const isFirstStep = state.currentStepIndex === 0
 
+  // Section info
+  const currentSection = currentStep?.section || null
+  const sections = state.activeGuide?.steps
+    ? [...new Set(state.activeGuide.steps.map(s => s.section).filter(Boolean))]
+    : []
+  const currentSectionIndex = currentSection ? sections.indexOf(currentSection) : -1
+  const totalSections = sections.length
+  const isLastSection = currentSectionIndex >= totalSections - 1
+  const stepsInCurrentSection = state.activeGuide?.steps
+    ? state.activeGuide.steps.filter(s => s.section === currentSection).length
+    : 0
+  const currentStepInSection = state.activeGuide?.steps
+    ? state.activeGuide.steps.slice(0, state.currentStepIndex + 1).filter(s => s.section === currentSection).length
+    : 0
+
   return {
     // State
     ...state,
@@ -63,6 +94,14 @@ export default function useGuide() {
     totalSteps,
     isLastStep,
     isFirstStep,
+    // Section
+    currentSection,
+    sections,
+    currentSectionIndex,
+    totalSections,
+    isLastSection,
+    stepsInCurrentSection,
+    currentStepInSection,
 
     // Actions
     openPanel,
@@ -75,6 +114,10 @@ export default function useGuide() {
     setTargetRect,
     setCursor,
     hideCursor,
+    setGuideMode,
+    completeGuide,
+    skipSection,
+    goToSection,
     openReport,
     closeReport,
     addReport,

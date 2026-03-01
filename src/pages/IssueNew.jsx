@@ -327,6 +327,7 @@ export default function IssueNew() {
               value={issueType}
               onChange={(e) => setIssueType(e.target.value)}
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+              data-guide="issue-type-select"
             >
               {ISSUE_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -483,6 +484,7 @@ export default function IssueNew() {
                 onFocus={() => setShowSearch(true)}
                 placeholder="Search items to issue..."
                 className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                data-guide="issue-item-search"
               />
               {searchQuery && (
                 <button
@@ -623,6 +625,7 @@ export default function IssueNew() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
+              data-guide="issue-submit-btn"
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-3 rounded-xl text-sm font-semibold transition"
             >
               {submitting ? (

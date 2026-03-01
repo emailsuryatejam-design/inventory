@@ -10,13 +10,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'WebSquare',
+        name: 'WebSquare — Safari Inventory Management',
         short_name: 'WebSquare',
-        description: 'Operations Platform by Vyoma AI Studios',
+        description: 'Inventory management for safari lodges and bush camps. Stock, procurement, kitchen, bar and dispatch — works offline.',
         start_url: './',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#16a34a',
+        theme_color: '#f59e0b',
         orientation: 'portrait-primary',
         icons: [
           { src: './favicon.svg', sizes: 'any', type: 'image/svg+xml' },
@@ -62,7 +62,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://darkblue-goshawk-672880.hostingersite.com',
+        target: process.env.VITE_API_URL || 'https://darkblue-goshawk-672880.hostingersite.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       }

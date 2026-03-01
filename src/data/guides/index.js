@@ -1,11 +1,13 @@
+import { fullDemoGuide } from './fullDemoGuide'
 import { navigationGuides } from './navigationGuides'
 import { ordersGuides } from './ordersGuides'
 import { stockGuides } from './stockGuides'
 import { posGuides } from './posGuides'
 import { operationsGuides } from './operationsGuides'
 
-// Master list of all guides
+// Master list of all guides — full demo featured first
 export const allGuides = [
+  fullDemoGuide,
   ...navigationGuides,
   ...ordersGuides,
   ...stockGuides,

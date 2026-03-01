@@ -5,19 +5,9 @@ import {
   LayoutDashboard, Package, Boxes, ShoppingCart,
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
-  ClipboardList, ChevronLeft, ChevronRight, Fuel, Wrench, Building2,
-  ClipboardCheck, Warehouse, FileText, PackagePlus
+  ClipboardList, ChevronLeft, ChevronRight, Building2,
+  ClipboardCheck, FileText, PackagePlus
 } from 'lucide-react'
-
-// ── Department color map ──────────────────────────
-const DEPT_COLORS = {
-  stores: { accent: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' },
-  kitchen: { accent: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
-  housekeeping: { accent: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' },
-  fuel: { accent: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' },
-  admin: { accent: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
-  ho: { accent: '#06b6d4', bg: 'rgba(6, 182, 212, 0.12)' },
-}
 
 // ── Navigation sections (department-grouped) ──────
 const CHEF_ONLY = ['chef']
@@ -62,7 +52,7 @@ const navSections = [
     ],
   },
   {
-    id: 'stores', // reusing color
+    id: 'stores',
     module: 'bar',
     label: 'Bar & POS',
     items: [
@@ -91,7 +81,6 @@ function canAccess(item, role) {
 }
 
 function isModuleEnabled(moduleId, modules) {
-  // If modules list not loaded (legacy session), show everything
   if (!modules || modules.length === 0) return true
   return modules.includes(moduleId)
 }
@@ -107,7 +96,6 @@ export default function Sidebar() {
 
   useEffect(() => {
     localStorage.setItem('ws_sidebar_collapsed', collapsed)
-    // Dispatch event so AppLayout can adjust margins
     window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }))
   }, [collapsed])
 
@@ -118,7 +106,6 @@ export default function Sidebar() {
     window.location.reload()
   }
 
-  // Filter sections — remove disabled modules and inaccessible items
   const visibleSections = navSections
     .filter(section => isModuleEnabled(section.module, state.modules))
     .map(section => ({
@@ -132,21 +119,25 @@ export default function Sidebar() {
       className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 transition-all duration-200 ease-out ${
         collapsed ? 'lg:w-[68px]' : 'lg:w-[260px]'
       }`}
-      style={{ backgroundColor: 'var(--sidebar-bg)', zIndex: 'var(--z-sidebar)' }}
+      style={{
+        backgroundColor: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
+        zIndex: 'var(--z-sidebar)',
+      }}
     >
       {/* ── Logo ── */}
       <div
-        className="flex items-center gap-3 px-4 h-[60px] shrink-0"
+        className="flex items-center gap-3 px-4 h-[64px] shrink-0"
         style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
-        <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 bg-amber-500 rounded-lg flex items-center justify-center shrink-0">
           <span className="text-white font-bold text-sm">WS</span>
         </div>
         {!collapsed && (
           <div className="min-w-0 overflow-hidden">
-            <h1 className="font-semibold text-sm text-white truncate">WebSquare</h1>
-            <p className="text-[11px] truncate" style={{ color: 'var(--sidebar-text)' }}>
-              Vyoma AI Studios
+            <h1 className="font-semibold text-sm text-gray-900 truncate tracking-tight">WebSquare</h1>
+            <p className="text-[11px] truncate text-gray-400">
+              Inventory Management
             </p>
           </div>
         )}
@@ -154,79 +145,73 @@ export default function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin">
-        {visibleSections.map((section, sIdx) => {
-          const colors = DEPT_COLORS[section.id] || DEPT_COLORS.stores
-          return (
-            <div key={`${section.id}-${sIdx}`} className="mb-1">
-              {/* Section label */}
-              {!collapsed && (
-                <div
-                  className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: 'var(--sidebar-section)' }}
-                >
-                  {section.label}
-                </div>
-              )}
-              {collapsed && sIdx > 0 && (
-                <div className="mx-3 my-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }} />
-              )}
-
-              {/* Items */}
-              <div className="px-2 space-y-0.5">
-                {section.items.map(item => {
-                  const isActive = item.end
-                    ? location.pathname === item.path || location.pathname === item.path + '/'
-                    : location.pathname.startsWith(item.path) && item.path !== '/app'
-
-                  return (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      end={item.end}
-                      data-guide={`nav-${item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '').replace(/\//g, '-')}`}
-                      title={collapsed ? item.label : undefined}
-                      className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                        collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
-                      }`}
-                      style={{
-                        color: isActive ? colors.accent : 'var(--sidebar-text)',
-                        backgroundColor: isActive ? colors.bg : 'transparent',
-                        borderLeft: isActive && !collapsed ? `3px solid ${colors.accent}` : '3px solid transparent',
-                      }}
-                      onMouseEnter={e => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'
-                          e.currentTarget.style.color = 'var(--sidebar-text-active)'
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = 'transparent'
-                          e.currentTarget.style.color = 'var(--sidebar-text)'
-                        }
-                      }}
-                    >
-                      <item.icon size={collapsed ? 20 : 18} className="shrink-0" />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </NavLink>
-                  )
-                })}
+        {visibleSections.map((section, sIdx) => (
+          <div key={`${section.id}-${sIdx}`} className="mb-1">
+            {/* Section label */}
+            {!collapsed && (
+              <div
+                className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--sidebar-section)' }}
+              >
+                {section.label}
               </div>
+            )}
+            {collapsed && sIdx > 0 && (
+              <div className="mx-3 my-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }} />
+            )}
+
+            {/* Items */}
+            <div className="px-2 space-y-0.5">
+              {section.items.map(item => {
+                const isActive = item.end
+                  ? location.pathname === item.path || location.pathname === item.path + '/'
+                  : location.pathname.startsWith(item.path) && item.path !== '/app'
+
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.end}
+                    data-guide={`nav-${item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '').replace(/\//g, '-')}`}
+                    title={collapsed ? item.label : undefined}
+                    className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                      collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
+                    }`}
+                    style={{
+                      color: isActive ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
+                      backgroundColor: isActive ? 'var(--sidebar-active)' : 'transparent',
+                      borderLeft: isActive && !collapsed ? '3px solid var(--sidebar-accent)' : '3px solid transparent',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'
+                        e.currentTarget.style.color = 'var(--sidebar-text-active)'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.color = 'var(--sidebar-text)'
+                      }
+                    }}
+                  >
+                    <item.icon size={collapsed ? 20 : 18} className="shrink-0" />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                  </NavLink>
+                )
+              })}
             </div>
-          )
-        })}
+          </div>
+        ))}
       </nav>
 
-      {/* ── Bottom section (collapse + user) — always visible ── */}
+      {/* ── Bottom section ── */}
       <div className="shrink-0" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
         {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(c => !c)}
           className="mx-2 mt-2 mb-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn"
-          style={{
-            color: 'var(--sidebar-text)',
-            backgroundColor: 'transparent',
-          }}
+          style={{ color: 'var(--sidebar-text)' }}
           onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)' }}
           onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
         >
@@ -240,42 +225,41 @@ export default function Sidebar() {
 
         {/* User + Logout */}
         <div className="px-3 py-2">
-        <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''} mb-2`}>
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
-            style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7' }}
-          >
-            {user?.name?.charAt(0) || '?'}
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-[11px] truncate" style={{ color: 'var(--sidebar-text)' }}>
-                {user?.camp_name || 'Head Office'}
-              </p>
+          <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''} mb-2`}>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
+              style={{ backgroundColor: '#fef3c7', color: '#b45309' }}
+            >
+              {user?.name?.charAt(0) || '?'}
             </div>
-          )}
-        </div>
-        <button
-          onClick={handleLogout}
-          title={collapsed ? 'Sign Out' : undefined}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn ${
-            collapsed ? 'justify-center' : ''
-          }`}
-          style={{ color: '#f87171' }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
-        >
-          <LogOut size={16} />
-          {!collapsed && <span>Sign Out</span>}
-        </button>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                <p className="text-[11px] truncate text-gray-400">
+                  {user?.camp_name || 'Head Office'}
+                </p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleLogout}
+            title={collapsed ? 'Sign Out' : undefined}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors compact-btn ${
+              collapsed ? 'justify-center' : ''
+            }`}
+            style={{ color: '#ef4444' }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fef2f2' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+          >
+            <LogOut size={16} />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
         </div>
       </div>
     </aside>
   )
 }
 
-// Export for other components to check sidebar state
 export function getSidebarWidth() {
   return localStorage.getItem('ws_sidebar_collapsed') === 'true' ? 68 : 260
 }

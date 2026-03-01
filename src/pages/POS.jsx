@@ -498,6 +498,7 @@ export default function POS() {
                 key={svc.value}
                 onClick={() => selectService(svc)}
                 className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-green-300 hover:shadow-md transition group"
+                data-guide={svc.value === 'bar' ? 'pos-service-bar' : undefined}
               >
                 <div className={`w-12 h-12 ${svc.color} rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition`}>
                   <svc.icon size={24} className="text-white" />
@@ -571,7 +572,7 @@ export default function POS() {
 
           {/* ── Group Tabs ── */}
           {visibleGroups.length > 1 && (
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scroll-touch">
+            <div data-guide="pos-categories" className="flex gap-2 mb-3 overflow-x-auto pb-1 scroll-touch">
               <button
                 onClick={() => setActiveGroup(null)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
@@ -617,7 +618,7 @@ export default function POS() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div data-guide="pos-items" className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {filteredItems.map(item => {
                 const inCart = cart.find(c => c.id === item.id)
                 return (
@@ -912,6 +913,7 @@ export default function POS() {
                   <button
                     onClick={handleCheckout}
                     disabled={submitting}
+                    data-guide="pos-checkout"
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-md"
                   >
                     {submitting ? (

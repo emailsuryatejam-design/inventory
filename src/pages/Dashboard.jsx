@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useUser, useSelectedCamp, isManager } from '../context/AppContext'
+import { useUser, useSelectedCamp, useTenant, isManager } from '../context/AppContext'
 import { dashboard, alerts as alertsApi } from '../services/api'
 import {
   ShoppingCart, Boxes, AlertTriangle, PackageCheck,
-  TrendingUp, Clock, FileOutput, ArrowRight, Bell
+  TrendingUp, Clock, FileOutput, ArrowRight, Bell,
+  Sparkles, Users, ClipboardList, Package, X
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 export default function Dashboard() {
   const user = useUser()
+  const tenant = useTenant()
   const { campId } = useSelectedCamp()
   const [stats, setStats] = useState(null)
   const [alertSummary, setAlertSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [welcomeDismissed, setWelcomeDismissed] = useState(
+    () => localStorage.getItem('ws_welcome_dismissed') === 'true'
+  )
 
   useEffect(() => {
     loadStats()
@@ -81,6 +86,34 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Welcome Card — shown to new trial tenants */}
+      {tenant?.plan === 'trial' && !welcomeDismissed && (
+        <div className="bg-white rounded-xl border border-amber-200 p-5 mb-6 relative" style={{ boxShadow: '0 4px 20px rgba(245,158,11,0.08)' }}>
+          <button
+            onClick={() => { setWelcomeDismissed(true); localStorage.setItem('ws_welcome_dismissed', 'true') }}
+            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+            aria-label="Dismiss"
+          >
+            <X size={16} />
+          </button>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+              <Sparkles size={18} className="text-amber-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">Welcome to WebSquare!</h3>
+              <p className="text-xs text-gray-500">Your 30-day trial is active. Here's how to get started:</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <SetupLink to="/app/items/new" icon={Package} label="Add inventory items" />
+            <SetupLink to="/app/users" icon={Users} label="Invite your team" />
+            <SetupLink to="/app/orders/new" icon={ClipboardList} label="Create first order" />
+            <SetupLink to="/app/stock" icon={Boxes} label="Check stock levels" />
+          </div>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
@@ -89,12 +122,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Cards */}
+      {/* Stats Cards — KaziPay style: icon on right, clean borders */}
       <div data-guide="dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           icon={ShoppingCart}
           label="Pending Orders"
           value={stats?.pending_orders ?? 0}
+          subtitle="Awaiting approval"
           color="blue"
           link="/app/orders"
         />
@@ -102,6 +136,7 @@ export default function Dashboard() {
           icon={AlertTriangle}
           label="Low Stock Items"
           value={alertSummary ? (alertSummary.low_stock + alertSummary.out_of_stock) : (stats?.low_stock_items ?? 0)}
+          subtitle="Need attention"
           color="amber"
           link="/app/alerts"
         />
@@ -109,6 +144,7 @@ export default function Dashboard() {
           icon={PackageCheck}
           label="Pending Receipts"
           value={stats?.pending_receipts ?? 0}
+          subtitle="In transit"
           color="green"
           link="/app/receive"
         />
@@ -116,22 +152,23 @@ export default function Dashboard() {
           icon={FileOutput}
           label="Issues Today"
           value={stats?.issues_today ?? 0}
+          subtitle="Issued vouchers"
           color="purple"
           link="/app/issue"
         />
       </div>
 
-      {/* Stock Value Banner */}
+      {/* Stock Value Banner — clean white card with amber accent */}
       {stats && (
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-5 mb-6 text-white">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6" style={{ boxShadow: 'var(--shadow-xs)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Total Stock Value</p>
-              <p className="text-3xl font-bold mt-1">{formatValue(stats.total_stock_value)}</p>
+              <p className="text-gray-500 text-sm">Total Stock Value</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{formatValue(stats.total_stock_value)}</p>
             </div>
             <div className="text-right">
-              <p className="text-green-100 text-sm">Active Items</p>
-              <p className="text-2xl font-bold mt-1">{stats.items_count?.toLocaleString()}</p>
+              <p className="text-gray-500 text-sm">Active Items</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.items_count?.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -162,38 +199,42 @@ export default function Dashboard() {
       {/* Quick Actions + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Quick Actions Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-6" style={{ boxShadow: 'var(--shadow-xs)' }}>
+          <h2 className="font-semibold text-gray-900 mb-3">Quick Actions</h2>
+          <div className="space-y-1">
             <QuickAction
               to="/app/orders/new"
               icon={ShoppingCart}
               label="New Order"
+              desc="Create a purchase order"
               color="green"
             />
             <QuickAction
               to="/app/issue/new"
               icon={FileOutput}
               label="New Issue"
+              desc="Issue goods to department"
               color="blue"
             />
             <QuickAction
               to="/app/stock"
               icon={Boxes}
               label="Check Stock"
+              desc="View current stock levels"
               color="amber"
             />
             <QuickAction
               to="/app/items"
               icon={TrendingUp}
-              label="Items List"
+              label="Items Catalog"
+              desc="Browse all inventory items"
               color="gray"
             />
           </div>
         </div>
 
         {/* Recent Orders */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6" style={{ boxShadow: 'var(--shadow-xs)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Orders</h2>
             <Link to="/app/orders" className="text-green-600 text-sm font-medium flex items-center gap-1">
@@ -234,7 +275,7 @@ export default function Dashboard() {
 
       {/* Low Stock Alerts */}
       {stats?.low_stock_alerts?.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6" style={{ boxShadow: 'var(--shadow-xs)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
               <AlertTriangle size={18} className="text-amber-500" />
@@ -319,8 +360,8 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ icon: Icon, label, value, color, link }) {
-  const colors = {
+function StatCard({ icon: Icon, label, value, subtitle, color, link }) {
+  const iconColors = {
     blue: 'bg-blue-50 text-blue-600',
     amber: 'bg-amber-50 text-amber-600',
     green: 'bg-green-50 text-green-600',
@@ -328,31 +369,56 @@ function StatCard({ icon: Icon, label, value, color, link }) {
   }
 
   return (
-    <Link to={link} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${colors[color]}`}>
-        <Icon size={20} />
+    <Link
+      to={link}
+      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition"
+      style={{ boxShadow: 'var(--shadow-xs)' }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${iconColors[color]}`}>
+          <Icon size={20} />
+        </div>
       </div>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
     </Link>
   )
 }
 
-function QuickAction({ to, icon: Icon, label, color }) {
-  const colors = {
-    green: 'bg-green-50 text-green-600 hover:bg-green-100',
-    blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
-    amber: 'bg-amber-50 text-amber-600 hover:bg-amber-100',
-    gray: 'bg-gray-50 text-gray-600 hover:bg-gray-100',
+function SetupLink({ to, icon: Icon, label }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50 hover:bg-amber-50 transition group"
+    >
+      <Icon size={16} className="text-gray-400 group-hover:text-amber-600 flex-shrink-0" />
+      <span className="text-xs font-medium text-gray-700 group-hover:text-amber-700">{label}</span>
+    </Link>
+  )
+}
+
+function QuickAction({ to, icon: Icon, label, desc, color }) {
+  const iconBg = {
+    green: 'bg-green-100 text-green-600',
+    blue: 'bg-blue-100 text-blue-600',
+    amber: 'bg-amber-100 text-amber-600',
+    gray: 'bg-gray-100 text-gray-600',
   }
 
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 p-3 rounded-lg transition ${colors[color]}`}
+      className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group"
     >
-      <Icon size={20} />
-      <span className="text-sm font-medium">{label}</span>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg[color]}`}>
+        <Icon size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        {desc && <p className="text-xs text-gray-400 truncate">{desc}</p>}
+      </div>
+      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-400 shrink-0" />
     </Link>
   )
 }

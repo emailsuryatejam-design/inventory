@@ -138,6 +138,7 @@ export default function OrderNew() {
                 onFocus={() => setShowSearch(true)}
                 placeholder="Search items to add..."
                 className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                data-guide="order-search-input"
               />
               {searchQuery && (
                 <button
@@ -158,11 +159,12 @@ export default function OrderNew() {
                   <Loader2 size={16} className="animate-spin" /> Searching...
                 </div>
               )}
-              {searchResults.map(item => (
+              {searchResults.map((item, i) => (
                 <button
                   key={item.id}
                   onClick={() => addItem(item)}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition text-left border-b border-gray-50 last:border-0"
+                  data-guide={i === 0 ? 'order-search-result-first' : undefined}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -232,6 +234,7 @@ export default function OrderNew() {
                   <button
                     onClick={() => updateQty(index, line.qty + 1)}
                     className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+                    data-guide="order-qty-plus"
                   >
                     <Plus size={16} />
                   </button>
@@ -259,6 +262,7 @@ export default function OrderNew() {
             placeholder="Any special instructions or notes..."
             rows={2}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
+            data-guide="order-notes"
           />
         </div>
       )}
@@ -276,6 +280,7 @@ export default function OrderNew() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
+              data-guide="submit-order-btn"
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-3 rounded-xl text-sm font-semibold transition"
             >
               {submitting ? (

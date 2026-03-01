@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { auth } from '../services/api'
 import { precacheCriticalData } from '../services/offlineDb'
-import { LogIn, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { LogIn, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -29,6 +29,7 @@ export default function Login() {
           camps: data.camps,
           modules: data.modules || [],
           permissions: data.permissions || {},
+          tenant: data.tenant || null,
         }
       })
       navigate('/app')
@@ -42,15 +43,17 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">WS</span>
-          </div>
+          <Link to="/" className="inline-block">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl mb-4">
+              <span className="text-white text-2xl font-bold">WS</span>
+            </div>
+          </Link>
           <h1 className="text-2xl font-bold text-gray-900">WebSquare</h1>
-          <p className="text-gray-500 mt-1">Powered by Vyoma AI Studios</p>
+          <p className="text-gray-500 mt-1">Inventory Management</p>
         </div>
 
         {/* Login Form */}
@@ -70,10 +73,11 @@ export default function Login() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition"
                 placeholder="Enter username"
                 autoComplete="username"
                 required
+                data-guide="login-username"
               />
             </div>
 
@@ -84,10 +88,11 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition pr-12"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition pr-12"
                   placeholder="Enter password"
                   autoComplete="current-password"
                   required
+                  data-guide="login-password"
                 />
                 <button
                   type="button"
@@ -103,7 +108,8 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
+            data-guide="login-submit"
+            className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -113,15 +119,30 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <Link
               to="/pin-login"
-              className="text-green-600 hover:text-green-700 text-sm font-medium"
+              className="text-amber-600 hover:text-amber-700 text-sm font-medium block"
             >
-              Camp Staff? Login with PIN →
+              Camp Staff? Login with PIN
             </Link>
           </div>
         </form>
+
+        {/* Trial Promotion */}
+        <div className="mt-5 bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+          <p className="text-sm font-semibold text-gray-900 mb-1">No account yet?</p>
+          <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+            Start your 30-day free trial with full access.<br />
+            No credit card required.
+          </p>
+          <Link
+            to="/register"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition"
+          >
+            Create Free Account <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
     </div>
   )

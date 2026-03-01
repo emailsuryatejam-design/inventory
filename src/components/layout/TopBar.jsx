@@ -75,7 +75,7 @@ export default function TopBar({ onMobileMenuToggle }) {
 
   return (
     <header
-      className="bg-white h-[56px] flex items-center justify-between px-4 lg:px-6 sticky top-0"
+      className="bg-white h-[64px] flex items-center justify-between px-4 lg:px-6 sticky top-0"
       style={{
         borderBottom: '1px solid var(--border-default)',
         zIndex: 'var(--z-topbar)',
@@ -92,7 +92,7 @@ export default function TopBar({ onMobileMenuToggle }) {
         </button>
 
         {/* Mobile logo */}
-        <div className="lg:hidden w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+        <div className="lg:hidden w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-xs">WS</span>
         </div>
 
@@ -188,17 +188,17 @@ export default function TopBar({ onMobileMenuToggle }) {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
         </button>
 
-        {/* User avatar (desktop) */}
-        <div className="hidden lg:flex items-center gap-2 pl-2 ml-1" style={{ borderLeft: '1px solid var(--border-light)' }}>
+        {/* User avatar (desktop) — KaziPay style: larger avatar + name + role */}
+        <div className="hidden lg:flex items-center gap-2.5 pl-3 ml-1" style={{ borderLeft: '1px solid var(--border-light)' }}>
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-            style={{ backgroundColor: 'var(--ws-primary-light)', color: 'var(--ws-primary-dark)' }}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
+            style={{ backgroundColor: '#fef3c7', color: '#b45309' }}
           >
             {user?.name?.charAt(0) || '?'}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate leading-tight">{user?.name}</p>
-            <p className="text-[11px] text-gray-400 truncate leading-tight">
+            <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{user?.name}</p>
+            <p className="text-[11px] text-gray-400 truncate leading-tight capitalize">
               {user?.role?.replace(/_/g, ' ')}
             </p>
           </div>

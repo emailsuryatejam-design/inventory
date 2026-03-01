@@ -36,14 +36,15 @@
   --info: #3b82f6;
   --info-light: #dbeafe;
 
-  /* ── Sidebar ───────────────────────────── */
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #1e293b;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #f8fafc;
-  --sidebar-border: #1e293b;
-  --sidebar-section: #475569;
+  /* ── Sidebar (KaziPay-style white) ──────── */
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f8fafc;
+  --sidebar-active: #fff7ed;
+  --sidebar-text: #64748b;
+  --sidebar-text-active: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-section: #94a3b8;
+  --sidebar-accent: #f59e0b;
   --sidebar-width: 260px;
   --sidebar-collapsed: 68px;
 
@@ -178,11 +179,11 @@ body.overflow-locked {
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
-/* Custom thin scrollbar */
-.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+/* Custom thin scrollbar (light theme for white sidebar) */
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 .scrollbar-thin::-webkit-scrollbar { width: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
 /* Content area scrollbar */
 ::-webkit-scrollbar { width: 6px; }
@@ -394,6 +395,11 @@ body.overflow-locked {
 @keyframes guide-coaching-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+@keyframes guide-auto-countdown {
+  from { stroke-dashoffset: 75.4; }
+  to { stroke-dashoffset: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
