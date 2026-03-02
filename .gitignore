@@ -4,8 +4,8 @@ node_modules/
 # Build output
 dist/
 
-# Backend API (separate repo)
-api/
+# Backend API (separate repo — root level only, allow public/api/)
+/api/
 
 # Capacitor native
 android/

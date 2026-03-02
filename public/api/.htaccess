@@ -1,0 +1,68 @@
+# WebSquare API — Apache Configuration
+# Deployed to /public_html/api/
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Handle CORS preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=204,L]
+
+# ── Block sensitive PHP files (internal-only, not API endpoints) ──
+<FilesMatch "^(config|middleware|helpers|env|logger|audit|rate-limit|setup-tenants|debug-schema|seed-test-users)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Block .env and ALL dotfiles (.git, .gitignore, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block backup, log, SQL dump, and config files
+<FilesMatch "\.(bak|sql|log|sh|md|txt|yml|yaml|toml|ini|orig|save|swp)$">
+    Require all denied
+</FilesMatch>
+
+# Block .git directory and any version control
+<IfModule mod_rewrite.c>
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^\.svn - [F,L]
+</IfModule>
+
+# Block cache directory from web access
+<IfModule mod_rewrite.c>
+    RewriteRule ^cache/ - [F,L]
+</IfModule>
+
+# ── PHP settings for Hostinger shared hosting ────────
+<IfModule mod_php.c>
+    php_value max_execution_time 60
+    php_value memory_limit 128M
+    php_value post_max_size 10M
+    php_value upload_max_filesize 10M
+    php_value display_errors Off
+    php_value log_errors On
+    php_value expose_php Off
+    php_value session.cookie_httponly On
+    php_value session.cookie_secure On
+    php_value session.use_strict_mode On
+</IfModule>
+
+# ── Security headers ─────────────────────────────────
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header set X-XSS-Protection "1; mode=block"
+    # API responses should never be cached by browsers
+    Header set Cache-Control "no-store, no-cache, must-revalidate"
+    Header set Pragma "no-cache"
+</IfModule>
+
+# Deny directory listing
+Options -Indexes
+
+# Hide server version
+ServerSignature Off
