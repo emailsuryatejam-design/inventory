@@ -28,5 +28,11 @@ function env($key, $default = null) {
     return $_ENV[$key] ?? getenv($key) ?: $default;
 }
 
-// Auto-load .env from the same directory
-loadEnv(__DIR__ . '/.env');
+// Auto-load .env — check persistent location first (survives deployments),
+// then fall back to local .env in the same directory
+$homeEnv = dirname(__DIR__, 2) . '/.env-api';
+if (file_exists($homeEnv)) {
+    loadEnv($homeEnv);
+} else {
+    loadEnv(__DIR__ . '/.env');
+}
