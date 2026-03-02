@@ -5,8 +5,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $id = (int) ($_GET['id'] ?? 0);
@@ -22,9 +24,9 @@ $stmt = $pdo->prepare("
     JOIN orders o ON d.order_id = o.id
     JOIN camps c ON d.camp_id = c.id
     LEFT JOIN users u ON d.dispatched_by = u.id
-    WHERE d.id = ?
+    WHERE d.id = ? AND d.tenant_id = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $tenantId]);
 $dispatch = $stmt->fetch();
 
 if (!$dispatch) jsonError('Dispatch not found', 404);

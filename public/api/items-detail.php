@@ -6,7 +6,9 @@
 
 require_once __DIR__ . '/middleware.php';
 requireMethod('GET');
-requireAuth();
+$auth = requireAuth();
+require_once __DIR__ . '/helpers.php';
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 
@@ -32,9 +34,9 @@ $stmt = $pdo->prepare("
     LEFT JOIN units_of_measure pu ON i.purchase_uom_id = pu.id
     LEFT JOIN units_of_measure iu ON i.issue_uom_id = iu.id
     LEFT JOIN cost_centers cc ON i.default_cost_center_id = cc.id
-    WHERE i.id = ?
+    WHERE i.id = ? AND i.tenant_id = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $tenantId]);
 $item = $stmt->fetch();
 
 if (!$item) {
@@ -51,10 +53,10 @@ $stockStmt = $pdo->prepare("
         sb.last_receipt_date, sb.last_issue_date, sb.days_since_last_movement
     FROM stock_balances sb
     JOIN camps c ON sb.camp_id = c.id
-    WHERE sb.item_id = ?
+    WHERE sb.item_id = ? AND sb.tenant_id = ?
     ORDER BY c.name
 ");
-$stockStmt->execute([$id]);
+$stockStmt->execute([$id, $tenantId]);
 $stockBalances = $stockStmt->fetchAll();
 
 // Suppliers
@@ -64,10 +66,10 @@ $supplierStmt = $pdo->prepare("
         iss.unit_price, iss.lead_time_days, iss.is_preferred
     FROM item_suppliers iss
     JOIN suppliers sup ON iss.supplier_id = sup.id
-    WHERE iss.item_id = ?
+    WHERE iss.item_id = ? AND iss.tenant_id = ?
     ORDER BY iss.is_preferred DESC, sup.name
 ");
-$supplierStmt->execute([$id]);
+$supplierStmt->execute([$id, $tenantId]);
 $suppliers = $supplierStmt->fetchAll();
 
 // Recent stock movements (last 20)
@@ -81,11 +83,11 @@ $movementStmt = $pdo->prepare("
     FROM stock_movements sm
     JOIN camps c ON sm.camp_id = c.id
     LEFT JOIN users u ON sm.created_by = u.id
-    WHERE sm.item_id = ?
+    WHERE sm.item_id = ? AND sm.tenant_id = ?
     ORDER BY sm.created_at DESC
     LIMIT 20
 ");
-$movementStmt->execute([$id]);
+$movementStmt->execute([$id, $tenantId]);
 $movements = $movementStmt->fetchAll();
 
 jsonResponse([

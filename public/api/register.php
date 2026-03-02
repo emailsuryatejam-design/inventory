@@ -156,7 +156,14 @@ try {
             'slug' => $slug,
             'trial_end' => $trialEnd,
         ],
-        'modules' => ['stores', 'kitchen', 'bar', 'admin'],
+        'modules' => ['stores', 'kitchen', 'bar', 'admin', 'reports'],
+        'permissions' => [
+            'stores' => ['view', 'create', 'edit', 'approve', 'delete', 'export'],
+            'kitchen' => ['view', 'create', 'edit', 'approve', 'delete', 'export'],
+            'bar' => ['view', 'create', 'edit', 'approve', 'delete', 'export'],
+            'admin' => ['view', 'create', 'edit', 'approve', 'delete', 'export'],
+            'reports' => ['view', 'create', 'edit', 'approve', 'delete', 'export'],
+        ],
     ], 201);
 
 } catch (PDOException $e) {

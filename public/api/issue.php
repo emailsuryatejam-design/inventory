@@ -9,6 +9,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 // ── GET — List ──
@@ -35,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $params[] = $type;
     }
 
+    tenantScope($where, $params, $tenantId, 'iv');
+
     $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM issue_vouchers iv {$whereClause}");
@@ -59,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $vouchers = $stmt->fetchAll();
 
     // Cost centers for dropdown
-    $costCenters = $pdo->query('SELECT id, code, name FROM cost_centers ORDER BY name')->fetchAll();
+    $costCenters = getTenantCostCenters($pdo, $tenantId);
 
     jsonResponse([
         'vouchers' => array_map(function($v) {
@@ -104,10 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $campId = $auth['camp_id'];
     if (!$campId) jsonError('Must be assigned to a camp', 400);
 
-    $ccStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ?");
-    $ccStmt->execute([$campId]);
+    $ccStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ? AND tenant_id = ?");
+    $ccStmt->execute([$campId, $tenantId]);
     $campCode = $ccStmt->fetchColumn();
-    $voucherNumber = generateDocNumber($pdo, 'ISS', $campCode);
+    $voucherNumber = generateDocNumber($pdo, 'ISS', $campCode, $tenantId);
 
     // ── Batch-fetch all item costs upfront (eliminates N+1) ──
     $itemIds = array_filter(array_map(function($l) {
@@ -118,8 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $itemCostMap = [];
     if (count($itemIds) > 0) {
         $ph = implode(',', array_fill(0, count($itemIds), '?'));
-        $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph})");
-        $icStmt->execute($itemIds);
+        $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
+        $icStmt->execute(array_merge($itemIds, [$tenantId]));
         foreach ($icStmt->fetchAll() as $row) {
             $itemCostMap[(int) $row['id']] = $row;
         }
@@ -136,12 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->prepare("
             INSERT INTO issue_vouchers (
-                voucher_number, camp_id, issue_type, cost_center_id,
+                tenant_id, voucher_number, camp_id, issue_type, cost_center_id,
                 issue_date, issued_by, received_by_name, department,
                 room_numbers, guest_count, total_value, notes, status, created_at
-            ) VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, 0, ?, 'confirmed', NOW())
+            ) VALUES (?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, 0, ?, 'confirmed', NOW())
         ")->execute([
-            $voucherNumber, $campId, $input['issue_type'], (int) $input['cost_center_id'],
+            $tenantId, $voucherNumber, $campId, $input['issue_type'], (int) $input['cost_center_id'],
             $auth['user_id'], $input['received_by_name'], $input['department'] ?? null,
             $input['room_numbers'] ?? null, $input['guest_count'] ?? null,
             $input['notes'] ?? null,
@@ -151,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalValue = 0;
 
         $lineStmt = $pdo->prepare("
-            INSERT INTO issue_voucher_lines (voucher_id, item_id, quantity, unit_cost, total_value, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO issue_voucher_lines (tenant_id, voucher_id, item_id, quantity, unit_cost, total_value, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         $deductStmt = $pdo->prepare("
@@ -167,9 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $balStmt = $pdo->prepare("SELECT current_qty FROM stock_balances WHERE camp_id = ? AND item_id = ?");
 
         $mvStmt = $pdo->prepare("
-            INSERT INTO stock_movements (item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
+            INSERT INTO stock_movements (tenant_id, item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
                 balance_after, reference_type, reference_id, cost_center_id, created_by, movement_date, created_at)
-            VALUES (?, ?, ?, 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
+            VALUES (?, ?, ?, ?, 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
         ");
 
         foreach ($input['lines'] as $line) {
@@ -183,13 +186,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lineValue = $qty * $unitCost;
             $totalValue += $lineValue;
 
-            $lineStmt->execute([$voucherId, $itemId, $qty, $unitCost, $lineValue, $line['notes'] ?? null]);
+            $lineStmt->execute([$tenantId, $voucherId, $itemId, $qty, $unitCost, $lineValue, $line['notes'] ?? null]);
             $deductStmt->execute([$qty, $lineValue, $campId, $itemId]);
 
             $balStmt->execute([$campId, $itemId]);
             $balAfter = (float) ($balStmt->fetchColumn() ?: 0);
 
-            $mvStmt->execute([$itemId, $campId, $mvType, $qty, $unitCost, $lineValue, $balAfter,
+            $mvStmt->execute([$tenantId, $itemId, $campId, $mvType, $qty, $unitCost, $lineValue, $balAfter,
                          $voucherId, (int) $input['cost_center_id'], $auth['user_id']]);
         }
 

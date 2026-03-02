@@ -10,8 +10,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $type = $_GET['type'] ?? 'summary';
@@ -28,6 +30,7 @@ if ($campId) {
     $campFilter = 'AND sb.camp_id = ?';
     $campParams = [(int) $campId];
 }
+$tenantAndCampParams = array_merge([$tenantId], $campParams);
 
 switch ($type) {
 
@@ -43,9 +46,9 @@ switch ($type) {
                     AND (sb.current_qty / sb.avg_daily_usage) <= 7 THEN 1 ELSE 0 END) as proj7_count,
                 SUM(CASE WHEN sb.stock_status = 'excess' THEN 1 ELSE 0 END) as excess_count
             FROM stock_balances sb
-            WHERE 1=1 {$campFilter}
+            WHERE sb.tenant_id = ? {$campFilter}
         ");
-        $summaryStmt->execute($campParams);
+        $summaryStmt->execute($tenantAndCampParams);
         $s = $summaryStmt->fetch();
 
         $lowCount = (int) $s['low_count'];
@@ -85,6 +88,7 @@ switch ($type) {
             LEFT JOIN item_groups g ON i.item_group_id = g.id
             LEFT JOIN units_of_measure uom ON i.stock_uom_id = uom.id
             WHERE sb.stock_status IN ('low', 'critical', 'out')
+            AND sb.tenant_id = ?
             {$campFilter}
             ORDER BY
                 CASE sb.stock_status WHEN 'out' THEN 1 WHEN 'critical' THEN 2 WHEN 'low' THEN 3 END,
@@ -92,7 +96,7 @@ switch ($type) {
                 sb.days_stock_on_hand ASC
             LIMIT 200
         ");
-        $stmt->execute($campParams);
+        $stmt->execute($tenantAndCampParams);
         $rows = $stmt->fetchAll();
 
         jsonResponse([
@@ -150,11 +154,12 @@ switch ($type) {
             WHERE sb.avg_daily_usage > 0
             AND sb.current_qty > 0
             AND (sb.current_qty / sb.avg_daily_usage) <= ?
+            AND sb.tenant_id = ?
             {$campFilter}
             ORDER BY (sb.current_qty / sb.avg_daily_usage) ASC
             LIMIT 200
         ");
-        $stmt->execute(array_merge([$days], $campParams));
+        $stmt->execute(array_merge([$days, $tenantId], $campParams));
         $rows = $stmt->fetchAll();
 
         jsonResponse([
@@ -207,11 +212,12 @@ switch ($type) {
             LEFT JOIN units_of_measure uom ON i.stock_uom_id = uom.id
             WHERE sb.days_since_last_movement >= ?
             AND sb.current_qty > 0
+            AND sb.tenant_id = ?
             {$campFilter}
             ORDER BY sb.days_since_last_movement DESC
             LIMIT 200
         ");
-        $stmt->execute(array_merge([$minDays], $campParams));
+        $stmt->execute(array_merge([$minDays, $tenantId], $campParams));
         $rows = $stmt->fetchAll();
 
         jsonResponse([
@@ -253,11 +259,12 @@ switch ($type) {
             LEFT JOIN item_groups g ON i.item_group_id = g.id
             LEFT JOIN units_of_measure uom ON i.stock_uom_id = uom.id
             WHERE sb.stock_status = 'excess'
+            AND sb.tenant_id = ?
             {$campFilter}
             ORDER BY sb.current_value DESC
             LIMIT 200
         ");
-        $stmt->execute($campParams);
+        $stmt->execute($tenantAndCampParams);
         $rows = $stmt->fetchAll();
 
         jsonResponse([

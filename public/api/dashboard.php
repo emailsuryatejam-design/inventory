@@ -6,8 +6,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $campId = (int) ($_GET['camp_id'] ?? $auth['camp_id'] ?? 0);
@@ -15,32 +17,38 @@ $today = date('Y-m-d');
 
 // ── Single query for all counts (parameterized) ──
 $campFilter = $campId ? "AND camp_id = ?" : "";
-$campWhere = $campId ? "WHERE camp_id = ?" : "";
+$campWhere = $campId ? "WHERE camp_id = ? AND tenant_id = ?" : "WHERE tenant_id = ?";
 
 $countsSql = "
     SELECT
-        (SELECT COUNT(*) FROM orders WHERE status IN ('submitted', 'pending_review') $campFilter) as pending_orders,
-        (SELECT COUNT(*) FROM stock_balances WHERE stock_status IN ('low', 'critical', 'out') $campFilter) as low_stock_items,
-        (SELECT COUNT(*) FROM dispatches WHERE status IN ('dispatched', 'in_transit') $campFilter) as pending_receipts,
-        (SELECT COUNT(*) FROM issue_vouchers WHERE DATE(issue_date) = ? $campFilter) as issues_today,
+        (SELECT COUNT(*) FROM orders WHERE status IN ('submitted', 'pending_review') AND tenant_id = ? $campFilter) as pending_orders,
+        (SELECT COUNT(*) FROM stock_balances WHERE stock_status IN ('low', 'critical', 'out') AND tenant_id = ? $campFilter) as low_stock_items,
+        (SELECT COUNT(*) FROM dispatches WHERE status IN ('dispatched', 'in_transit') AND tenant_id = ? $campFilter) as pending_receipts,
+        (SELECT COUNT(*) FROM issue_vouchers WHERE DATE(issue_date) = ? AND tenant_id = ? $campFilter) as issues_today,
         (SELECT COALESCE(SUM(current_value), 0) FROM stock_balances $campWhere) as total_stock_value,
-        (SELECT COUNT(*) FROM items WHERE is_active = 1) as items_count
+        (SELECT COUNT(*) FROM items WHERE is_active = 1 AND tenant_id = ?) as items_count
 ";
 
-// Build params: one $campId per subquery that uses it + $today
+// Build params: tenant_id + optional campId per subquery + $today
 $countParams = [];
-if ($campId) $countParams[] = $campId; // pending_orders
-if ($campId) $countParams[] = $campId; // low_stock_items
-if ($campId) $countParams[] = $campId; // pending_receipts
-$countParams[] = $today;               // issues_today date
-if ($campId) $countParams[] = $campId; // issues_today camp
-if ($campId) $countParams[] = $campId; // total_stock_value
+$countParams[] = $tenantId;             // pending_orders tenant
+if ($campId) $countParams[] = $campId;  // pending_orders camp
+$countParams[] = $tenantId;             // low_stock_items tenant
+if ($campId) $countParams[] = $campId;  // low_stock_items camp
+$countParams[] = $tenantId;             // pending_receipts tenant
+if ($campId) $countParams[] = $campId;  // pending_receipts camp
+$countParams[] = $today;                // issues_today date
+$countParams[] = $tenantId;             // issues_today tenant
+if ($campId) $countParams[] = $campId;  // issues_today camp
+if ($campId) $countParams[] = $campId;  // total_stock_value camp
+$countParams[] = $tenantId;             // total_stock_value tenant
+$countParams[] = $tenantId;             // items_count tenant
 
 $stmt = $pdo->prepare($countsSql);
 $stmt->execute($countParams);
 $counts = $stmt->fetch();
 
-$campParams = $campId ? [$campId] : [];
+$campParams = $campId ? [$tenantId, $campId] : [$tenantId];
 
 // Recent orders (last 5)
 $recentOrdersSql = "
@@ -50,7 +58,8 @@ $recentOrdersSql = "
     FROM orders o
     JOIN camps c ON o.camp_id = c.id
     LEFT JOIN users u ON o.created_by = u.id
-    " . ($campId ? 'WHERE o.camp_id = ?' : '') . "
+    WHERE o.tenant_id = ?
+    " . ($campId ? 'AND o.camp_id = ?' : '') . "
     ORDER BY o.created_at DESC
     LIMIT 5
 ";
@@ -69,6 +78,7 @@ $lowStockSql = "
     JOIN camps c ON sb.camp_id = c.id
     LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
     WHERE sb.stock_status IN ('low', 'critical', 'out')
+    AND sb.tenant_id = ?
     " . ($campId ? 'AND sb.camp_id = ?' : '') . "
     ORDER BY
         CASE sb.stock_status WHEN 'out' THEN 1 WHEN 'critical' THEN 2 WHEN 'low' THEN 3 END,

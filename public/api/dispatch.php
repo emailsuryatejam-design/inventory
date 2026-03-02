@@ -9,6 +9,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 // ── GET — List Dispatches ──
@@ -43,6 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $params[] = "%{$search}%";
         $params[] = "%{$search}%";
     }
+
+    tenantScope($where, $params, $tenantId, 'd');
 
     $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -81,8 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $dispatches = $stmt->fetchAll();
 
     // Status counts
-    $countSql = "SELECT d.status, COUNT(*) as cnt FROM dispatches d GROUP BY d.status";
-    $statusCounts = $pdo->query($countSql)->fetchAll(PDO::FETCH_KEY_PAIR);
+    $countSql = $pdo->prepare("SELECT d.status, COUNT(*) as cnt FROM dispatches d WHERE d.tenant_id = ? GROUP BY d.status");
+    $countSql->execute([$tenantId]);
+    $statusCounts = $countSql->fetchAll(PDO::FETCH_KEY_PAIR);
 
     jsonResponse([
         'dispatches' => array_map(function($d) {
@@ -136,17 +140,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonError('Order not found or not ready for dispatch', 400);
     }
 
-    $dispatchNumber = generateDocNumber($pdo, 'DSP', $order['camp_code']);
+    $dispatchNumber = generateDocNumber($pdo, 'DSP', $order['camp_code'], $tenantId);
 
     $pdo->beginTransaction();
     try {
         // Create dispatch header
         $pdo->prepare("
-            INSERT INTO dispatches (dispatch_number, order_id, camp_id, status, total_value,
+            INSERT INTO dispatches (tenant_id, dispatch_number, order_id, camp_id, status, total_value,
                                     dispatched_by, dispatch_date, vehicle_details, driver_name, notes, created_at)
-            VALUES (?, ?, ?, 'dispatched', 0, ?, CURDATE(), ?, ?, ?, NOW())
+            VALUES (?, ?, ?, ?, 'dispatched', 0, ?, CURDATE(), ?, ?, ?, NOW())
         ")->execute([
-            $dispatchNumber, $orderId, (int) $order['camp_id'], $user['user_id'],
+            $tenantId, $dispatchNumber, $orderId, (int) $order['camp_id'], $user['user_id'],
             $input['vehicle_details'] ?? $input['vehicle_number'] ?? null,
             $input['driver_name'] ?? null,
             $input['notes'] ?? null
@@ -155,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dispatchId = (int) $pdo->lastInsertId();
 
         // Deduct from HO stock
-        $hoId = (int) $pdo->query("SELECT id FROM camps WHERE code = 'HO'")->fetchColumn();
+        $hoId = (int) getTenantHOCampId($pdo, $tenantId);
 
         // ── Batch-fetch all item costs upfront (eliminates N+1) ──
         $itemIds = array_filter(array_map(function($l) {
@@ -166,8 +170,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $itemCostMap = [];
         if (count($itemIds) > 0) {
             $ph = implode(',', array_fill(0, count($itemIds), '?'));
-            $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph})");
-            $icStmt->execute($itemIds);
+            $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
+            $icStmt->execute(array_merge($itemIds, [$tenantId]));
             foreach ($icStmt->fetchAll() as $row) {
                 $itemCostMap[(int) $row['id']] = $row;
             }
@@ -177,8 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalValue = 0;
         $lineCount = 0;
         $lineStmt = $pdo->prepare("
-            INSERT INTO dispatch_lines (dispatch_id, item_id, dispatched_qty, unit_cost, total_value)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO dispatch_lines (tenant_id, dispatch_id, item_id, dispatched_qty, unit_cost, total_value)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
 
         $deductStmt = $pdo->prepare("
@@ -187,9 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
 
         $mvStmt = $pdo->prepare("
-            INSERT INTO stock_movements (item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
+            INSERT INTO stock_movements (tenant_id, item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
                 balance_after, reference_type, reference_id, created_by, movement_date, created_at)
-            VALUES (?, ?, 'transfer_out', 'out', ?, ?, ?, 0, 'dispatch', ?, ?, CURDATE(), NOW())
+            VALUES (?, ?, ?, 'transfer_out', 'out', ?, ?, ?, 0, 'dispatch', ?, ?, CURDATE(), NOW())
         ");
 
         foreach ($input['lines'] as $line) {
@@ -204,9 +208,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $totalValue += $lineValue;
             $lineCount++;
 
-            $lineStmt->execute([$dispatchId, $itemId, $qty, $unitCost, $lineValue]);
+            $lineStmt->execute([$tenantId, $dispatchId, $itemId, $qty, $unitCost, $lineValue]);
             $deductStmt->execute([$qty, $itemId, $hoId]);
-            $mvStmt->execute([$itemId, $hoId, $qty, $unitCost, $lineValue, $dispatchId, $user['user_id']]);
+            $mvStmt->execute([$tenantId, $itemId, $hoId, $qty, $unitCost, $lineValue, $dispatchId, $user['user_id']]);
         }
 
         // Update dispatch total

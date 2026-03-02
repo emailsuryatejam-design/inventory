@@ -6,6 +6,8 @@
 
 require_once __DIR__ . '/middleware.php';
 $auth = requireAuth();
+require_once __DIR__ . '/helpers.php';
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $campId = (int) ($_GET['camp_id'] ?? 0);
@@ -26,6 +28,7 @@ if (in_array($auth['role'], ['camp_storekeeper', 'camp_manager'])
 
 $where = ['sb.camp_id = ?'];
 $params = [$campId];
+tenantScope($where, $params, $tenantId, 'sb');
 
 if ($search) {
     $where[] = '(i.item_code LIKE ? OR i.name LIKE ?)';
@@ -91,9 +94,9 @@ $summaryStmt = $pdo->prepare("
         SUM(CASE WHEN sb.stock_status IN ('low', 'critical', 'out') THEN 1 ELSE 0 END) as low_stock_count,
         SUM(CASE WHEN sb.stock_status = 'out' THEN 1 ELSE 0 END) as out_of_stock_count
     FROM stock_balances sb
-    WHERE sb.camp_id = ?
+    WHERE sb.camp_id = ? AND sb.tenant_id = ?
 ");
-$summaryStmt->execute([$campId]);
+$summaryStmt->execute([$campId, $tenantId]);
 $summary = $summaryStmt->fetch();
 
 jsonResponse([

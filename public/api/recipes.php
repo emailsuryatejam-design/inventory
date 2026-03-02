@@ -9,8 +9,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 $campId = $auth['camp_id'];
@@ -40,12 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1
+            WHERE i.is_active = 1 AND i.tenant_id = ?
             AND ig.code IN ('BA', 'BJ', 'FV', 'FY', 'FD', 'GA')
             ORDER BY COALESCE(sb.current_qty, 0) DESC, i.name
             LIMIT 100
         ");
-        $stmt->execute([$campId]);
+        $stmt->execute([$campId, $tenantId]);
         $barItems = $stmt->fetchAll();
     }
 
@@ -149,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'type' => $type,
         'mood' => $mood ?: null,
         'available_ingredients' => count($availableList),
-        'camp_name' => (function() use ($pdo, $campId) { $stmt = $pdo->prepare("SELECT name FROM camps WHERE id = ?"); $stmt->execute([$campId]); return $stmt->fetchColumn(); })(),
+        'camp_name' => (function() use ($pdo, $campId, $tenantId) { $stmt = $pdo->prepare("SELECT name FROM camps WHERE id = ? AND tenant_id = ?"); $stmt->execute([$campId, $tenantId]); return $stmt->fetchColumn(); })(),
     ]);
     exit;
 }
@@ -167,11 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1
+            WHERE i.is_active = 1 AND i.tenant_id = ?
             AND ig.code IN ('BA', 'BJ', 'FV', 'FY', 'FD', 'GA')
             ORDER BY ig.code, i.name
         ");
-        $stmt->execute([$campId ?: 0]);
+        $stmt->execute([$campId ?: 0, $tenantId]);
         $items = $stmt->fetchAll();
 
         // Group by category

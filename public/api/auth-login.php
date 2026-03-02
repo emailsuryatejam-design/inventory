@@ -48,12 +48,13 @@ $pdo->prepare('UPDATE users SET last_login = NOW() WHERE id = ?')
 clearRateLimit($rateLimitKey);
 auditLog($pdo, 'login', (int) $user['id'], ['method' => 'password']);
 
-// Generate JWT
+// Generate JWT (include tenant_id for data isolation)
 $token = jwtEncode([
     'user_id' => (int) $user['id'],
     'username' => $user['username'],
     'role' => $user['role'],
     'camp_id' => $user['camp_id'] ? (int) $user['camp_id'] : null,
+    'tenant_id' => $user['tenant_id'] ? (int) $user['tenant_id'] : null,
 ]);
 
 // Load tenant trial info
@@ -77,9 +78,15 @@ if ($tenantId) {
     }
 }
 
-// Load all camps for the response
-$camps = $pdo->query('SELECT id, code, name, type, is_active FROM camps WHERE is_active = 1 ORDER BY name')
-    ->fetchAll();
+// Load camps filtered by tenant (tenant isolation)
+if ($tenantId) {
+    $campsStmt = $pdo->prepare('SELECT id, code, name, type, is_active FROM camps WHERE tenant_id = ? AND is_active = 1 ORDER BY name');
+    $campsStmt->execute([$tenantId]);
+    $camps = $campsStmt->fetchAll();
+} else {
+    $camps = $pdo->query('SELECT id, code, name, type, is_active FROM camps WHERE is_active = 1 ORDER BY name')
+        ->fetchAll();
+}
 
 jsonResponse([
     'token' => $token,
@@ -102,4 +109,80 @@ jsonResponse([
         ];
     }, $camps),
     'tenant' => $tenant,
+    'modules' => getModulesForRole($user['role']),
+    'permissions' => getPermissionsForRole($user['role']),
 ]);
+
+// ── Role-based module/permission helpers ──
+
+function getModulesForRole(string $role): array {
+    $allModules = ['stores', 'kitchen', 'bar', 'admin', 'reports'];
+    switch ($role) {
+        case 'admin':
+        case 'director':
+            return $allModules;
+        case 'stores_manager':
+        case 'procurement_officer':
+            return ['stores', 'kitchen', 'bar', 'reports'];
+        case 'camp_manager':
+            return ['stores', 'kitchen', 'bar'];
+        case 'camp_storekeeper':
+            return ['stores'];
+        case 'chef':
+            return ['kitchen'];
+        case 'housekeeping':
+            return ['stores'];
+        default:
+            return ['stores'];
+    }
+}
+
+function getPermissionsForRole(string $role): array {
+    $full = ['view', 'create', 'edit', 'approve', 'delete', 'export'];
+    $readWrite = ['view', 'create', 'edit'];
+    $readOnly = ['view'];
+
+    switch ($role) {
+        case 'admin':
+        case 'director':
+            return [
+                'stores' => $full,
+                'kitchen' => $full,
+                'bar' => $full,
+                'admin' => $full,
+                'reports' => $full,
+            ];
+        case 'stores_manager':
+            return [
+                'stores' => $full,
+                'kitchen' => $readWrite,
+                'bar' => $readWrite,
+                'reports' => $readOnly,
+            ];
+        case 'procurement_officer':
+            return [
+                'stores' => ['view', 'create', 'edit', 'approve'],
+                'kitchen' => $readOnly,
+                'bar' => $readOnly,
+                'reports' => $readOnly,
+            ];
+        case 'camp_manager':
+            return [
+                'stores' => $readWrite,
+                'kitchen' => $readWrite,
+                'bar' => $readWrite,
+            ];
+        case 'camp_storekeeper':
+            return [
+                'stores' => $readWrite,
+            ];
+        case 'chef':
+            return [
+                'kitchen' => $readWrite,
+            ];
+        default:
+            return [
+                'stores' => $readOnly,
+            ];
+    }
+}

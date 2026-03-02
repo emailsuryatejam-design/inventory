@@ -5,8 +5,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $id = (int) ($_GET['id'] ?? 0);
@@ -24,9 +26,9 @@ $stmt = $pdo->prepare("
     LEFT JOIN users u ON o.created_by = u.id
     LEFT JOIN users sm ON o.stores_manager_id = sm.id
     LEFT JOIN users po ON o.procurement_officer_id = po.id
-    WHERE o.id = ?
+    WHERE o.id = ? AND o.tenant_id = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $tenantId]);
 $order = $stmt->fetch();
 
 if (!$order) jsonError('Order not found', 404);

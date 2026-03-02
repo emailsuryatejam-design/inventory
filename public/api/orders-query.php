@@ -6,8 +6,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('POST');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $input = getJsonInput();
 requireFields($input, ['order_id', 'message']);
@@ -15,7 +17,9 @@ requireFields($input, ['order_id', 'message']);
 $pdo = getDB();
 $orderId = (int) $input['order_id'];
 
-$order = $pdo->query("SELECT * FROM orders WHERE id = {$orderId}")->fetch();
+$orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ? AND tenant_id = ?");
+$orderStmt->execute([$orderId, $tenantId]);
+$order = $orderStmt->fetch();
 if (!$order) jsonError('Order not found', 404);
 
 // Insert query message

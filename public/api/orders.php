@@ -9,6 +9,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 // ── GET — List Orders ──
@@ -22,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $where = [];
     $params = [];
+    tenantScope($where, $params, $tenantId, 'o');
 
     // Camp staff can only see their own camp orders
     if (in_array($auth['role'], ['camp_storekeeper', 'camp_manager']) && $auth['camp_id']) {
@@ -73,11 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $orders = $stmt->fetchAll();
 
     // Status counts (parameterized)
-    $countWhere = '';
-    $countParams = [];
+    $countWhere = 'WHERE tenant_id = ?';
+    $countParams = [$tenantId];
     if (in_array($auth['role'], ['camp_storekeeper', 'camp_manager']) && $auth['camp_id']) {
-        $countWhere = 'WHERE camp_id = ?';
-        $countParams = [$auth['camp_id']];
+        $countWhere .= ' AND camp_id = ?';
+        $countParams[] = $auth['camp_id'];
     }
     $countStmt2 = $pdo->prepare("SELECT status, COUNT(*) as cnt FROM orders {$countWhere} GROUP BY status");
     $countStmt2->execute($countParams);
@@ -131,18 +133,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Get camp code (parameterized)
-    $campCodeStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ?");
-    $campCodeStmt->execute([$campId]);
+    $campCodeStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ? AND tenant_id = ?");
+    $campCodeStmt->execute([$campId, $tenantId]);
     $campCode = $campCodeStmt->fetchColumn();
     if (!$campCode) {
         jsonError('Camp not found', 400);
     }
 
     // HO camp id for stock checks
-    $hoId = (int) $pdo->query("SELECT id FROM camps WHERE code = 'HO'")->fetchColumn();
+    $hoId = getTenantHOCampId($pdo, $tenantId);
 
     // Generate order number
-    $orderNumber = generateDocNumber($pdo, 'ORD', $campCode);
+    $orderNumber = generateDocNumber($pdo, 'ORD', $campCode, $tenantId);
 
     // ── Batch-fetch all item data + stock upfront (eliminates N+1) ──
     $itemIds = array_filter(array_map(function($l) {
@@ -158,8 +160,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
 
         // Batch: items
-        $itemStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$placeholders}) AND is_active = 1");
-        $itemStmt->execute($itemIds);
+        $itemStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$placeholders}) AND is_active = 1 AND tenant_id = ?");
+        $itemStmt->execute(array_merge($itemIds, [$tenantId]));
         foreach ($itemStmt->fetchAll() as $row) {
             $itemsMap[(int) $row['id']] = $row;
         }
@@ -183,9 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Create order header
         $pdo->prepare("
-            INSERT INTO orders (order_number, camp_id, created_by, status, total_items, total_value, flagged_items, notes, created_at, updated_at)
-            VALUES (?, ?, ?, 'draft', 0, 0, 0, ?, NOW(), NOW())
-        ")->execute([$orderNumber, $campId, $auth['user_id'], $input['notes'] ?? null]);
+            INSERT INTO orders (tenant_id, order_number, camp_id, created_by, status, total_items, total_value, flagged_items, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'draft', 0, 0, 0, ?, NOW(), NOW())
+        ")->execute([$tenantId, $orderNumber, $campId, $auth['user_id'], $input['notes'] ?? null]);
 
         $orderId = (int) $pdo->lastInsertId();
 
@@ -195,11 +197,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lineCount = 0;
         $lineStmt = $pdo->prepare("
             INSERT INTO order_lines (
-                order_id, item_id, requested_qty,
+                tenant_id, order_id, item_id, requested_qty,
                 camp_stock_at_order, ho_stock_at_order, par_level, avg_daily_usage,
                 estimated_unit_cost, estimated_line_value,
                 validation_status, validation_note, stores_action
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
         ");
 
         foreach ($input['lines'] as $line) {
@@ -231,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lineCount++;
 
             $lineStmt->execute([
-                $orderId, $itemId, $qty,
+                $tenantId, $orderId, $itemId, $qty,
                 $campStock, $hoStock, $parLevel, $avgUsage,
                 $unitCost, $lineValue,
                 $validation['status'], $validation['note'],

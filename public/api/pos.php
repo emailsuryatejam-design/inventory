@@ -12,6 +12,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 $campId = $auth['camp_id'];
@@ -33,11 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM item_groups ig
             JOIN items i ON i.item_group_id = ig.id AND i.is_active = 1
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
+            WHERE ig.tenant_id = ?
             GROUP BY ig.id, ig.code, ig.name
             HAVING item_count > 0
             ORDER BY ig.name
         ");
-        $stmt->execute([$campId]);
+        $stmt->execute([$campId, $tenantId]);
         $groups = $stmt->fetchAll();
 
         jsonResponse([
@@ -60,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $search = $_GET['search'] ?? '';
         $limit = min(100, max(10, (int) ($_GET['limit'] ?? 50)));
 
-        $where = ['i.is_active = 1'];
-        $params = [$campId];
+        $where = ['i.is_active = 1', 'i.tenant_id = ?'];
+        $params = [$campId, $tenantId];
 
         if ($groupId) {
             $where[] = 'i.item_group_id = ?';
@@ -131,11 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM issue_vouchers iv
             LEFT JOIN cost_centers cc ON iv.cost_center_id = cc.id
             LEFT JOIN users u ON iv.issued_by = u.id
-            WHERE iv.camp_id = ?
+            WHERE iv.camp_id = ? AND iv.tenant_id = ?
             ORDER BY iv.created_at DESC
             LIMIT ?
         ");
-        $stmt->execute([$campId, $limit]);
+        $stmt->execute([$campId, $tenantId, $limit]);
         $vouchers = $stmt->fetchAll();
 
         jsonResponse([
@@ -168,19 +170,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 COALESCE(SUM(total_value), 0) as total_value,
                 COALESCE(SUM(guest_count), 0) as total_guests
             FROM issue_vouchers
-            WHERE camp_id = ? AND DATE(created_at) = CURDATE()
+            WHERE camp_id = ? AND tenant_id = ? AND DATE(created_at) = CURDATE()
         ");
-        $stmt->execute([$campId]);
+        $stmt->execute([$campId, $tenantId]);
         $today = $stmt->fetch();
 
         // Breakdown by type
         $stmt2 = $pdo->prepare("
             SELECT issue_type, COUNT(*) as count, COALESCE(SUM(total_value), 0) as value
             FROM issue_vouchers
-            WHERE camp_id = ? AND DATE(created_at) = CURDATE()
+            WHERE camp_id = ? AND tenant_id = ? AND DATE(created_at) = CURDATE()
             GROUP BY issue_type
         ");
-        $stmt2->execute([$campId]);
+        $stmt2->execute([$campId, $tenantId]);
         $byType = $stmt2->fetchAll();
 
         jsonResponse([
@@ -236,18 +238,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $issueType = $issueTypeMap[$serviceType] ?? 'other';
 
     // Get cost center ID
-    $ccStmt = $pdo->prepare("SELECT id FROM cost_centers WHERE code = ? LIMIT 1");
-    $ccStmt->execute([$costCenterCode]);
+    $ccStmt = $pdo->prepare("SELECT id FROM cost_centers WHERE code = ? AND tenant_id = ? LIMIT 1");
+    $ccStmt->execute([$costCenterCode, $tenantId]);
     $costCenterId = $ccStmt->fetchColumn();
     if (!$costCenterId) {
-        // Fallback: get first active cost center
-        $costCenterId = $pdo->query("SELECT id FROM cost_centers WHERE is_active = 1 ORDER BY id LIMIT 1")->fetchColumn();
+        // Fallback: get first active cost center for this tenant
+        $ccFallback = $pdo->prepare("SELECT id FROM cost_centers WHERE is_active = 1 AND tenant_id = ? ORDER BY id LIMIT 1");
+        $ccFallback->execute([$tenantId]);
+        $costCenterId = $ccFallback->fetchColumn();
     }
 
-    $ccStmt2 = $pdo->prepare("SELECT code FROM camps WHERE id = ?");
-    $ccStmt2->execute([$campId]);
+    $ccStmt2 = $pdo->prepare("SELECT code FROM camps WHERE id = ? AND tenant_id = ?");
+    $ccStmt2->execute([$campId, $tenantId]);
     $campCode = $ccStmt2->fetchColumn();
-    $voucherNumber = generateDocNumber($pdo, 'POS', $campCode);
+    $voucherNumber = generateDocNumber($pdo, 'POS', $campCode, $tenantId);
 
     // ── Batch-fetch all item costs upfront (eliminates N+1) ──
     $itemIds = array_filter(array_map(function($i) {
@@ -258,8 +262,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $itemCostMap = [];
     if (count($itemIds) > 0) {
         $ph = implode(',', array_fill(0, count($itemIds), '?'));
-        $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph})");
-        $icStmt->execute($itemIds);
+        $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
+        $icStmt->execute(array_merge($itemIds, [$tenantId]));
         foreach ($icStmt->fetchAll() as $row) {
             $itemCostMap[(int) $row['id']] = $row;
         }
@@ -275,11 +279,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->prepare("
             INSERT INTO issue_vouchers (
-                voucher_number, camp_id, issue_type, cost_center_id,
+                tenant_id, voucher_number, camp_id, issue_type, cost_center_id,
                 issue_date, issued_by, received_by_name, department,
                 room_numbers, guest_count, total_value, notes, status, created_at
-            ) VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, 0, ?, 'confirmed', NOW())
+            ) VALUES (?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, 0, ?, 'confirmed', NOW())
         ")->execute([
+            $tenantId,
             $voucherNumber, $campId, $issueType, (int) $costCenterId,
             $auth['user_id'], $receivedBy,
             $serviceType === 'bar' ? 'Bar' : ($serviceType === 'restaurant' ? 'Restaurant' : ucfirst($serviceType)),
@@ -291,8 +296,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalValue = 0;
 
         $lineStmt = $pdo->prepare("
-            INSERT INTO issue_voucher_lines (voucher_id, item_id, quantity, unit_cost, total_value, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO issue_voucher_lines (tenant_id, voucher_id, item_id, quantity, unit_cost, total_value, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         $deductStmt = $pdo->prepare("
@@ -307,9 +312,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $balStmt = $pdo->prepare("SELECT current_qty FROM stock_balances WHERE camp_id = ? AND item_id = ?");
 
         $mvStmt = $pdo->prepare("
-            INSERT INTO stock_movements (item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
+            INSERT INTO stock_movements (tenant_id, item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
                 balance_after, reference_type, reference_id, cost_center_id, created_by, movement_date, created_at)
-            VALUES (?, ?, ?, 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
+            VALUES (?, ?, ?, ?, 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
         ");
 
         foreach ($input['items'] as $item) {
@@ -323,13 +328,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lineValue = $qty * $unitCost;
             $totalValue += $lineValue;
 
-            $lineStmt->execute([$voucherId, $itemId, $qty, $unitCost, $lineValue, $item['notes'] ?? null]);
+            $lineStmt->execute([$tenantId, $voucherId, $itemId, $qty, $unitCost, $lineValue, $item['notes'] ?? null]);
             $deductStmt->execute([$qty, $lineValue, $campId, $itemId]);
 
             $balStmt->execute([$campId, $itemId]);
             $balAfter = (float) ($balStmt->fetchColumn() ?: 0);
 
-            $mvStmt->execute([$itemId, $campId, $mvType, $qty, $unitCost, $lineValue, $balAfter,
+            $mvStmt->execute([$tenantId, $itemId, $campId, $mvType, $qty, $unitCost, $lineValue, $balAfter,
                          $voucherId, (int) $costCenterId, $auth['user_id']]);
         }
 

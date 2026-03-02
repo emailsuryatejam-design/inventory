@@ -5,8 +5,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 
@@ -22,9 +24,9 @@ $stmt = $pdo->prepare("
     JOIN camps c ON iv.camp_id = c.id
     LEFT JOIN cost_centers cc ON iv.cost_center_id = cc.id
     LEFT JOIN users u ON iv.issued_by = u.id
-    WHERE iv.id = ?
+    WHERE iv.id = ? AND iv.tenant_id = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $tenantId]);
 $voucher = $stmt->fetch();
 
 if (!$voucher) jsonError('Issue voucher not found', 404);

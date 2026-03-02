@@ -53,17 +53,45 @@ $pdo->prepare('UPDATE users SET last_login = NOW() WHERE id = ?')
 clearRateLimit($rateLimitKey);
 auditLog($pdo, 'login', (int) $user['id'], ['method' => 'pin']);
 
-// Generate JWT
+// Generate JWT (include tenant_id for data isolation)
+$tenantId = $user['tenant_id'] ?? null;
 $token = jwtEncode([
     'user_id' => (int) $user['id'],
     'username' => $user['username'],
     'role' => $user['role'],
     'camp_id' => $user['camp_id'] ? (int) $user['camp_id'] : null,
+    'tenant_id' => $tenantId ? (int) $tenantId : null,
 ]);
 
-// Load camps
-$camps = $pdo->query('SELECT id, code, name, type FROM camps WHERE is_active = 1 ORDER BY id')
-    ->fetchAll();
+// Load camps filtered by tenant
+if ($tenantId) {
+    $campsStmt = $pdo->prepare('SELECT id, code, name, type FROM camps WHERE tenant_id = ? AND is_active = 1 ORDER BY name');
+    $campsStmt->execute([$tenantId]);
+    $camps = $campsStmt->fetchAll();
+} else {
+    $camps = $pdo->query('SELECT id, code, name, type FROM camps WHERE is_active = 1 ORDER BY id')
+        ->fetchAll();
+}
+
+// Load tenant trial info
+$tenant = null;
+if ($tenantId) {
+    $tenantStmt = $pdo->prepare('SELECT id, company_name, status, trial_start, trial_end, plan, max_users, max_camps FROM tenants WHERE id = ?');
+    $tenantStmt->execute([$tenantId]);
+    $tenantRow = $tenantStmt->fetch();
+    if ($tenantRow) {
+        $tenant = [
+            'id' => (int) $tenantRow['id'],
+            'company_name' => $tenantRow['company_name'],
+            'status' => $tenantRow['status'],
+            'plan' => $tenantRow['plan'],
+            'trial_start' => $tenantRow['trial_start'],
+            'trial_end' => $tenantRow['trial_end'],
+            'max_users' => (int) $tenantRow['max_users'],
+            'max_camps' => (int) $tenantRow['max_camps'],
+        ];
+    }
+}
 
 jsonResponse([
     'token' => $token,
@@ -85,4 +113,81 @@ jsonResponse([
             'type' => $c['type'],
         ];
     }, $camps),
+    'tenant' => $tenant,
+    'modules' => getModulesForRole($user['role']),
+    'permissions' => getPermissionsForRole($user['role']),
 ]);
+
+// ── Role-based module/permission helpers ──
+
+function getModulesForRole(string $role): array {
+    $allModules = ['stores', 'kitchen', 'bar', 'admin', 'reports'];
+    switch ($role) {
+        case 'admin':
+        case 'director':
+            return $allModules;
+        case 'stores_manager':
+        case 'procurement_officer':
+            return ['stores', 'kitchen', 'bar', 'reports'];
+        case 'camp_manager':
+            return ['stores', 'kitchen', 'bar'];
+        case 'camp_storekeeper':
+            return ['stores'];
+        case 'chef':
+            return ['kitchen'];
+        case 'housekeeping':
+            return ['stores'];
+        default:
+            return ['stores'];
+    }
+}
+
+function getPermissionsForRole(string $role): array {
+    $full = ['view', 'create', 'edit', 'approve', 'delete', 'export'];
+    $readWrite = ['view', 'create', 'edit'];
+    $readOnly = ['view'];
+
+    switch ($role) {
+        case 'admin':
+        case 'director':
+            return [
+                'stores' => $full,
+                'kitchen' => $full,
+                'bar' => $full,
+                'admin' => $full,
+                'reports' => $full,
+            ];
+        case 'stores_manager':
+            return [
+                'stores' => $full,
+                'kitchen' => $readWrite,
+                'bar' => $readWrite,
+                'reports' => $readOnly,
+            ];
+        case 'procurement_officer':
+            return [
+                'stores' => ['view', 'create', 'edit', 'approve'],
+                'kitchen' => $readOnly,
+                'bar' => $readOnly,
+                'reports' => $readOnly,
+            ];
+        case 'camp_manager':
+            return [
+                'stores' => $readWrite,
+                'kitchen' => $readWrite,
+                'bar' => $readWrite,
+            ];
+        case 'camp_storekeeper':
+            return [
+                'stores' => $readWrite,
+            ];
+        case 'chef':
+            return [
+                'kitchen' => $readWrite,
+            ];
+        default:
+            return [
+                'stores' => $readOnly,
+            ];
+    }
+}

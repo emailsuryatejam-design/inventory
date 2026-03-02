@@ -19,6 +19,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 $campId = $auth['camp_id'];
@@ -39,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // ── List Recipes ──
     if ($action === 'recipes') {
         $category = $_GET['category'] ?? '';
-        $where = ['r.is_active = 1'];
-        $params = [];
+        $where = ['r.is_active = 1', 'r.tenant_id = ?'];
+        $params = [$tenantId];
 
         // Show global recipes + camp-specific
         $where[] = '(r.camp_id IS NULL OR r.camp_id = ?)';
@@ -93,9 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT r.*, u.name as created_by_name
             FROM kitchen_recipes r
             LEFT JOIN users u ON r.created_by = u.id
-            WHERE r.id = ?
+            WHERE r.id = ? AND r.tenant_id = ?
         ");
-        $stmt->execute([$id]);
+        $stmt->execute([$id, $tenantId]);
         $recipe = $stmt->fetch();
         if (!$recipe) jsonError('Recipe not found', 404);
 
@@ -161,13 +162,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT r.id, r.name, r.description, r.category, r.cuisine, r.serves, r.difficulty,
                    (SELECT COUNT(*) FROM kitchen_recipe_ingredients kri WHERE kri.recipe_id = r.id) as ingredient_count
             FROM kitchen_recipes r
-            WHERE r.is_active = 1
+            WHERE r.is_active = 1 AND r.tenant_id = ?
             AND (r.camp_id IS NULL OR r.camp_id = ?)
             AND (r.name LIKE ? OR r.description LIKE ? OR r.cuisine LIKE ?)
             ORDER BY r.name
             LIMIT 20
         ");
-        $stmt->execute([$queryCampId ?: 0, $search, $search, $search]);
+        $stmt->execute([$tenantId, $queryCampId ?: 0, $search, $search, $search]);
         $recipes = $stmt->fetchAll();
 
         jsonResponse([
@@ -199,12 +200,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1 AND ig.code IN (" . KITCHEN_GROUPS . ")
+            WHERE i.is_active = 1 AND i.tenant_id = ? AND ig.code IN (" . KITCHEN_GROUPS . ")
             AND COALESCE(sb.current_qty, 0) > 0
             ORDER BY sb.current_qty DESC
             LIMIT 80
         ");
-        $stmt->execute([$queryCampId]);
+        $stmt->execute([$queryCampId, $tenantId]);
         $available = $stmt->fetchAll();
 
         $stockList = array_map(function($a) {
@@ -244,12 +245,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1 AND ig.code IN (" . KITCHEN_GROUPS . ")
+            WHERE i.is_active = 1 AND i.tenant_id = ? AND ig.code IN (" . KITCHEN_GROUPS . ")
             AND COALESCE(sb.current_qty, 0) > 0
             ORDER BY ig.code, i.name
             LIMIT 80
         ");
-        $availStmt->execute([$queryCampId]);
+        $availStmt->execute([$queryCampId, $tenantId]);
         $available = $availStmt->fetchAll();
 
         $stockList = array_map(function($a) {
@@ -304,13 +305,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1
+            WHERE i.is_active = 1 AND i.tenant_id = ?
             AND ig.code IN (" . KITCHEN_GROUPS . ")
             AND (i.name LIKE ? OR i.item_code LIKE ?)
             ORDER BY COALESCE(sb.current_qty, 0) DESC, i.name
             LIMIT 20
         ");
-        $stmt->execute([$queryCampId, $search, $search]);
+        $stmt->execute([$queryCampId, $tenantId, $search, $search]);
         $items = $stmt->fetchAll();
 
         jsonResponse([
@@ -468,7 +469,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name = ?, description = ?, category = ?, cuisine = ?,
                     serves = ?, prep_time_minutes = ?, cook_time_minutes = ?,
                     difficulty = ?, instructions = ?, updated_at = NOW()
-                WHERE id = ?
+                WHERE id = ? AND tenant_id = ?
             ")->execute([
                 $name,
                 $input['description'] ?? null,
@@ -480,15 +481,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $input['difficulty'] ?? 'medium',
                 $instructions,
                 (int) $recipeId,
+                $tenantId,
             ]);
         } else {
             // Create new
             $pdo->prepare("
-                INSERT INTO kitchen_recipes (name, description, category, cuisine, serves,
+                INSERT INTO kitchen_recipes (tenant_id, name, description, category, cuisine, serves,
                     prep_time_minutes, cook_time_minutes, difficulty, instructions,
                     camp_id, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ")->execute([
+                $tenantId,
                 $name,
                 $input['description'] ?? null,
                 $input['category'] ?? 'other',
@@ -575,12 +578,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $recipeId = (int) ($input['id'] ?? 0);
         if (!$recipeId) jsonError('Recipe ID required', 400);
 
-        $recipe = $pdo->prepare("SELECT id, name FROM kitchen_recipes WHERE id = ? AND is_active = 1");
-        $recipe->execute([$recipeId]);
+        $recipe = $pdo->prepare("SELECT id, name FROM kitchen_recipes WHERE id = ? AND tenant_id = ? AND is_active = 1");
+        $recipe->execute([$recipeId, $tenantId]);
         $r = $recipe->fetch();
         if (!$r) jsonError('Recipe not found', 404);
 
-        $pdo->prepare("UPDATE kitchen_recipes SET is_active = 0, updated_at = NOW() WHERE id = ?")->execute([$recipeId]);
+        $pdo->prepare("UPDATE kitchen_recipes SET is_active = 0, updated_at = NOW() WHERE id = ? AND tenant_id = ?")->execute([$recipeId, $tenantId]);
 
         jsonResponse(['message' => 'Recipe deleted', 'recipe_id' => $recipeId]);
         exit;

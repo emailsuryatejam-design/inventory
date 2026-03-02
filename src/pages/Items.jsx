@@ -4,6 +4,7 @@ import { items as itemsApi } from '../services/api'
 import { loadFilters, saveFilters } from '../services/filterStore'
 import { useUser, isManager } from '../context/AppContext'
 import { Package, Filter, ChevronRight, Plus } from 'lucide-react'
+import ImportExportBar from '../components/ui/ImportExportBar'
 import SearchInput from '../components/ui/SearchInput'
 import Badge from '../components/ui/Badge'
 import Pagination from '../components/ui/Pagination'
@@ -83,6 +84,13 @@ export default function Items() {
           </Link>
         )}
       </div>
+
+      {/* Import / Export */}
+      {canCreate && (
+        <div className="mb-4">
+          <ImportExportBar entity="items" onImportComplete={loadItems} />
+        </div>
+      )}
 
       {/* Search + Filter Toggle */}
       <div data-guide="items-search" className="flex gap-2 mb-4">

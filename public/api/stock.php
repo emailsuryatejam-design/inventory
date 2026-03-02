@@ -7,6 +7,8 @@
 require_once __DIR__ . '/middleware.php';
 requireMethod('GET');
 $auth = requireAuth();
+require_once __DIR__ . '/helpers.php';
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 
@@ -22,6 +24,7 @@ $groupId = $_GET['group'] ?? '';
 // Build query
 $where = ['sb.current_qty > 0 OR sb.par_level > 0'];
 $params = [];
+tenantScope($where, $params, $tenantId, 'sb');
 
 if ($campId) {
     $where[] = 'sb.camp_id = ?';
@@ -88,8 +91,12 @@ $stmt->execute($params);
 $rows = $stmt->fetchAll();
 
 // Summary stats
-$summaryParams = $campId ? [$campId] : [];
-$campFilter = $campId ? 'WHERE sb.camp_id = ?' : '';
+$summaryParams = [$tenantId];
+$campFilter = 'WHERE sb.tenant_id = ?';
+if ($campId) {
+    $campFilter .= ' AND sb.camp_id = ?';
+    $summaryParams[] = $campId;
+}
 
 $summaryStmt = $pdo->prepare("
     SELECT
@@ -107,8 +114,8 @@ $summaryStmt->execute($summaryParams);
 $summary = $summaryStmt->fetch();
 
 // Load camps and groups for filters
-$camps = $pdo->query('SELECT id, code, name, type FROM camps WHERE is_active = 1 ORDER BY name')->fetchAll();
-$groups = $pdo->query('SELECT id, code, name FROM item_groups ORDER BY name')->fetchAll();
+$camps = getTenantCamps($pdo, $tenantId);
+$groups = getTenantItemGroups($pdo, $tenantId);
 
 jsonResponse([
     'stock' => array_map(function($r) {

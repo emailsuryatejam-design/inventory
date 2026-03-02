@@ -64,8 +64,15 @@ function verifyJwt() {
 
 $auth = verifyJwt();
 $campId = $auth['camp_id'] ?? 0;
+$tenantId = $auth['tenant_id'] ?? 0;
 $date = $_GET['date'] ?? '';
 $meal = $_GET['meal'] ?? '';
+
+if (!$tenantId) {
+    http_response_code(403);
+    echo '{"error":"Tenant context required"}';
+    exit;
+}
 
 if (!$date || !$meal) {
     http_response_code(400);

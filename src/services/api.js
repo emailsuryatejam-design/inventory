@@ -874,6 +874,69 @@ export const settings = {
     }),
 }
 
+// ── Data Import / Export ──────────────────────────
+export const dataExport = {
+  items: () => downloadCSV('export.php?type=items'),
+  suppliers: () => downloadCSV('export.php?type=suppliers'),
+  stock: (campId) => downloadCSV(`export.php?type=stock${campId ? `&camp_id=${campId}` : ''}`),
+  template: (entity) => downloadCSV(`export.php?type=template&entity=${entity}`),
+}
+
+export const dataImport = {
+  validate: (file, entity) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('entity', entity)
+    formData.append('mode', 'validate')
+    return request('import.php', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+    })
+  },
+
+  execute: (file, entity) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('entity', entity)
+    formData.append('mode', 'import')
+    return request('import.php', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+    })
+  },
+}
+
+// Helper: trigger file download via fetch + blob
+async function downloadCSV(endpoint) {
+  const url = `${BASE_URL}/${endpoint}`
+  const token = getToken()
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!response.ok) {
+    // Try to parse error JSON
+    try {
+      const err = await response.json()
+      throw new Error(err.message || 'Download failed')
+    } catch {
+      throw new Error(`Download failed (${response.status})`)
+    }
+  }
+  const blob = await response.blob()
+  const disposition = response.headers.get('Content-Disposition') || ''
+  const filename = disposition.match(/filename="(.+)"/)?.[1] || 'export.csv'
+
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(a.href)
+}
+
 // ── Tally ERP ──────────────────────────────────────
 export const tally = {
   preview: (type, params = {}) => {

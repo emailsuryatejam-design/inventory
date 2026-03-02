@@ -6,8 +6,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 
@@ -41,10 +43,11 @@ $itemsStmt = $pdo->prepare("
     FROM items i
     LEFT JOIN item_groups ig ON i.item_group_id = ig.id
     WHERE i.is_active = 1
+    AND i.tenant_id = ?
     {$whereClause}
     ORDER BY ig.code, i.name
 ");
-$itemsStmt->execute($params);
+$itemsStmt->execute(array_merge([$tenantId], $params));
 $items = $itemsStmt->fetchAll();
 
 $itemIds = array_column($items, 'id');
@@ -60,9 +63,9 @@ if ($campId) {
     $stockStmt = $pdo->prepare("
         SELECT item_id, current_qty, stock_status
         FROM stock_balances
-        WHERE camp_id = ? AND item_id IN ({$placeholders})
+        WHERE camp_id = ? AND tenant_id = ? AND item_id IN ({$placeholders})
     ");
-    $stockStmt->execute(array_merge([$campId], $itemIds));
+    $stockStmt->execute(array_merge([$campId, $tenantId], $itemIds));
     foreach ($stockStmt->fetchAll() as $row) {
         $stockMap[$row['item_id']] = $row;
     }
@@ -70,7 +73,7 @@ if ($campId) {
 
 // ── Ordered quantities on the date ──
 $orderedMap = [];
-$ordParams = [$date, $date];
+$ordParams = [$date, $date, $tenantId];
 if ($campId) {
     $campFilter = 'AND o.camp_id = ?';
     $ordParams[] = $campId;
@@ -82,6 +85,7 @@ $ordStmt = $pdo->prepare("
     FROM order_lines ol
     JOIN orders o ON ol.order_id = o.id
     WHERE DATE(o.created_at) >= ? AND DATE(o.created_at) <= ?
+    AND o.tenant_id = ?
     {$campFilter}
     AND ol.item_id IN ({$placeholders})
     GROUP BY ol.item_id
@@ -93,7 +97,7 @@ foreach ($ordStmt->fetchAll() as $row) {
 
 // ── Received quantities on the date ──
 $receivedMap = [];
-$recParams = [$date, $date];
+$recParams = [$date, $date, $tenantId];
 if ($campId) {
     $campFilterR = 'AND r.camp_id = ?';
     $recParams[] = $campId;
@@ -105,6 +109,7 @@ $recStmt = $pdo->prepare("
     FROM receipt_lines rl
     JOIN receipts r ON rl.receipt_id = r.id
     WHERE DATE(r.created_at) >= ? AND DATE(r.created_at) <= ?
+    AND r.tenant_id = ?
     {$campFilterR}
     AND rl.item_id IN ({$placeholders})
     GROUP BY rl.item_id
@@ -117,7 +122,7 @@ foreach ($recStmt->fetchAll() as $row) {
 // ── Issue quantities by type on the date (bar + kitchen) ──
 $barIssuedMap = [];
 $kitchenIssuedMap = [];
-$issParams = [$date, $date];
+$issParams = [$date, $date, $tenantId];
 if ($campId) {
     $campFilterI = 'AND iv.camp_id = ?';
     $issParams[] = $campId;
@@ -129,6 +134,7 @@ $issStmt = $pdo->prepare("
     FROM issue_lines il
     JOIN issue_vouchers iv ON il.issue_voucher_id = iv.id
     WHERE DATE(iv.created_at) >= ? AND DATE(iv.created_at) <= ?
+    AND iv.tenant_id = ?
     {$campFilterI}
     AND il.item_id IN ({$placeholders})
     GROUP BY il.item_id, iv.issue_type
@@ -174,8 +180,8 @@ foreach ($items as $item) {
 // Get camp name
 $campName = '';
 if ($campId) {
-    $campStmt = $pdo->prepare('SELECT name FROM camps WHERE id = ?');
-    $campStmt->execute([$campId]);
+    $campStmt = $pdo->prepare('SELECT name FROM camps WHERE id = ? AND tenant_id = ?');
+    $campStmt->execute([$campId, $tenantId]);
     $campName = $campStmt->fetchColumn() ?: '';
 }
 

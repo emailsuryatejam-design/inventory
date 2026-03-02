@@ -16,6 +16,10 @@ import { useApp } from '../context/AppContext'
 export function useCanAccess(module, permission = 'view') {
   const { state } = useApp()
 
+  // Admin and director roles have unrestricted access to all modules
+  const role = state.user?.role
+  if (role === 'admin' || role === 'director') return true
+
   // If modules haven't loaded yet (legacy sessions), allow everything
   if (!state.modules || state.modules.length === 0) return true
 

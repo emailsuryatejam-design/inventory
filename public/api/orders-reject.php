@@ -6,8 +6,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('PUT');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 if (!in_array($auth['role'], ['stores_manager', 'director', 'admin'])) {
     jsonError('Only Stores Manager can reject orders', 403);
@@ -19,8 +21,8 @@ requireFields($input, ['order_id', 'reason']);
 $pdo = getDB();
 $orderId = (int) $input['order_id'];
 
-$orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
-$orderStmt->execute([$orderId]);
+$orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ? AND tenant_id = ?");
+$orderStmt->execute([$orderId, $tenantId]);
 $order = $orderStmt->fetch();
 if (!$order) jsonError('Order not found', 404);
 

@@ -90,3 +90,21 @@ function requireCampStaff() {
 function requireAdmin() {
     return requireRole(['admin', 'director']);
 }
+
+// ── Tenant Isolation ────────────────────────────────
+
+/**
+ * Extract tenant_id from JWT payload.
+ * Every data query MUST filter by this value.
+ *
+ * @param array|null $auth  JWT payload from requireAuth() — pass it to avoid double-decode
+ * @return int              The tenant ID
+ */
+function requireTenant($auth = null) {
+    if (!$auth) $auth = requireAuth();
+    $tenantId = $auth['tenant_id'] ?? null;
+    if (!$tenantId) {
+        jsonError('Tenant context required. Please log in again.', 403);
+    }
+    return (int) $tenantId;
+}

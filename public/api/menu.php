@@ -14,6 +14,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 $campId = $auth['camp_id'];
@@ -25,14 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     // ── Categories ──
     if ($action === 'categories') {
-        $cats = $pdo->query("
+        $cats = $pdo->prepare("
             SELECT c.*, COUNT(m.id) as item_count
             FROM bar_menu_categories c
             LEFT JOIN bar_menu_items m ON m.category_id = c.id AND m.is_active = 1
-            WHERE c.is_active = 1
+            WHERE c.is_active = 1 AND c.tenant_id = ?
             GROUP BY c.id
             ORDER BY c.sort_order
-        ")->fetchAll();
+        ");
+        $cats->execute([$tenantId]);
+        $cats = $cats->fetchAll();
 
         jsonResponse([
             'categories' => array_map(function($c) {
@@ -53,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $categoryId = $_GET['category_id'] ?? '';
         $type = $_GET['type'] ?? ''; // cocktail, mocktail, spirit
 
-        $where = ['m.is_active = 1'];
-        $params = [];
+        $where = ['m.is_active = 1', 'm.tenant_id = ?'];
+        $params = [$tenantId];
 
         if ($categoryId) {
             $where[] = 'm.category_id = ?';
@@ -113,9 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT m.*, c.code as category_code, c.name as category_name, c.pricing_type
             FROM bar_menu_items m
             JOIN bar_menu_categories c ON m.category_id = c.id
-            WHERE m.id = ?
+            WHERE m.id = ? AND m.tenant_id = ?
         ");
-        $stmt->execute([$id]);
+        $stmt->execute([$id, $tenantId]);
         $item = $stmt->fetch();
         if (!$item) jsonError('Menu item not found', 404);
 
@@ -172,14 +175,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($action === 'stock_status') {
         if (!$queryCampId) jsonError('Camp ID required', 400);
 
-        $items = $pdo->query("
+        $itemsStmt = $pdo->prepare("
             SELECT m.id, m.name, m.is_cocktail, m.is_mocktail, m.par_per_week,
                    c.code as category_code, c.name as category_name
             FROM bar_menu_items m
             JOIN bar_menu_categories c ON m.category_id = c.id
-            WHERE m.is_active = 1
+            WHERE m.is_active = 1 AND m.tenant_id = ?
             ORDER BY c.sort_order, m.sort_order
-        ")->fetchAll();
+        ");
+        $itemsStmt->execute([$tenantId]);
+        $items = $itemsStmt->fetchAll();
 
         $results = [];
         $summary = ['available' => 0, 'low' => 0, 'critical' => 0, 'out' => 0, 'unknown' => 0];
@@ -213,14 +218,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         $days = max(1, min(90, (int) ($_GET['days'] ?? 7)));
 
-        $items = $pdo->query("
+        $itemsStmt2 = $pdo->prepare("
             SELECT m.id, m.name, m.is_cocktail, m.is_mocktail, m.par_per_week,
                    c.code as category_code, c.name as category_name
             FROM bar_menu_items m
             JOIN bar_menu_categories c ON m.category_id = c.id
-            WHERE m.is_active = 1
+            WHERE m.is_active = 1 AND m.tenant_id = ?
             ORDER BY c.sort_order, m.sort_order
-        ")->fetchAll();
+        ");
+        $itemsStmt2->execute([$tenantId]);
+        $items = $itemsStmt2->fetchAll();
 
         $alerts = [];
         foreach ($items as $item) {
@@ -264,12 +271,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1 AND ig.code IN ('BA','BJ','FV','FY','FD','GA')
+            WHERE i.is_active = 1 AND i.tenant_id = ? AND ig.code IN ('BA','BJ','FV','FY','FD','GA')
             AND COALESCE(sb.current_qty, 0) > 0
             ORDER BY ig.code, i.name
             LIMIT 80
         ");
-        $availStmt->execute([$queryCampId]);
+        $availStmt->execute([$queryCampId, $tenantId]);
         $available = $availStmt->fetchAll();
 
         $stockList = [];
@@ -358,14 +365,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1
+            WHERE i.is_active = 1 AND i.tenant_id = ?
             AND ig.code IN ('BA','BJ','FV','FY','FD','GA')
             AND (i.name LIKE ? OR i.item_code LIKE ?)
             ORDER BY COALESCE(sb.current_qty, 0) DESC, i.name
             LIMIT 20
         ");
         $search = "%{$q}%";
-        $stmt->execute([$queryCampId, $search, $search]);
+        $stmt->execute([$queryCampId, $tenantId, $search, $search]);
         $items = $stmt->fetchAll();
 
         jsonResponse([
@@ -405,15 +412,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes = $input['notes'] ?? null;
 
     // Get BAR cost center
-    $costCenterId = $pdo->query("SELECT id FROM cost_centers WHERE code = 'BAR' LIMIT 1")->fetchColumn();
+    $ccStmt = $pdo->prepare("SELECT id FROM cost_centers WHERE code = 'BAR' AND tenant_id = ? LIMIT 1");
+    $ccStmt->execute([$tenantId]);
+    $costCenterId = $ccStmt->fetchColumn();
     if (!$costCenterId) {
-        $costCenterId = $pdo->query("SELECT id FROM cost_centers WHERE is_active = 1 ORDER BY id LIMIT 1")->fetchColumn();
+        $ccFallback = $pdo->prepare("SELECT id FROM cost_centers WHERE is_active = 1 AND tenant_id = ? ORDER BY id LIMIT 1");
+        $ccFallback->execute([$tenantId]);
+        $costCenterId = $ccFallback->fetchColumn();
     }
 
-    $campCodeStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ?");
-    $campCodeStmt->execute([$campId]);
+    $campCodeStmt = $pdo->prepare("SELECT code FROM camps WHERE id = ? AND tenant_id = ?");
+    $campCodeStmt->execute([$campId, $tenantId]);
     $campCode = $campCodeStmt->fetchColumn();
-    $voucherNumber = generateDocNumber($pdo, 'BAR', $campCode);
+    $voucherNumber = generateDocNumber($pdo, 'BAR', $campCode, $tenantId);
 
     $pdo->beginTransaction();
     try {
@@ -432,11 +443,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Create issue voucher
         $pdo->prepare("
             INSERT INTO issue_vouchers (
-                voucher_number, camp_id, issue_type, cost_center_id,
+                tenant_id, voucher_number, camp_id, issue_type, cost_center_id,
                 issue_date, issued_by, received_by_name, department,
                 room_numbers, guest_count, total_value, notes, status, created_at
-            ) VALUES (?, ?, 'kitchen', ?, CURDATE(), ?, ?, 'Bar', ?, ?, 0, ?, 'confirmed', NOW())
+            ) VALUES (?, ?, ?, 'kitchen', ?, CURDATE(), ?, ?, 'Bar', ?, ?, 0, ?, 'confirmed', NOW())
         ")->execute([
+            $tenantId,
             $voucherNumber, $campId, (int) $costCenterId,
             $auth['user_id'], $receivedBy,
             null, $guestCount ? (int) $guestCount : null, $orderNotes,
@@ -446,8 +458,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalValue = 0;
 
         $lineStmt = $pdo->prepare("
-            INSERT INTO issue_voucher_lines (voucher_id, item_id, quantity, unit_cost, total_value, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO issue_voucher_lines (tenant_id, voucher_id, item_id, quantity, unit_cost, total_value, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         // Process each menu item ordered
@@ -481,11 +493,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $totalValue += $lineValue;
 
                     $lineStmt->execute([
-                        $voucherId, $itemId, $deductQty, $unitCost, $lineValue,
+                        $tenantId, $voucherId, $itemId, $deductQty, $unitCost, $lineValue,
                         $menuItem['name'] . " (x{$qty})",
                     ]);
 
-                    deductStock($pdo, $campId, $itemId, $deductQty, $lineValue, $voucherId, $costCenterId, $auth['user_id']);
+                    deductStock($pdo, $campId, $itemId, $deductQty, $lineValue, $voucherId, $costCenterId, $auth['user_id'], $tenantId);
                 }
             } else {
                 // Fuzzy match: try to find inventory item by menu item name
@@ -500,17 +512,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $totalValue += $lineValue;
 
                     $lineStmt->execute([
-                        $voucherId, $itemId, $deductQty, $unitCost, $lineValue,
+                        $tenantId, $voucherId, $itemId, $deductQty, $unitCost, $lineValue,
                         $menuItem['name'] . " (x{$qty})",
                     ]);
 
-                    deductStock($pdo, $campId, $itemId, $deductQty, $lineValue, $voucherId, $costCenterId, $auth['user_id']);
+                    deductStock($pdo, $campId, $itemId, $deductQty, $lineValue, $voucherId, $costCenterId, $auth['user_id'], $tenantId);
                 }
             }
         }
 
         // Update total
-        $pdo->prepare("UPDATE issue_vouchers SET total_value = ? WHERE id = ?")->execute([$totalValue, $voucherId]);
+        $pdo->prepare("UPDATE issue_vouchers SET total_value = ? WHERE id = ? AND tenant_id = ?")->execute([$totalValue, $voucherId, $tenantId]);
 
         $pdo->commit();
 
@@ -675,7 +687,7 @@ function fuzzyMatchItem(PDO $pdo, string $menuName): ?array {
 /**
  * Deduct stock and create movement record
  */
-function deductStock(PDO $pdo, int $campId, int $itemId, float $qty, float $value, int $voucherId, int $costCenterId, int $userId): void {
+function deductStock(PDO $pdo, int $campId, int $itemId, float $qty, float $value, int $voucherId, int $costCenterId, int $userId, int $tenantId = 0): void {
     // Deduct
     $pdo->prepare("
         UPDATE stock_balances
@@ -693,9 +705,9 @@ function deductStock(PDO $pdo, int $campId, int $itemId, float $qty, float $valu
 
     // Stock movement
     $pdo->prepare("
-        INSERT INTO stock_movements (item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
+        INSERT INTO stock_movements (tenant_id, item_id, camp_id, movement_type, direction, quantity, unit_cost, total_value,
             balance_after, reference_type, reference_id, cost_center_id, created_by, movement_date, created_at)
-        VALUES (?, ?, 'issue_kitchen', 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
-    ")->execute([$itemId, $campId, $qty, $value / max($qty, 0.001), $value, $balAfter,
+        VALUES (?, ?, ?, 'issue_kitchen', 'out', ?, ?, ?, ?, 'issue_voucher', ?, ?, ?, CURDATE(), NOW())
+    ")->execute([$tenantId, $itemId, $campId, $qty, $value / max($qty, 0.001), $value, $balAfter,
                  $voucherId, $costCenterId, $userId]);
 }

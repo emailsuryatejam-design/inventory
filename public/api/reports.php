@@ -8,8 +8,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 $type = $_GET['type'] ?? '';
@@ -30,6 +32,7 @@ switch ($type) {
     case 'stock_summary':
         $where = [];
         $params = [];
+        tenantScope($where, $params, $tenantId, 'sb');
         if ($campId) {
             $where[] = 'sb.camp_id = ?';
             $params[] = (int) $campId;
@@ -62,6 +65,7 @@ switch ($type) {
     case 'movement_history':
         $where = ["sm.movement_date BETWEEN ? AND ?"];
         $params = [$dateFrom, $dateTo];
+        tenantScope($where, $params, $tenantId, 'sm');
         if ($campId) {
             $where[] = 'sm.camp_id = ?';
             $params[] = (int) $campId;
@@ -97,6 +101,7 @@ switch ($type) {
     case 'order_summary':
         $where = ["o.created_at BETWEEN ? AND ?"];
         $params = [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'];
+        tenantScope($where, $params, $tenantId, 'o');
         if ($campId) {
             $where[] = 'o.camp_id = ?';
             $params[] = (int) $campId;
@@ -129,6 +134,7 @@ switch ($type) {
     case 'consumption':
         $where = ["iv.issue_date BETWEEN ? AND ?"];
         $params = [$dateFrom, $dateTo];
+        tenantScope($where, $params, $tenantId, 'iv');
         if ($campId) {
             $where[] = 'iv.camp_id = ?';
             $params[] = (int) $campId;

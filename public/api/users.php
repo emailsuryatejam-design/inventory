@@ -7,23 +7,27 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 // ── GET — List Users ──
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $user = requireRole(['admin', 'director', 'stores_manager']);
 
-    $stmt = $pdo->query("
+    $stmt = $pdo->prepare("
         SELECT u.id, u.username, u.name, u.role, u.camp_id, u.is_active,
                u.pin_hash, u.approval_limit, u.phone, u.email,
                u.last_login, u.created_at,
                c.code as camp_code, c.name as camp_name
         FROM users u
         LEFT JOIN camps c ON u.camp_id = c.id
+        WHERE u.tenant_id = ?
         ORDER BY u.name
     ");
+    $stmt->execute([$tenantId]);
     $users = $stmt->fetchAll();
 
     jsonResponse([
@@ -55,9 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = getJsonInput();
     requireFields($input, ['username', 'name', 'role', 'password']);
 
-    // Check unique username
-    $check = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-    $check->execute([$input['username']]);
+    // Check unique username within tenant
+    $check = $pdo->prepare("SELECT id FROM users WHERE username = ? AND tenant_id = ?");
+    $check->execute([$input['username'], $tenantId]);
     if ($check->fetch()) {
         jsonError('Username already exists', 400);
     }
@@ -68,12 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO users (username, name, password_hash, role, camp_id, is_active, pin_hash,
+        INSERT INTO users (tenant_id, username, name, password_hash, role, camp_id, is_active, pin_hash,
                           phone, email, approval_limit, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, NOW())
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, NOW())
     ");
 
     $stmt->execute([
+        $tenantId,
         $input['username'],
         $input['name'],
         password_hash($input['password'], PASSWORD_DEFAULT),
@@ -105,9 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $input = getJsonInput();
 
-    // Check user exists
-    $existing = $pdo->prepare("SELECT id FROM users WHERE id = ?");
-    $existing->execute([$id]);
+    // Check user exists within tenant
+    $existing = $pdo->prepare("SELECT id FROM users WHERE id = ? AND tenant_id = ?");
+    $existing->execute([$id, $tenantId]);
     if (!$existing->fetch()) {
         jsonError('User not found', 404);
     }
@@ -162,7 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $updates[] = 'updated_at = NOW()';
     $params[] = $id;
-    $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
+    $params[] = $tenantId;
+    $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";
     $pdo->prepare($sql)->execute($params);
 
     jsonResponse(['message' => 'User updated successfully']);

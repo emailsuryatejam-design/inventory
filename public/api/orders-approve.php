@@ -6,8 +6,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('PUT');
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 // Only stores managers and above can approve
 if (!in_array($auth['role'], ['stores_manager', 'director', 'admin'])) {
@@ -21,8 +23,8 @@ $pdo = getDB();
 $orderId = (int) $input['order_id'];
 
 // Get order (parameterized)
-$orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
-$orderStmt->execute([$orderId]);
+$orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ? AND tenant_id = ?");
+$orderStmt->execute([$orderId, $tenantId]);
 $order = $orderStmt->fetch();
 
 if (!$order) jsonError('Order not found', 404);

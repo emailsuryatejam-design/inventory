@@ -9,6 +9,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo = getDB();
 
 // ── GET — Single Receipt ──
@@ -29,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         LEFT JOIN orders o ON d.order_id = o.id
         LEFT JOIN users u_recv ON r.received_by = u_recv.id
         LEFT JOIN users u_disp ON d.dispatched_by = u_disp.id
-        WHERE r.id = ?
+        WHERE r.id = ? AND r.tenant_id = ?
     ");
-    $stmt->execute([$id]);
+    $stmt->execute([$id, $tenantId]);
     $receipt = $stmt->fetch();
 
     if (!$receipt) jsonError('Receipt not found', 404);
@@ -109,8 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $id = (int) $input['id'];
 
     // Get receipt
-    $receipt = $pdo->prepare("SELECT * FROM receipts WHERE id = ?");
-    $receipt->execute([$id]);
+    $receipt = $pdo->prepare("SELECT * FROM receipts WHERE id = ? AND tenant_id = ?");
+    $receipt->execute([$id, $tenantId]);
     $receipt = $receipt->fetch();
 
     if (!$receipt) jsonError('Receipt not found', 404);
@@ -169,8 +170,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         // Use INSERT ... ON DUPLICATE KEY UPDATE instead of SELECT+check+INSERT/UPDATE
         $upsertStockStmt = $pdo->prepare("
-            INSERT INTO stock_balances (camp_id, item_id, current_qty, current_value, unit_cost, last_receipt_date, updated_at)
-            VALUES (?, ?, ?, ?, ?, CURDATE(), NOW())
+            INSERT INTO stock_balances (tenant_id, camp_id, item_id, current_qty, current_value, unit_cost, last_receipt_date, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURDATE(), NOW())
             ON DUPLICATE KEY UPDATE
                 current_qty = current_qty + VALUES(current_qty),
                 current_value = current_value + VALUES(current_value),
@@ -181,10 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $balStmt = $pdo->prepare("SELECT current_qty FROM stock_balances WHERE camp_id = ? AND item_id = ?");
 
         $mvStmt = $pdo->prepare("
-            INSERT INTO stock_movements (item_id, camp_id, movement_type, direction, quantity,
+            INSERT INTO stock_movements (tenant_id, item_id, camp_id, movement_type, direction, quantity,
                 unit_cost, total_value, balance_after,
                 reference_type, reference_id, created_by, movement_date, created_at)
-            VALUES (?, ?, 'received', 'in', ?, ?, ?, ?, 'receipt', ?, ?, CURDATE(), NOW())
+            VALUES (?, ?, ?, 'received', 'in', ?, ?, ?, ?, 'receipt', ?, ?, CURDATE(), NOW())
         ");
 
         foreach ($input['lines'] as $lineInput) {
@@ -209,12 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             $updateLineStmt->execute([$receivedQty, $acceptedQty, $rejectedQty, $rejectionReason, $qualityNotes, $lineId]);
 
             if ($acceptedQty > 0) {
-                $upsertStockStmt->execute([$campId, $itemId, $acceptedQty, $lineValue, $unitCost]);
+                $upsertStockStmt->execute([$tenantId, $campId, $itemId, $acceptedQty, $lineValue, $unitCost]);
 
                 $balStmt->execute([$campId, $itemId]);
                 $newBalance = (float) $balStmt->fetchColumn();
 
-                $mvStmt->execute([$itemId, $campId, $acceptedQty, $unitCost, $lineValue, $newBalance, $id, $auth['user_id']]);
+                $mvStmt->execute([$tenantId, $itemId, $campId, $acceptedQty, $unitCost, $lineValue, $newBalance, $id, $auth['user_id']]);
             }
         }
 

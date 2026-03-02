@@ -5,8 +5,10 @@
  */
 
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/helpers.php';
 requireMethod('GET');
-requireAuth();
+$auth = requireAuth();
+$tenantId = requireTenant($auth);
 
 $pdo = getDB();
 
@@ -25,6 +27,9 @@ $active = $_GET['active'] ?? '1';
 // Build query
 $where = [];
 $params = [];
+
+// Tenant isolation — every query filters by tenant
+tenantScope($where, $params, $tenantId, 'i');
 
 if ($active !== 'all') {
     $where[] = 'i.is_active = ?';
@@ -92,8 +97,8 @@ $params[] = $offset;
 $stmt->execute($params);
 $items = $stmt->fetchAll();
 
-// Load item groups for filter dropdown
-$groups = $pdo->query('SELECT id, code, name FROM item_groups ORDER BY name')->fetchAll();
+// Load item groups for filter dropdown (tenant-filtered)
+$groups = getTenantItemGroups($pdo, $tenantId);
 
 jsonResponse([
     'items' => array_map(function($i) {

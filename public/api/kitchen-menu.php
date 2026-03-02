@@ -31,6 +31,7 @@ require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
+$tenantId = requireTenant($auth);
 $pdo  = getDB();
 
 $campId = $auth['camp_id'];
@@ -94,9 +95,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT p.*, u.name as created_by_name
             FROM kitchen_menu_plans p
             LEFT JOIN users u ON p.created_by = u.id
-            WHERE p.camp_id = ? AND p.plan_date = ? AND p.meal_type = ?
+            WHERE p.camp_id = ? AND p.plan_date = ? AND p.meal_type = ? AND p.tenant_id = ?
         ");
-        $stmt->execute([$queryCampId, $date, $meal]);
+        $stmt->execute([$queryCampId, $date, $meal, $tenantId]);
         $plan = $stmt->fetch();
 
         // Auto-populate from default menu template if needed
@@ -119,10 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 SELECT * FROM kitchen_default_menu
                 WHERE day_of_week = ? AND meal_type = ?
                   AND (camp_id IS NULL OR camp_id = ?)
-                  AND is_active = 1
+                  AND is_active = 1 AND tenant_id = ?
                 ORDER BY sort_order
             ");
-            $defaults->execute([$dayOfWeek, $meal, $queryCampId]);
+            $defaults->execute([$dayOfWeek, $meal, $queryCampId, $tenantId]);
             $templateDishes = $defaults->fetchAll();
 
             if (!empty($templateDishes)) {
@@ -130,9 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     $newPlanId = $existingPlanId;
                 } else {
                     $pdo->prepare("
-                        INSERT INTO kitchen_menu_plans (camp_id, plan_date, meal_type, portions, status, created_by, created_at)
-                        VALUES (?, ?, ?, 20, 'draft', ?, NOW())
-                    ")->execute([$queryCampId, $date, $meal, $userId]);
+                        INSERT INTO kitchen_menu_plans (tenant_id, camp_id, plan_date, meal_type, portions, status, created_by, created_at)
+                        VALUES (?, ?, ?, ?, 20, 'draft', ?, NOW())
+                    ")->execute([$tenantId, $queryCampId, $date, $meal, $userId]);
                     $newPlanId = (int) $pdo->lastInsertId();
                 }
                 auditLog($pdo, $newPlanId, null, null, $userId, 'auto_populate_defaults', null, [
@@ -162,10 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT r.id, r.name, r.category, r.cuisine, r.serves, r.difficulty,
                    (SELECT COUNT(*) FROM kitchen_recipe_ingredients kri WHERE kri.recipe_id = r.id) as ingredient_count
             FROM kitchen_recipes r
-            WHERE r.is_active = 1 AND (r.camp_id IS NULL OR r.camp_id = ?)
+            WHERE r.is_active = 1 AND r.tenant_id = ? AND (r.camp_id IS NULL OR r.camp_id = ?)
             ORDER BY r.category, r.name
         ");
-        $recStmt->execute([$queryCampId ?: 0]);
+        $recStmt->execute([$tenantId, $queryCampId ?: 0]);
         $recipes = $recStmt->fetchAll();
 
         $responseData = [
@@ -201,9 +202,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             SELECT p.*, u.name as created_by_name
             FROM kitchen_menu_plans p
             LEFT JOIN users u ON p.created_by = u.id
-            WHERE p.camp_id = ? AND p.plan_date = ? AND p.meal_type = ?
+            WHERE p.camp_id = ? AND p.plan_date = ? AND p.meal_type = ? AND p.tenant_id = ?
         ");
-        $stmt->execute([$queryCampId, $date, $meal]);
+        $stmt->execute([$queryCampId, $date, $meal, $tenantId]);
         $plan = $stmt->fetch();
 
         // ── Auto-populate from default menu template ──
@@ -229,10 +230,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 SELECT * FROM kitchen_default_menu
                 WHERE day_of_week = ? AND meal_type = ?
                   AND (camp_id IS NULL OR camp_id = ?)
-                  AND is_active = 1
+                  AND is_active = 1 AND tenant_id = ?
                 ORDER BY sort_order
             ");
-            $defaults->execute([$dayOfWeek, $meal, $queryCampId]);
+            $defaults->execute([$dayOfWeek, $meal, $queryCampId, $tenantId]);
             $templateDishes = $defaults->fetchAll();
 
             if (!empty($templateDishes)) {
@@ -241,9 +242,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     $newPlanId = $existingPlanId;
                 } else {
                     $pdo->prepare("
-                        INSERT INTO kitchen_menu_plans (camp_id, plan_date, meal_type, portions, status, created_by, created_at)
-                        VALUES (?, ?, ?, 20, 'draft', ?, NOW())
-                    ")->execute([$queryCampId, $date, $meal, $userId]);
+                        INSERT INTO kitchen_menu_plans (tenant_id, camp_id, plan_date, meal_type, portions, status, created_by, created_at)
+                        VALUES (?, ?, ?, ?, 20, 'draft', ?, NOW())
+                    ")->execute([$tenantId, $queryCampId, $date, $meal, $userId]);
                     $newPlanId = (int) $pdo->lastInsertId();
                 }
 
@@ -303,10 +304,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                    (SELECT COUNT(*) FROM kitchen_menu_dishes d WHERE d.menu_plan_id = p.id) as dish_count
             FROM kitchen_menu_plans p
             LEFT JOIN users u ON p.created_by = u.id
-            WHERE p.camp_id = ? AND p.plan_date BETWEEN ? AND ?
+            WHERE p.camp_id = ? AND p.plan_date BETWEEN ? AND ? AND p.tenant_id = ?
             ORDER BY p.plan_date, FIELD(p.meal_type, 'lunch', 'dinner')
         ");
-        $stmt->execute([$queryCampId, $startDate, $endDate]);
+        $stmt->execute([$queryCampId, $startDate, $endDate, $tenantId]);
         $plans = $stmt->fetchAll();
 
         jsonResponse([
@@ -445,13 +446,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE i.is_active = 1
+            WHERE i.is_active = 1 AND i.tenant_id = ?
             AND ig.code IN (" . KITCHEN_GROUPS . ")
             AND (i.name LIKE ? OR i.item_code LIKE ?)
             ORDER BY COALESCE(sb.current_qty, 0) DESC, i.name
             LIMIT 20
         ");
-        $stmt->execute([$queryCampId, $search, $search]);
+        $stmt->execute([$queryCampId, $tenantId, $search, $search]);
         $items = $stmt->fetchAll();
 
         jsonResponse([
@@ -495,23 +496,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE p.camp_id = ?
+            WHERE p.camp_id = ? AND p.tenant_id = ?
               AND p.plan_date BETWEEN ? AND ?
               AND mi.is_removed = 0
               AND mi.is_primary = 0
             GROUP BY mi.item_id, i.name, i.item_code, u.code, ig.code, sb.current_qty
             ORDER BY i.name
         ");
-        $stmt->execute([$queryCampId, $queryCampId, $weekStart, $weekEnd]);
+        $stmt->execute([$queryCampId, $queryCampId, $tenantId, $weekStart, $weekEnd]);
         $rows = $stmt->fetchAll();
 
         // Get tracking data from kitchen_weekly_groceries
         $trackingStmt = $pdo->prepare("
             SELECT item_id, projected_qty, ordered_qty, received_qty
             FROM kitchen_weekly_groceries
-            WHERE camp_id = ? AND week_start = ?
+            WHERE camp_id = ? AND week_start = ? AND tenant_id = ?
         ");
-        $trackingStmt->execute([$queryCampId, $weekStart]);
+        $trackingStmt->execute([$queryCampId, $weekStart, $tenantId]);
         $trackingMap = [];
         foreach ($trackingStmt->fetchAll() as $t) {
             $trackingMap[(int) $t['item_id']] = $t;
@@ -527,7 +528,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             JOIN item_groups ig ON i.item_group_id = ig.id
             LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id
             LEFT JOIN stock_balances sb ON sb.item_id = i.id AND sb.camp_id = ?
-            WHERE wg.camp_id = ? AND wg.week_start = ?
+            WHERE wg.camp_id = ? AND wg.week_start = ? AND wg.tenant_id = ?
               AND wg.item_id NOT IN (
                   SELECT mi2.item_id FROM kitchen_menu_ingredients mi2
                   JOIN kitchen_menu_dishes d2 ON mi2.dish_id = d2.id
@@ -537,7 +538,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
               )
             ORDER BY i.name
         ");
-        $manualStmt->execute([$queryCampId, $queryCampId, $weekStart, $queryCampId, $weekStart, $weekEnd]);
+        $manualStmt->execute([$queryCampId, $queryCampId, $weekStart, $tenantId, $queryCampId, $weekStart, $weekEnd]);
         $manualRows = $manualStmt->fetchAll();
 
         // ── Weekly carry-forward: if no data at all, copy from most recent prior week ──
@@ -545,29 +546,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $prevWeekStmt = $pdo->prepare("
                 SELECT DISTINCT week_start
                 FROM kitchen_weekly_groceries
-                WHERE camp_id = ? AND week_start < ?
+                WHERE camp_id = ? AND week_start < ? AND tenant_id = ?
                 ORDER BY week_start DESC
                 LIMIT 1
             ");
-            $prevWeekStmt->execute([$queryCampId, $weekStart]);
+            $prevWeekStmt->execute([$queryCampId, $weekStart, $tenantId]);
             $prevWeek = $prevWeekStmt->fetchColumn();
 
             if ($prevWeek) {
                 // Copy previous week's entries to current week
                 $pdo->prepare("
-                    INSERT IGNORE INTO kitchen_weekly_groceries (camp_id, week_start, item_id, projected_qty, added_by, created_at)
-                    SELECT camp_id, ?, item_id, projected_qty, ?, NOW()
+                    INSERT IGNORE INTO kitchen_weekly_groceries (tenant_id, camp_id, week_start, item_id, projected_qty, added_by, created_at)
+                    SELECT tenant_id, camp_id, ?, item_id, projected_qty, ?, NOW()
                     FROM kitchen_weekly_groceries
-                    WHERE camp_id = ? AND week_start = ?
-                ")->execute([$weekStart, $userId, $queryCampId, $prevWeek]);
+                    WHERE camp_id = ? AND week_start = ? AND tenant_id = ?
+                ")->execute([$weekStart, $userId, $queryCampId, $prevWeek, $tenantId]);
 
                 // Re-fetch manual rows and tracking data with the carried-forward entries
-                $trackingStmt->execute([$queryCampId, $weekStart]);
+                $trackingStmt->execute([$queryCampId, $weekStart, $tenantId]);
                 $trackingMap = [];
                 foreach ($trackingStmt->fetchAll() as $t) {
                     $trackingMap[(int) $t['item_id']] = $t;
                 }
-                $manualStmt->execute([$queryCampId, $queryCampId, $weekStart, $queryCampId, $weekStart, $weekEnd]);
+                $manualStmt->execute([$queryCampId, $queryCampId, $weekStart, $tenantId, $queryCampId, $weekStart, $weekEnd]);
                 $manualRows = $manualStmt->fetchAll();
             }
         }
@@ -626,10 +627,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM kitchen_default_menu
             WHERE day_of_week = ? AND meal_type = ?
               AND (camp_id IS NULL OR camp_id = ?)
-              AND is_active = 1
+              AND is_active = 1 AND tenant_id = ?
             ORDER BY sort_order
         ");
-        $stmt->execute([$day, $meal, $queryCampId]);
+        $stmt->execute([$day, $meal, $queryCampId, $tenantId]);
         $rows = $stmt->fetchAll();
 
         jsonResponse([
@@ -699,14 +700,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($portions < 1) $portions = 20;
 
         // Check if plan already exists
-        $check = $pdo->prepare("SELECT id FROM kitchen_menu_plans WHERE camp_id = ? AND plan_date = ? AND meal_type = ?");
-        $check->execute([$queryCampId, $date, $meal]);
+        $check = $pdo->prepare("SELECT id FROM kitchen_menu_plans WHERE camp_id = ? AND plan_date = ? AND meal_type = ? AND tenant_id = ?");
+        $check->execute([$queryCampId, $date, $meal, $tenantId]);
         if ($check->fetch()) jsonError('A plan for this date and meal already exists', 409);
 
         $pdo->prepare("
-            INSERT INTO kitchen_menu_plans (camp_id, plan_date, meal_type, portions, status, created_by, created_at)
-            VALUES (?, ?, ?, ?, 'draft', ?, NOW())
-        ")->execute([$queryCampId, $date, $meal, $portions, $userId]);
+            INSERT INTO kitchen_menu_plans (tenant_id, camp_id, plan_date, meal_type, portions, status, created_by, created_at)
+            VALUES (?, ?, ?, ?, ?, 'draft', ?, NOW())
+        ")->execute([$tenantId, $queryCampId, $date, $meal, $portions, $userId]);
 
         $planId = (int) $pdo->lastInsertId();
 
@@ -963,15 +964,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $planId = (int) ($input['plan_id'] ?? 0);
         if (!$planId) jsonError('plan_id required', 400);
 
-        $plan = $pdo->prepare("SELECT * FROM kitchen_menu_plans WHERE id = ? AND camp_id = ?");
-        $plan->execute([$planId, $queryCampId]);
+        $plan = $pdo->prepare("SELECT * FROM kitchen_menu_plans WHERE id = ? AND camp_id = ? AND tenant_id = ?");
+        $plan->execute([$planId, $queryCampId, $tenantId]);
         $plan = $plan->fetch();
         if (!$plan) jsonError('Plan not found', 404);
 
         $pdo->prepare("
             UPDATE kitchen_menu_plans SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
-            WHERE id = ?
-        ")->execute([$planId]);
+            WHERE id = ? AND tenant_id = ?
+        ")->execute([$planId, $tenantId]);
 
         auditLog($pdo, $planId, null, null, $userId, 'confirm_plan', [
             'status' => $plan['status'],
@@ -1076,8 +1077,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($updates)) jsonError('At least one of ordered_qty, received_qty required', 400);
 
         // Check if row exists
-        $check = $pdo->prepare("SELECT id FROM kitchen_weekly_groceries WHERE camp_id = ? AND week_start = ? AND item_id = ?");
-        $check->execute([$queryCampId, $weekStart, $itemId]);
+        $check = $pdo->prepare("SELECT id FROM kitchen_weekly_groceries WHERE camp_id = ? AND week_start = ? AND item_id = ? AND tenant_id = ?");
+        $check->execute([$queryCampId, $weekStart, $itemId, $tenantId]);
         $existing = $check->fetch();
 
         if ($existing) {
@@ -1088,9 +1089,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $orderedQty = $input['ordered_qty'] ?? null;
             $receivedQty = $input['received_qty'] ?? null;
             $pdo->prepare("
-                INSERT INTO kitchen_weekly_groceries (camp_id, week_start, item_id, projected_qty, ordered_qty, received_qty, added_by, created_at)
-                VALUES (?, ?, ?, 0, ?, ?, ?, NOW())
-            ")->execute([$queryCampId, $weekStart, $itemId, $orderedQty, $receivedQty, $userId]);
+                INSERT INTO kitchen_weekly_groceries (tenant_id, camp_id, week_start, item_id, projected_qty, ordered_qty, received_qty, added_by, created_at)
+                VALUES (?, ?, ?, ?, 0, ?, ?, ?, NOW())
+            ")->execute([$tenantId, $queryCampId, $weekStart, $itemId, $orderedQty, $receivedQty, $userId]);
         }
 
         jsonResponse(['message' => 'Weekly grocery updated']);
@@ -1133,14 +1134,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$weekStart || !$itemId) jsonError('week_start and item_id required', 400);
 
         // Check if already exists
-        $check = $pdo->prepare("SELECT id FROM kitchen_weekly_groceries WHERE camp_id = ? AND week_start = ? AND item_id = ?");
-        $check->execute([$queryCampId, $weekStart, $itemId]);
+        $check = $pdo->prepare("SELECT id FROM kitchen_weekly_groceries WHERE camp_id = ? AND week_start = ? AND item_id = ? AND tenant_id = ?");
+        $check->execute([$queryCampId, $weekStart, $itemId, $tenantId]);
         if ($check->fetch()) jsonError('Item already in weekly groceries', 409);
 
         $pdo->prepare("
-            INSERT INTO kitchen_weekly_groceries (camp_id, week_start, item_id, projected_qty, added_by, created_at)
-            VALUES (?, ?, ?, ?, ?, NOW())
-        ")->execute([$queryCampId, $weekStart, $itemId, $projectedQty, $userId]);
+            INSERT INTO kitchen_weekly_groceries (tenant_id, camp_id, week_start, item_id, projected_qty, added_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ")->execute([$tenantId, $queryCampId, $weekStart, $itemId, $projectedQty, $userId]);
 
         jsonResponse(['message' => 'Weekly grocery item added', 'id' => (int) $pdo->lastInsertId()], 201);
         exit;
@@ -1151,15 +1152,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $planId = (int) ($input['plan_id'] ?? 0);
         if (!$planId) jsonError('plan_id required', 400);
 
-        $plan = $pdo->prepare("SELECT * FROM kitchen_menu_plans WHERE id = ? AND camp_id = ?");
-        $plan->execute([$planId, $queryCampId]);
+        $plan = $pdo->prepare("SELECT * FROM kitchen_menu_plans WHERE id = ? AND camp_id = ? AND tenant_id = ?");
+        $plan->execute([$planId, $queryCampId, $tenantId]);
         $plan = $plan->fetch();
         if (!$plan) jsonError('Plan not found', 404);
 
         $pdo->prepare("
             UPDATE kitchen_menu_plans SET status = 'draft', confirmed_at = NULL, updated_at = NOW()
-            WHERE id = ?
-        ")->execute([$planId]);
+            WHERE id = ? AND tenant_id = ?
+        ")->execute([$planId, $tenantId]);
 
         auditLog($pdo, $planId, null, null, $userId, 'reopen_plan', [
             'status' => $plan['status'],
