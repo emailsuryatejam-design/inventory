@@ -9,9 +9,7 @@ import {
 
 // ── API helper (self-contained, separate from main app auth) ──
 
-const ADMIN_API = import.meta.env.DEV
-  ? '/api'
-  : (import.meta.env.VITE_API_URL || 'https://darkblue-goshawk-672880.hostingersite.com')
+const ADMIN_API = import.meta.env.VITE_API_URL || '/api'
 
 async function adminRequest(action, options = {}) {
   const token = localStorage.getItem('ws_gadmin_token')

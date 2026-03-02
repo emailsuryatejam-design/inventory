@@ -4,9 +4,7 @@ import { useApp } from '../context/AppContext'
 import { Building2, User, Mail, Lock, Phone, Globe, Briefcase, ArrowRight, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 import PublicNavbar from '../components/layout/PublicNavbar'
 
-const ADMIN_API = import.meta.env.DEV
-  ? '/api'
-  : (import.meta.env.VITE_API_URL || 'https://darkblue-goshawk-672880.hostingersite.com')
+const ADMIN_API = import.meta.env.VITE_API_URL || '/api'
 
 const industries = [
   'Safari & Lodges',
