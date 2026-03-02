@@ -1,6 +1,8 @@
 <?php
 /**
- * Temporary debug script — simulates registration step by step.
+ * Temporary debug/fix script.
+ * GET  → diagnose
+ * POST → fix constraints and test registration
  * DELETE after testing!
  */
 ini_set('display_errors', 1);
@@ -13,135 +15,117 @@ $pdo = getDB();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'POST') {
+    $action = $_GET['action'] ?? 'fix';
     $steps = [];
 
-    // Step 1: Test tenants INSERT
-    try {
-        $trialStart = date('Y-m-d');
-        $trialEnd = date('Y-m-d', strtotime('+30 days'));
-        $defaultModules = json_encode(['stores', 'kitchen', 'bar', 'admin']);
+    if ($action === 'fix') {
+        // Fix 1: Drop global unique on camps.code, add composite unique (tenant_id, code)
+        try {
+            // Check if uk_camps_code exists
+            $indexes = $pdo->query("SHOW INDEX FROM camps WHERE Key_name = 'uk_camps_code'")->fetchAll();
+            if (!empty($indexes)) {
+                $pdo->exec("ALTER TABLE camps DROP INDEX uk_camps_code");
+                $steps[] = ['action' => 'drop_uk_camps_code', 'ok' => true];
+            } else {
+                $steps[] = ['action' => 'drop_uk_camps_code', 'skipped' => 'index not found'];
+            }
+        } catch (Throwable $e) {
+            $steps[] = ['action' => 'drop_uk_camps_code', 'error' => $e->getMessage()];
+        }
 
-        $stmt = $pdo->prepare("
-            INSERT INTO tenants (company_name, slug, email, phone, country, industry, status, trial_start, trial_end, plan, max_users, max_camps, modules)
-            VALUES (?, ?, ?, ?, ?, ?, 'trial', ?, ?, 'trial', 5, 2, ?)
-        ");
-        $stmt->execute(['Debug Lodge', 'debug-lodge-' . time(), 'debug@test.com', '+254700000000', 'Kenya', 'Safari', $trialStart, $trialEnd, $defaultModules]);
-        $tenantId = (int)$pdo->lastInsertId();
-        $steps[] = ['action' => 'insert_tenant', 'ok' => true, 'tenant_id' => $tenantId];
-    } catch (Throwable $e) {
-        $steps[] = ['action' => 'insert_tenant', 'error' => $e->getMessage()];
-        echo json_encode(['steps' => $steps], JSON_PRETTY_PRINT);
-        exit;
+        // Add composite unique index
+        try {
+            $indexes = $pdo->query("SHOW INDEX FROM camps WHERE Key_name = 'uk_tenant_camp_code'")->fetchAll();
+            if (empty($indexes)) {
+                $pdo->exec("ALTER TABLE camps ADD UNIQUE INDEX uk_tenant_camp_code (tenant_id, code)");
+                $steps[] = ['action' => 'add_uk_tenant_camp_code', 'ok' => true];
+            } else {
+                $steps[] = ['action' => 'add_uk_tenant_camp_code', 'skipped' => 'already exists'];
+            }
+        } catch (Throwable $e) {
+            $steps[] = ['action' => 'add_uk_tenant_camp_code', 'error' => $e->getMessage()];
+        }
+
+        // Fix 2: Create cache directories for rate limiting
+        $cacheDir = __DIR__ . '/cache/rate-limits';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+            $steps[] = ['action' => 'create_cache_dir', 'ok' => true];
+        } else {
+            $steps[] = ['action' => 'create_cache_dir', 'skipped' => 'already exists'];
+        }
+
+        // Fix 3: Ensure global_admins table exists
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS global_admins (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) DEFAULT NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                last_login DATETIME DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $steps[] = ['action' => 'ensure_global_admins', 'ok' => true];
+        } catch (Throwable $e) {
+            $steps[] = ['action' => 'ensure_global_admins', 'error' => $e->getMessage()];
+        }
+
+        // Cleanup: delete any orphan tenants from previous debug runs
+        try {
+            $deleted = $pdo->exec("DELETE FROM tenants WHERE email = 'debug@test.com'");
+            $steps[] = ['action' => 'cleanup_debug_tenants', 'deleted' => $deleted];
+        } catch (Throwable $e) {
+            $steps[] = ['action' => 'cleanup_debug_tenants', 'error' => $e->getMessage()];
+        }
     }
 
-    // Step 2: Test camps INSERT
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO camps (tenant_id, code, name, type, is_active)
-            VALUES (?, 'HO', ?, 'head_office', 1)
-        ");
-        $stmt->execute([$tenantId, 'Debug Lodge - Head Office']);
-        $campId = (int)$pdo->lastInsertId();
-        $steps[] = ['action' => 'insert_camp', 'ok' => true, 'camp_id' => $campId];
-    } catch (Throwable $e) {
-        $steps[] = ['action' => 'insert_camp', 'error' => $e->getMessage()];
-        // Cleanup tenant
-        $pdo->exec("DELETE FROM tenants WHERE id = $tenantId");
-        echo json_encode(['steps' => $steps], JSON_PRETTY_PRINT);
-        exit;
+    if ($action === 'test') {
+        // Full registration simulation
+        $pdo->beginTransaction();
+        try {
+            $trialStart = date('Y-m-d');
+            $trialEnd = date('Y-m-d', strtotime('+30 days'));
+            $defaultModules = json_encode(['stores', 'kitchen', 'bar', 'admin']);
+
+            $stmt = $pdo->prepare("INSERT INTO tenants (company_name, slug, email, phone, country, industry, status, trial_start, trial_end, plan, max_users, max_camps, modules) VALUES (?, ?, ?, ?, ?, ?, 'trial', ?, ?, 'trial', 5, 2, ?)");
+            $stmt->execute(['Debug Lodge', 'debug-lodge-' . time(), 'debug@test.com', '', 'Kenya', 'Safari', $trialStart, $trialEnd, $defaultModules]);
+            $tenantId = (int)$pdo->lastInsertId();
+            $steps[] = ['action' => 'insert_tenant', 'ok' => true, 'id' => $tenantId];
+
+            $stmt = $pdo->prepare("INSERT INTO camps (tenant_id, code, name, type, is_active) VALUES (?, 'HO', ?, 'head_office', 1)");
+            $stmt->execute([$tenantId, 'Debug Lodge - Head Office']);
+            $campId = (int)$pdo->lastInsertId();
+            $steps[] = ['action' => 'insert_camp', 'ok' => true, 'id' => $campId];
+
+            $hash = password_hash('TestPass2026', PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO users (tenant_id, name, username, password_hash, role, camp_id, approval_limit, is_active) VALUES (?, ?, ?, ?, 'admin', ?, 999999999, 1)");
+            $stmt->execute([$tenantId, 'Debug User', 'debuguser' . time(), $hash, $campId]);
+            $userId = (int)$pdo->lastInsertId();
+            $steps[] = ['action' => 'insert_user', 'ok' => true, 'id' => $userId];
+
+            $pdo->rollBack(); // Don't keep test data
+            $steps[] = ['action' => 'rollback', 'ok' => true, 'note' => 'test data rolled back'];
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            $steps[] = ['action' => 'error', 'error' => $e->getMessage()];
+        }
     }
 
-    // Step 3: Test users INSERT
-    try {
-        $passwordHash = password_hash('TestPass2026', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("
-            INSERT INTO users (tenant_id, name, username, password_hash, role, camp_id, approval_limit, is_active)
-            VALUES (?, ?, ?, ?, 'admin', ?, 999999999, 1)
-        ");
-        $stmt->execute([$tenantId, 'Debug User', 'debuguser' . time(), $passwordHash, $campId]);
-        $userId = (int)$pdo->lastInsertId();
-        $steps[] = ['action' => 'insert_user', 'ok' => true, 'user_id' => $userId];
-    } catch (Throwable $e) {
-        $steps[] = ['action' => 'insert_user', 'error' => $e->getMessage()];
-        // Cleanup
-        $pdo->exec("DELETE FROM camps WHERE id = $campId");
-        $pdo->exec("DELETE FROM tenants WHERE id = $tenantId");
-        echo json_encode(['steps' => $steps], JSON_PRETTY_PRINT);
-        exit;
-    }
-
-    // Step 4: Test JWT generation
-    try {
-        require_once __DIR__ . '/middleware.php';
-        $token = jwtEncode([
-            'user_id' => $userId,
-            'username' => 'debuguser',
-            'role' => 'admin',
-            'camp_id' => $campId,
-            'tenant_id' => $tenantId,
-        ]);
-        $steps[] = ['action' => 'jwt_generate', 'ok' => true, 'token_length' => strlen($token)];
-    } catch (Throwable $e) {
-        $steps[] = ['action' => 'jwt_generate', 'error' => $e->getMessage()];
-    }
-
-    // Cleanup all test data
-    $pdo->exec("DELETE FROM users WHERE id = $userId");
-    $pdo->exec("DELETE FROM camps WHERE id = $campId");
-    $pdo->exec("DELETE FROM tenants WHERE id = $tenantId");
-    $steps[] = ['action' => 'cleanup', 'ok' => true];
-
-    echo json_encode(['steps' => $steps], JSON_PRETTY_PRINT);
+    echo json_encode(['action' => $action, 'steps' => $steps], JSON_PRETTY_PRINT);
     exit;
 }
 
-// GET: Run migration if needed
+// GET: Diagnose
 $results = [];
+$results[] = ['tenants_rows' => (int)$pdo->query('SELECT COUNT(*) FROM tenants')->fetchColumn()];
 
-// Check tenants
-try {
-    $count = $pdo->query('SELECT COUNT(*) FROM tenants')->fetchColumn();
-    $results[] = ['table' => 'tenants', 'exists' => true, 'rows' => (int)$count];
-} catch (Throwable $e) {
-    $results[] = ['table' => 'tenants', 'exists' => false];
-    // Run migration
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS tenants (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            company_name VARCHAR(255) NOT NULL,
-            slug VARCHAR(100) UNIQUE NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            phone VARCHAR(50) DEFAULT NULL,
-            country VARCHAR(100) DEFAULT NULL,
-            industry VARCHAR(100) DEFAULT NULL,
-            status ENUM('trial','active','suspended','expired') DEFAULT 'trial',
-            trial_start DATE NOT NULL,
-            trial_end DATE NOT NULL,
-            plan VARCHAR(50) DEFAULT 'trial',
-            max_users INT DEFAULT 5,
-            max_camps INT DEFAULT 2,
-            modules JSON DEFAULT NULL,
-            notes TEXT DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_status (status), INDEX idx_email (email), INDEX idx_trial_end (trial_end)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        $results[] = ['migration' => 'tenants_created'];
-    } catch (Throwable $e2) {
-        $results[] = ['migration_error' => $e2->getMessage()];
-    }
-}
+$indexes = $pdo->query("SHOW INDEX FROM camps")->fetchAll(PDO::FETCH_ASSOC);
+$indexNames = array_unique(array_column($indexes, 'Key_name'));
+$results[] = ['camps_indexes' => array_values($indexNames)];
 
-// Check users.tenant_id
-$cols = $pdo->query("SHOW COLUMNS FROM users LIKE 'tenant_id'")->fetchAll();
-$results[] = ['users_has_tenant_id' => !empty($cols)];
-
-// Check camps.tenant_id
-$cols = $pdo->query("SHOW COLUMNS FROM camps LIKE 'tenant_id'")->fetchAll();
-$results[] = ['camps_has_tenant_id' => !empty($cols)];
-
-// Check rate-limit cache directory
 $cacheDir = __DIR__ . '/cache/rate-limits';
-$results[] = ['cache_dir' => $cacheDir, 'exists' => is_dir($cacheDir), 'writable' => is_writable($cacheDir)];
+$results[] = ['cache_dir_exists' => is_dir($cacheDir), 'cache_dir_writable' => is_writable($cacheDir)];
 
 echo json_encode($results, JSON_PRETTY_PRINT);
