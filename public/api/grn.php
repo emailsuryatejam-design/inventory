@@ -360,7 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log('[API Error] grn POST: ' . $e->getMessage());
-        jsonError('An unexpected error occurred. Please try again.', 500);
+        jsonError('GRN creation failed: ' . $e->getMessage(), 500);
     }
     exit;
 }
