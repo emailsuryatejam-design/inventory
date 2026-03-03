@@ -17,6 +17,13 @@ $auth = requireAuth();
 $tenantId = requireTenant($auth);
 $pdo = getDB();
 
+// Debug: check table columns
+if (!empty($_GET['debug_cols'])) {
+    $cols = $pdo->query("SHOW COLUMNS FROM stock_adjustments")->fetchAll(PDO::FETCH_COLUMN);
+    jsonResponse(['columns' => $cols]);
+    exit;
+}
+
 // ── GET — List or Detail ──
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
