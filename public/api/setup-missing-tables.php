@@ -151,34 +151,16 @@ try {
 }
 
 // ══════════════════════════════════════════════════════
-// 5. grn — already had tenant_id from first migration
+// 5. goods_received_notes — add tenant_id (this is the actual GRN header table)
+//    grn_lines FK references goods_received_notes, NOT the 'grn' table
 // ══════════════════════════════════════════════════════
 try {
-    $pdo->query("SELECT 1 FROM grn LIMIT 1");
-    addCol($pdo, 'grn', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
-    $results[] = "grn: OK";
+    $pdo->query("SELECT 1 FROM goods_received_notes LIMIT 1");
+    addCol($pdo, 'goods_received_notes', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addIndex($pdo, 'goods_received_notes', 'idx_grn_tenant', 'tenant_id', $results);
+    $results[] = "goods_received_notes: OK";
 } catch (Exception $e) {
-    $pdo->exec("CREATE TABLE grn (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tenant_id INT DEFAULT NULL,
-        grn_number VARCHAR(30) NOT NULL,
-        po_id INT NOT NULL,
-        camp_id INT DEFAULT NULL,
-        received_date DATE NOT NULL,
-        delivery_note_ref VARCHAR(100) DEFAULT NULL,
-        notes TEXT DEFAULT NULL,
-        status ENUM('draft','confirmed') NOT NULL DEFAULT 'draft',
-        total_value DECIMAL(15,2) DEFAULT 0,
-        received_by INT DEFAULT NULL,
-        confirmed_by INT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        confirmed_at DATETIME DEFAULT NULL,
-        INDEX idx_grn_tenant (tenant_id),
-        INDEX idx_grn_po (po_id),
-        INDEX idx_grn_status (status),
-        UNIQUE KEY uq_grn_number (grn_number)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "grn: CREATED";
+    $results[] = "goods_received_notes: " . $e->getMessage();
 }
 
 // ══════════════════════════════════════════════════════

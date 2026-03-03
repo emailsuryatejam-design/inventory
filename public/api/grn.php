@@ -6,6 +6,8 @@
  * GET    /api/grn.php?po_id=X        — PO lines for GRN creation (remaining qty)
  * POST   /api/grn.php                — create GRN from PO
  * PUT    /api/grn.php                — confirm GRN (manager+ only)
+ *
+ * Uses `goods_received_notes` table (original schema) + `grn_lines`
  */
 
 require_once __DIR__ . '/middleware.php';
@@ -22,9 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!empty($_GET['po_id'])) {
         $poId = (int) $_GET['po_id'];
 
-        // Verify PO belongs to tenant
         $poStmt = $pdo->prepare("
-            SELECT po.id, po.po_number,
+            SELECT po.id, po.po_number, po.supplier_id,
                    s.name AS supplier_name
             FROM purchase_orders po
             JOIN suppliers s ON po.supplier_id = s.id
@@ -37,17 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             jsonError('Purchase order not found', 404);
         }
 
-        // Get PO lines with remaining qty
         $linesStmt = $pdo->prepare("
             SELECT pol.id, pol.item_id,
                    i.item_code, i.name AS item_name,
-                   pol.quantity, pol.received_qty,
-                   (pol.quantity - pol.received_qty) AS remaining_qty,
+                   pol.quantity, COALESCE(pol.received_qty, 0) AS received_qty,
+                   (pol.quantity - COALESCE(pol.received_qty, 0)) AS remaining_qty,
                    pol.unit_price
             FROM purchase_order_lines pol
             JOIN items i ON pol.item_id = i.id
             WHERE pol.po_id = ? AND pol.tenant_id = ?
-            AND (pol.quantity - pol.received_qty) > 0
+            AND (pol.quantity - COALESCE(pol.received_qty, 0)) > 0
             ORDER BY pol.id ASC
         ");
         $linesStmt->execute([$poId, $tenantId]);
@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'purchase_order' => [
                 'id'            => (int) $po['id'],
                 'po_number'     => $po['po_number'],
+                'supplier_id'   => (int) $po['supplier_id'],
                 'supplier_name' => $po['supplier_name'],
             ],
             'lines' => array_map(function ($l) {
@@ -89,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                    ur.name AS received_by_name,
                    g.created_at,
                    g.confirmed_at, uc.name AS confirmed_by_name
-            FROM grn g
+            FROM goods_received_notes g
             JOIN purchase_orders po ON g.po_id = po.id
-            JOIN suppliers s ON po.supplier_id = s.id
+            JOIN suppliers s ON g.supplier_id = s.id
             JOIN camps c ON g.camp_id = c.id
             LEFT JOIN users ur ON g.received_by = ur.id
             LEFT JOIN users uc ON g.confirmed_by = uc.id
@@ -104,11 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             jsonError('GRN not found', 404);
         }
 
-        // Lines
         $linesStmt = $pdo->prepare("
             SELECT gl.id, gl.item_id,
                    i.item_code, i.name AS item_name,
-                   pol.quantity AS ordered_qty,
+                   COALESCE(gl.ordered_qty, pol.quantity) AS ordered_qty,
                    gl.received_qty, gl.rejected_qty, gl.rejection_reason,
                    gl.unit_cost, gl.batch_number, gl.expiry_date,
                    gl.line_total
@@ -186,18 +186,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-    // Count
     $countStmt = $pdo->prepare("
         SELECT COUNT(*)
-        FROM grn g
+        FROM goods_received_notes g
         JOIN purchase_orders po ON g.po_id = po.id
-        JOIN suppliers s ON po.supplier_id = s.id
+        JOIN suppliers s ON g.supplier_id = s.id
         {$whereClause}
     ");
     $countStmt->execute($params);
     $total = (int) $countStmt->fetchColumn();
 
-    // Data
     $stmt = $pdo->prepare("
         SELECT g.id, g.grn_number, g.po_id,
                po.po_number,
@@ -206,9 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                c.code AS camp_code, c.name AS camp_name,
                ur.name AS received_by_name,
                g.created_at
-        FROM grn g
+        FROM goods_received_notes g
         JOIN purchase_orders po ON g.po_id = po.id
-        JOIN suppliers s ON po.supplier_id = s.id
+        JOIN suppliers s ON g.supplier_id = s.id
         JOIN camps c ON g.camp_id = c.id
         LEFT JOIN users ur ON g.received_by = ur.id
         {$whereClause}
@@ -275,7 +273,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonError('Purchase order is not in a valid status for receiving. Current status: ' . $po['status'], 400);
     }
 
-    // Generate GRN number
     $grnNumber = generateDocNumber($pdo, 'GRN', '', $tenantId);
 
     $campId = $auth['camp_id'];
@@ -285,15 +282,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $pdo->beginTransaction();
     try {
-        // Insert GRN header
+        // Insert GRN header into goods_received_notes (supplier_id is NOT NULL)
         $pdo->prepare("
-            INSERT INTO grn (
-                tenant_id, grn_number, po_id, camp_id,
+            INSERT INTO goods_received_notes (
+                tenant_id, grn_number, po_id, supplier_id, camp_id,
                 received_date, delivery_note_ref, notes,
                 status, total_value, received_by, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', 0, ?, NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', 0, ?, NOW())
         ")->execute([
-            $tenantId, $grnNumber, $poId, $campId,
+            $tenantId, $grnNumber, $poId, (int) $po['supplier_id'], $campId,
             $input['received_date'],
             $input['delivery_note_ref'] ?? null,
             $input['notes'] ?? null,
@@ -303,7 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $grnId = (int) $pdo->lastInsertId();
         $totalValue = 0;
 
-        // Insert GRN lines
         $lineStmt = $pdo->prepare("
             INSERT INTO grn_lines (
                 tenant_id, grn_id, po_line_id, item_id,
@@ -312,10 +308,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        // Update PO line received_qty
         $updatePolStmt = $pdo->prepare("
             UPDATE purchase_order_lines
-            SET received_qty = received_qty + ?
+            SET received_qty = COALESCE(received_qty, 0) + ?
             WHERE id = ? AND tenant_id = ?
         ");
 
@@ -337,14 +332,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $lineTotal,
             ]);
 
-            // Update received_qty on PO line
-            if (!empty($line['po_line_id'])) {
-                $updatePolStmt->execute([$receivedQty, (int) $line['po_line_id'], $tenantId]);
-            }
+            $updatePolStmt->execute([$receivedQty, (int) $line['po_line_id'], $tenantId]);
         }
 
         // Update GRN total_value
-        $pdo->prepare("UPDATE grn SET total_value = ? WHERE id = ?")->execute([$totalValue, $grnId]);
+        $pdo->prepare("UPDATE goods_received_notes SET total_value = ? WHERE id = ?")->execute([$totalValue, $grnId]);
 
         $pdo->commit();
 
@@ -378,10 +370,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $grnId = (int) $input['id'];
 
-    // Verify GRN exists, belongs to tenant, and is in draft status
     $grnStmt = $pdo->prepare("
         SELECT g.id, g.status, g.camp_id, g.po_id
-        FROM grn g
+        FROM goods_received_notes g
         WHERE g.id = ? AND g.tenant_id = ?
     ");
     $grnStmt->execute([$grnId, $tenantId]);
@@ -400,14 +391,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $pdo->beginTransaction();
     try {
-        // Update GRN status
         $pdo->prepare("
-            UPDATE grn
+            UPDATE goods_received_notes
             SET status = 'confirmed', confirmed_by = ?, confirmed_at = NOW()
             WHERE id = ? AND tenant_id = ?
         ")->execute([$user['user_id'], $grnId, $tenantId]);
 
-        // Get GRN lines
         $linesStmt = $pdo->prepare("
             SELECT gl.item_id, gl.received_qty, gl.unit_cost, gl.line_total
             FROM grn_lines gl
@@ -416,14 +405,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $linesStmt->execute([$grnId, $tenantId]);
         $lines = $linesStmt->fetchAll();
 
-        // Process each line: stock movement + stock balance upsert
         foreach ($lines as $line) {
             $itemId      = (int) $line['item_id'];
             $receivedQty = (float) $line['received_qty'];
             $unitCost    = (float) $line['unit_cost'];
             $lineTotal   = (float) $line['line_total'];
 
-            // Check existing stock balance
             $balCheck = $pdo->prepare("
                 SELECT id, current_qty, current_value
                 FROM stock_balances
@@ -436,13 +423,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
                 $newQty   = (float) $bal['current_qty'] + $receivedQty;
                 $newValue = (float) $bal['current_value'] + $lineTotal;
 
+                $newUnitCost = $newQty > 0 ? ($newValue / $newQty) : $unitCost;
+
                 $pdo->prepare("
                     UPDATE stock_balances
-                    SET current_qty = ?, current_value = ?,
-                        unit_cost = CASE WHEN current_qty > 0 THEN current_value / current_qty ELSE ? END,
+                    SET current_qty = ?, current_value = ?, unit_cost = ?,
                         last_receipt_date = CURDATE(), updated_at = NOW()
                     WHERE id = ?
-                ")->execute([$newQty, $newValue, $unitCost, $bal['id']]);
+                ")->execute([$newQty, $newValue, $newUnitCost, $bal['id']]);
 
                 $balanceAfter = $newQty;
             } else {
@@ -456,7 +444,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
                 $balanceAfter = $receivedQty;
             }
 
-            // Create stock movement
             $pdo->prepare("
                 INSERT INTO stock_movements (
                     tenant_id, item_id, camp_id, movement_type, direction,
@@ -472,7 +459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         // Check if PO is fully received
         $poLinesStmt = $pdo->prepare("
-            SELECT SUM(quantity) AS total_ordered, SUM(received_qty) AS total_received
+            SELECT SUM(quantity) AS total_ordered, SUM(COALESCE(received_qty, 0)) AS total_received
             FROM purchase_order_lines
             WHERE po_id = ? AND tenant_id = ?
         ");
@@ -503,7 +490,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log('[API Error] grn PUT confirm: ' . $e->getMessage());
-        jsonError('An unexpected error occurred. Please try again.', 500);
+        jsonError('GRN confirm failed: ' . $e->getMessage(), 500);
     }
     exit;
 }
