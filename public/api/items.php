@@ -153,6 +153,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = getJsonInput();
     requireFields($input, ['name']);
 
+    if (empty($input['item_group_id'])) jsonError('Item group is required', 400);
+    if (empty($input['stock_uom_id'])) jsonError('Stock UOM is required', 400);
+
+    // Default purchase/issue UOM to stock UOM if not provided
+    $stockUomId = (int) $input['stock_uom_id'];
+    $purchaseUomId = !empty($input['purchase_uom_id']) ? (int) $input['purchase_uom_id'] : $stockUomId;
+    $issueUomId = !empty($input['issue_uom_id']) ? (int) $input['issue_uom_id'] : $stockUomId;
+
     // Auto-generate item_code: count existing items + 1, format as ITM-XXXX
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM items WHERE tenant_id = ?");
     $countStmt->execute([$tenantId]);
@@ -220,15 +228,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $itemCode,
             trim($input['name']),
             $input['description'] ?? '',
-            $input['item_group_id'] ?? null,
+            (int) $input['item_group_id'],
             $input['sub_category_id'] ?? null,
             $input['abc_class'] ?? 'C',
             $input['storage_type'] ?? 'ambient',
             $input['is_perishable'] ?? 0,
             $input['is_critical'] ?? 0,
-            $input['stock_uom_id'] ?? null,
-            $input['purchase_uom_id'] ?? null,
-            $input['issue_uom_id'] ?? null,
+            $stockUomId,
+            $purchaseUomId,
+            $issueUomId,
             $input['purchase_to_stock_factor'] ?? 1,
             $input['stock_to_issue_factor'] ?? 1,
             $input['last_purchase_price'] ?? null,
