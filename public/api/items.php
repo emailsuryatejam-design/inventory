@@ -263,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ], 201);
     } catch (Exception $e) {
         error_log('[API Error] items create: ' . $e->getMessage());
-        jsonError('Failed to create item: ' . $e->getMessage(), 500);
+        jsonError('Failed to create item. Please try again.', 500);
     }
     exit;
 }

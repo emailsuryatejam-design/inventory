@@ -352,7 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log('[API Error] grn POST: ' . $e->getMessage());
-        jsonError('GRN creation failed: ' . $e->getMessage(), 500);
+        jsonError('GRN creation failed. Please try again.', 500);
     }
     exit;
 }
@@ -490,7 +490,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log('[API Error] grn PUT confirm: ' . $e->getMessage());
-        jsonError('GRN confirm failed: ' . $e->getMessage(), 500);
+        jsonError('GRN confirm failed. Please try again.', 500);
     }
     exit;
 }
