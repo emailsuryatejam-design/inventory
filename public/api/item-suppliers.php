@@ -123,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $pdo->prepare("
         INSERT INTO item_suppliers
-            (tenant_id, item_id, supplier_id, unit_price, lead_time_days, is_preferred, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())
+            (tenant_id, item_id, supplier_id, unit_price, lead_time_days, is_preferred)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
         $tenantId,
@@ -176,7 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         jsonError('No fields to update', 400);
     }
 
-    $updates[] = 'updated_at = NOW()';
     $params[] = $id;
     $params[] = $tenantId;
     $sql = "UPDATE item_suppliers SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";
