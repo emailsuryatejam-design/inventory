@@ -406,14 +406,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             $absQty    = abs($adjQty);
 
             // Create stock movement
+            $movementType = $direction === 'in' ? 'adjustment_in' : 'adjustment_out';
             $pdo->prepare("
                 INSERT INTO stock_movements (
                     tenant_id, item_id, camp_id, movement_type, direction,
                     quantity, unit_cost, total_value, balance_after,
                     reference_type, reference_id, created_by, movement_date, created_at
-                ) VALUES (?, ?, ?, 'adjustment', ?, ?, ?, ?, 0, 'stock_adjustment', ?, ?, CURDATE(), NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'stock_adjustment', ?, ?, CURDATE(), NOW())
             ")->execute([
-                $tenantId, $itemId, $campId, $direction,
+                $tenantId, $itemId, $campId, $movementType, $direction,
                 $absQty, $unitCost, abs($valImpact),
                 $adjId, $user['user_id'],
             ]);

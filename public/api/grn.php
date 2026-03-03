@@ -321,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($input['lines'] as $line) {
             if (empty($line['item_id']) || empty($line['received_qty']) || $line['received_qty'] <= 0) continue;
+            if (empty($line['po_line_id'])) continue;
 
             $itemId      = (int) $line['item_id'];
             $receivedQty = (float) $line['received_qty'];
@@ -330,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $totalValue += $lineTotal;
 
             $lineStmt->execute([
-                $tenantId, $grnId, $line['po_line_id'] ?? null, $itemId,
+                $tenantId, $grnId, (int) $line['po_line_id'], $itemId,
                 $receivedQty, $rejectedQty, $line['rejection_reason'] ?? null,
                 $unitCost, $line['batch_number'] ?? null, $line['expiry_date'] ?? null,
                 $lineTotal,
@@ -461,7 +462,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
                     tenant_id, item_id, camp_id, movement_type, direction,
                     quantity, unit_cost, total_value, balance_after,
                     reference_type, reference_id, created_by, movement_date, created_at
-                ) VALUES (?, ?, ?, 'grn_receipt', 'in', ?, ?, ?, ?, 'grn', ?, ?, CURDATE(), NOW())
+                ) VALUES (?, ?, ?, 'receipt', 'in', ?, ?, ?, ?, 'grn', ?, ?, CURDATE(), NOW())
             ")->execute([
                 $tenantId, $itemId, $campId,
                 $receivedQty, $unitCost, $lineTotal, $balanceAfter,
