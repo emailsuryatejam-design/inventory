@@ -7,30 +7,12 @@
  * PUT    /api/stock-adjustments.php            — approve/reject adjustment
  */
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
 require_once __DIR__ . '/middleware.php';
 require_once __DIR__ . '/helpers.php';
 
 $auth = requireAuth();
 $tenantId = requireTenant($auth);
 $pdo = getDB();
-
-// Debug: check table columns
-if (!empty($_GET['debug_cols'])) {
-    $tables = ['stock_adjustments','stock_adjustment_lines','purchase_orders','purchase_order_lines','grn','grn_lines','camp_modules','tenant_settings','suppliers'];
-    $result = [];
-    foreach ($tables as $t) {
-        try {
-            $result[$t] = $pdo->query("SHOW COLUMNS FROM `{$t}`")->fetchAll(PDO::FETCH_COLUMN);
-        } catch (Exception $e) {
-            $result[$t] = 'ERROR: ' . $e->getMessage();
-        }
-    }
-    jsonResponse($result);
-    exit;
-}
 
 // ── GET — List or Detail ──
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -42,7 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $pdo->prepare("
             SELECT sa.id, sa.adjustment_number, sa.adjustment_type, sa.camp_id,
                    c.code AS camp_code, c.name AS camp_name,
-                   sa.reason, sa.status, sa.total_value,
+                   sa.reason, sa.status,
+                   COALESCE(sa.total_value, sa.total_value_impact, 0) AS total_value,
                    uc.name AS created_by_name, sa.created_at,
                    ua.name AS approved_by_name, sa.approved_at
             FROM stock_adjustments sa
@@ -163,7 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stmt = $pdo->prepare("
         SELECT sa.id, sa.adjustment_number, sa.adjustment_type, sa.camp_id,
                c.code AS camp_code, c.name AS camp_name,
-               sa.reason, sa.status, sa.total_value,
+               sa.reason, sa.status,
+               COALESCE(sa.total_value, sa.total_value_impact, 0) AS total_value,
                uc.name AS created_by_name, sa.created_at,
                (SELECT COUNT(*) FROM stock_adjustment_lines sal2 WHERE sal2.adjustment_id = sa.id) AS line_count
         FROM stock_adjustments sa

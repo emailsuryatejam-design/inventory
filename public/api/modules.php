@@ -4,8 +4,9 @@
  * GET  /api/modules.php?action=camp_modules   — list camps + modules + enabled state (admin)
  * POST /api/modules.php?action=toggle          — toggle module for a camp (admin)
  *
- * Table: camp_modules (id, tenant_id, camp_id, module_key, is_enabled, updated_at)
- * UNIQUE(tenant_id, camp_id, module_key)
+ * Table: camp_modules (camp_id, module_id, is_enabled, enabled_at, enabled_by)
+ * After migration adds: tenant_id, module_key, updated_at
+ * No primary key / unique index from original schema — uses DELETE+INSERT for upsert
  */
 
 require_once __DIR__ . '/middleware.php';
@@ -46,8 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'camp_modules') {
     $camps = $campStmt->fetchAll();
 
     // Get all camp_modules records for this tenant
+    // Use COALESCE to fall back to module_id if module_key hasn't been populated yet
     $modStmt = $pdo->prepare("
-        SELECT camp_id, module_key, is_enabled
+        SELECT camp_id, COALESCE(module_key, module_id) AS module_key, is_enabled
         FROM camp_modules
         WHERE tenant_id = ?
     ");
@@ -127,13 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'toggle') {
         jsonError('Camp not found', 404);
     }
 
-    // Upsert camp_modules record
-    $stmt = $pdo->prepare("
-        INSERT INTO camp_modules (tenant_id, camp_id, module_key, is_enabled, updated_at)
-        VALUES (?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), updated_at = NOW()
-    ");
-    $stmt->execute([$tenantId, $campId, $moduleId, $enabled]);
+    // Upsert camp_modules record (table has no primary key / unique index from original schema)
+    // Use DELETE + INSERT pattern to avoid ON DUPLICATE KEY issues
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("
+            DELETE FROM camp_modules
+            WHERE tenant_id = ? AND camp_id = ? AND module_key = ?
+        ")->execute([$tenantId, $campId, $moduleId]);
+
+        $pdo->prepare("
+            INSERT INTO camp_modules (tenant_id, camp_id, module_key, is_enabled, enabled_by, enabled_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        ")->execute([$tenantId, $campId, $moduleId, $enabled, $auth['user_id']]);
+
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log('[API Error] modules toggle: ' . $e->getMessage());
+        jsonError('Failed to update module setting', 500);
+    }
 
     jsonResponse(['success' => true]);
     exit;

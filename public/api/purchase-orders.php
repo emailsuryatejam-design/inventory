@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         $stmt = $pdo->prepare("
             SELECT po.id, po.po_number, po.supplier_id,
-                   s.name AS supplier_name, s.code AS supplier_code,
+                   s.name AS supplier_name, s.supplier_code AS supplier_code,
                    po.delivery_date, po.payment_terms, po.currency, po.notes,
                    po.status, po.subtotal, po.tax_amount, po.grand_total,
                    po.created_at,
@@ -47,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $linesStmt = $pdo->prepare("
             SELECT pol.id, pol.item_id,
                    i.item_code, i.name AS item_name,
-                   pol.quantity, pol.unit_price, pol.tax_rate, pol.line_total,
+                   pol.quantity, pol.unit_price, pol.tax_rate,
+                   pol.tax_amount AS line_tax_amount, pol.line_total,
                    pol.received_qty
             FROM purchase_order_lines pol
             JOIN items i ON pol.item_id = i.id
@@ -90,15 +91,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ],
             'lines' => array_map(function ($l) {
                 return [
-                    'id'           => (int) $l['id'],
-                    'item_id'      => (int) $l['item_id'],
-                    'item_code'    => $l['item_code'],
-                    'item_name'    => $l['item_name'],
-                    'quantity'     => (float) $l['quantity'],
-                    'unit_price'   => (float) $l['unit_price'],
-                    'tax_rate'     => (float) $l['tax_rate'],
-                    'line_total'   => (float) $l['line_total'],
-                    'received_qty' => (float) $l['received_qty'],
+                    'id'              => (int) $l['id'],
+                    'item_id'         => (int) $l['item_id'],
+                    'item_code'       => $l['item_code'],
+                    'item_name'       => $l['item_name'],
+                    'quantity'        => (float) $l['quantity'],
+                    'unit_price'      => (float) $l['unit_price'],
+                    'tax_rate'        => (float) $l['tax_rate'],
+                    'line_tax_amount' => (float) ($l['line_tax_amount'] ?? 0),
+                    'line_total'      => (float) $l['line_total'],
+                    'received_qty'    => (float) $l['received_qty'],
                 ];
             }, $lines),
             'grns' => array_map(function ($g) {
@@ -130,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     if ($search) {
-        $where[] = '(po.po_number LIKE ? OR s.name LIKE ? OR s.code LIKE ?)';
+        $where[] = '(po.po_number LIKE ? OR s.name LIKE ? OR s.supplier_code LIKE ?)';
         $params[] = "%{$search}%";
         $params[] = "%{$search}%";
         $params[] = "%{$search}%";
@@ -153,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Data
     $stmt = $pdo->prepare("
         SELECT po.id, po.po_number, po.supplier_id,
-               s.name AS supplier_name, s.code AS supplier_code,
+               s.name AS supplier_name, s.supplier_code AS supplier_code,
                po.status, po.subtotal, po.tax_amount, po.grand_total,
                po.delivery_date, po.created_at,
                uc.name AS created_by_name
@@ -287,8 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lineStmt = $pdo->prepare("
             INSERT INTO purchase_order_lines (
                 tenant_id, po_id, item_id, quantity, unit_price,
-                tax_rate, line_total, received_qty, description
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+                tax_rate, tax_amount, line_total, received_qty, description
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
         ");
 
         foreach ($input['lines'] as $line) {
@@ -308,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $lineStmt->execute([
                 $tenantId, $poId, $itemId, $qty, $unitPrice,
-                $taxRate, $lineTotal, $line['description'] ?? null,
+                $taxRate, $lineTax, $lineTotal, $line['description'] ?? null,
             ]);
         }
 

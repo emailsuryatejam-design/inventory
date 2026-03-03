@@ -1,7 +1,7 @@
 <?php
 /**
- * WebSquare — Migration: Create missing tables + add missing columns
- * Run once via GET /api/setup-missing-tables.php
+ * WebSquare — Migration v2: Add tenant_id + missing columns to pre-existing tables
+ * Run via GET /api/setup-missing-tables.php
  */
 
 require_once __DIR__ . '/config.php';
@@ -10,7 +10,7 @@ $pdo = getDB();
 $results = [];
 
 // ── Helper: add column if missing ──────────────────
-function addColumnIfMissing(PDO $pdo, string $table, string $column, string $definition, array &$results): void {
+function addCol(PDO $pdo, string $table, string $column, string $definition, array &$results): void {
     $cols = $pdo->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'")->fetchAll();
     if (empty($cols)) {
         $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN {$column} {$definition}");
@@ -18,29 +18,26 @@ function addColumnIfMissing(PDO $pdo, string $table, string $column, string $def
     }
 }
 
-// ── 1. Suppliers table — add missing columns ──────
-try {
-    // Check if suppliers table exists first
-    $pdo->query("SELECT 1 FROM suppliers LIMIT 1");
-
-    addColumnIfMissing($pdo, 'suppliers', 'supplier_code', "VARCHAR(30) DEFAULT NULL AFTER tenant_id", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'contact_person', "VARCHAR(200) DEFAULT NULL AFTER name", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'address', "TEXT DEFAULT NULL AFTER phone", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'city', "VARCHAR(100) DEFAULT NULL AFTER address", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'country', "VARCHAR(100) DEFAULT 'Kenya' AFTER city", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'tax_id', "VARCHAR(50) DEFAULT NULL AFTER country", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'payment_terms', "INT DEFAULT 30 AFTER tax_id", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'credit_limit', "DECIMAL(15,2) DEFAULT 0 AFTER payment_terms", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'bank_name', "VARCHAR(200) DEFAULT NULL AFTER credit_limit", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'bank_account', "VARCHAR(100) DEFAULT NULL AFTER bank_name", $results);
-    addColumnIfMissing($pdo, 'suppliers', 'notes', "TEXT DEFAULT NULL AFTER bank_account", $results);
-} catch (Exception $e) {
-    $results[] = "suppliers: " . $e->getMessage();
+function addIndex(PDO $pdo, string $table, string $indexName, string $columns, array &$results): void {
+    $rows = $pdo->query("SHOW INDEX FROM `{$table}` WHERE Key_name = '{$indexName}'")->fetchAll();
+    if (empty($rows)) {
+        $pdo->exec("ALTER TABLE `{$table}` ADD INDEX `{$indexName}` ({$columns})");
+        $results[] = "Added index {$table}.{$indexName}";
+    }
 }
 
-// ── 2. Stock Adjustments ──────────────────────────
+// ══════════════════════════════════════════════════════
+// 1. stock_adjustments — add tenant_id + fix columns
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS stock_adjustments (
+    $pdo->query("SELECT 1 FROM stock_adjustments LIMIT 1");
+    addCol($pdo, 'stock_adjustments', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addCol($pdo, 'stock_adjustments', 'total_value', 'DECIMAL(15,2) DEFAULT 0 AFTER status', $results);
+    addIndex($pdo, 'stock_adjustments', 'idx_sa_tenant', 'tenant_id', $results);
+    $results[] = "stock_adjustments: OK";
+} catch (Exception $e) {
+    // Table doesn't exist, create it
+    $pdo->exec("CREATE TABLE stock_adjustments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         adjustment_number VARCHAR(30) NOT NULL,
@@ -59,13 +56,19 @@ try {
         INDEX idx_sa_status (status),
         UNIQUE KEY uq_sa_number (adjustment_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "stock_adjustments: OK";
-} catch (Exception $e) {
-    $results[] = "stock_adjustments: " . $e->getMessage();
+    $results[] = "stock_adjustments: CREATED";
 }
 
+// ══════════════════════════════════════════════════════
+// 2. stock_adjustment_lines — add tenant_id
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS stock_adjustment_lines (
+    $pdo->query("SELECT 1 FROM stock_adjustment_lines LIMIT 1");
+    addCol($pdo, 'stock_adjustment_lines', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addIndex($pdo, 'stock_adjustment_lines', 'idx_sal_tenant', 'tenant_id', $results);
+    $results[] = "stock_adjustment_lines: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE stock_adjustment_lines (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         adjustment_id INT NOT NULL,
@@ -80,14 +83,19 @@ try {
         INDEX idx_sal_adj (adjustment_id),
         INDEX idx_sal_item (item_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "stock_adjustment_lines: OK";
-} catch (Exception $e) {
-    $results[] = "stock_adjustment_lines: " . $e->getMessage();
+    $results[] = "stock_adjustment_lines: CREATED";
 }
 
-// ── 3. Purchase Orders ────────────────────────────
+// ══════════════════════════════════════════════════════
+// 3. purchase_orders — add tenant_id
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS purchase_orders (
+    $pdo->query("SELECT 1 FROM purchase_orders LIMIT 1");
+    addCol($pdo, 'purchase_orders', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addIndex($pdo, 'purchase_orders', 'idx_po_tenant', 'tenant_id', $results);
+    $results[] = "purchase_orders: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE purchase_orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         po_number VARCHAR(30) NOT NULL,
@@ -112,13 +120,19 @@ try {
         INDEX idx_po_status (status),
         UNIQUE KEY uq_po_number (po_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "purchase_orders: OK";
-} catch (Exception $e) {
-    $results[] = "purchase_orders: " . $e->getMessage();
+    $results[] = "purchase_orders: CREATED";
 }
 
+// ══════════════════════════════════════════════════════
+// 4. purchase_order_lines — add tenant_id
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS purchase_order_lines (
+    $pdo->query("SELECT 1 FROM purchase_order_lines LIMIT 1");
+    addCol($pdo, 'purchase_order_lines', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addIndex($pdo, 'purchase_order_lines', 'idx_pol_tenant', 'tenant_id', $results);
+    $results[] = "purchase_order_lines: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE purchase_order_lines (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         po_id INT NOT NULL,
@@ -133,14 +147,18 @@ try {
         INDEX idx_pol_po (po_id),
         INDEX idx_pol_item (item_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "purchase_order_lines: OK";
-} catch (Exception $e) {
-    $results[] = "purchase_order_lines: " . $e->getMessage();
+    $results[] = "purchase_order_lines: CREATED";
 }
 
-// ── 4. GRN (Goods Received Notes) ─────────────────
+// ══════════════════════════════════════════════════════
+// 5. grn — already had tenant_id from first migration
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS grn (
+    $pdo->query("SELECT 1 FROM grn LIMIT 1");
+    addCol($pdo, 'grn', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    $results[] = "grn: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE grn (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         grn_number VARCHAR(30) NOT NULL,
@@ -160,13 +178,19 @@ try {
         INDEX idx_grn_status (status),
         UNIQUE KEY uq_grn_number (grn_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "grn: OK";
-} catch (Exception $e) {
-    $results[] = "grn: " . $e->getMessage();
+    $results[] = "grn: CREATED";
 }
 
+// ══════════════════════════════════════════════════════
+// 6. grn_lines — add tenant_id
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS grn_lines (
+    $pdo->query("SELECT 1 FROM grn_lines LIMIT 1");
+    addCol($pdo, 'grn_lines', 'tenant_id', 'INT DEFAULT NULL AFTER id', $results);
+    addIndex($pdo, 'grn_lines', 'idx_gl_tenant', 'tenant_id', $results);
+    $results[] = "grn_lines: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE grn_lines (
         id INT AUTO_INCREMENT PRIMARY KEY,
         tenant_id INT DEFAULT NULL,
         grn_id INT NOT NULL,
@@ -183,12 +207,37 @@ try {
         INDEX idx_gl_grn (grn_id),
         INDEX idx_gl_item (item_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "grn_lines: OK";
-} catch (Exception $e) {
-    $results[] = "grn_lines: " . $e->getMessage();
+    $results[] = "grn_lines: CREATED";
 }
 
-// ── 5. Tenant Settings (key-value) ────────────────
+// ══════════════════════════════════════════════════════
+// 7. camp_modules — fix schema (existing has module_id, needs tenant_id + module_key)
+// ══════════════════════════════════════════════════════
+try {
+    $pdo->query("SELECT 1 FROM camp_modules LIMIT 1");
+    addCol($pdo, 'camp_modules', 'tenant_id', 'INT NOT NULL DEFAULT 0 FIRST', $results);
+    addCol($pdo, 'camp_modules', 'module_key', "VARCHAR(50) DEFAULT NULL AFTER camp_id", $results);
+    addCol($pdo, 'camp_modules', 'updated_at', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", $results);
+    // If module_id column exists, copy to module_key, then we can use module_key
+    $results[] = "camp_modules: OK";
+} catch (Exception $e) {
+    $pdo->exec("CREATE TABLE camp_modules (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        camp_id INT NOT NULL,
+        module_key VARCHAR(50) NOT NULL,
+        is_enabled TINYINT NOT NULL DEFAULT 1,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_camp_module (tenant_id, camp_id, module_key),
+        INDEX idx_cm_tenant (tenant_id),
+        INDEX idx_cm_camp (camp_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $results[] = "camp_modules: CREATED";
+}
+
+// ══════════════════════════════════════════════════════
+// 8. tenant_settings — already OK from first migration
+// ══════════════════════════════════════════════════════
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_settings (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -204,26 +253,29 @@ try {
     $results[] = "tenant_settings: " . $e->getMessage();
 }
 
-// ── 6. Camp Modules (per-camp feature flags) ──────
+// ══════════════════════════════════════════════════════
+// 9. Suppliers — add missing columns
+// ══════════════════════════════════════════════════════
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS camp_modules (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tenant_id INT NOT NULL,
-        camp_id INT NOT NULL,
-        module_key VARCHAR(50) NOT NULL,
-        is_enabled TINYINT NOT NULL DEFAULT 1,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_camp_module (tenant_id, camp_id, module_key),
-        INDEX idx_cm_tenant (tenant_id),
-        INDEX idx_cm_camp (camp_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $results[] = "camp_modules: OK";
+    $pdo->query("SELECT 1 FROM suppliers LIMIT 1");
+    addCol($pdo, 'suppliers', 'supplier_code', "VARCHAR(30) DEFAULT NULL AFTER tenant_id", $results);
+    addCol($pdo, 'suppliers', 'contact_person', "VARCHAR(200) DEFAULT NULL AFTER name", $results);
+    addCol($pdo, 'suppliers', 'address', "TEXT DEFAULT NULL AFTER phone", $results);
+    addCol($pdo, 'suppliers', 'city', "VARCHAR(100) DEFAULT NULL AFTER address", $results);
+    addCol($pdo, 'suppliers', 'country', "VARCHAR(100) DEFAULT 'Kenya' AFTER city", $results);
+    addCol($pdo, 'suppliers', 'tax_id', "VARCHAR(50) DEFAULT NULL AFTER country", $results);
+    addCol($pdo, 'suppliers', 'payment_terms', "INT DEFAULT 30 AFTER tax_id", $results);
+    addCol($pdo, 'suppliers', 'credit_limit', "DECIMAL(15,2) DEFAULT 0 AFTER payment_terms", $results);
+    addCol($pdo, 'suppliers', 'bank_name', "VARCHAR(200) DEFAULT NULL AFTER credit_limit", $results);
+    addCol($pdo, 'suppliers', 'bank_account', "VARCHAR(100) DEFAULT NULL AFTER bank_name", $results);
+    addCol($pdo, 'suppliers', 'notes', "TEXT DEFAULT NULL AFTER bank_account", $results);
+    $results[] = "suppliers: OK";
 } catch (Exception $e) {
-    $results[] = "camp_modules: " . $e->getMessage();
+    $results[] = "suppliers: " . $e->getMessage();
 }
 
 jsonResponse([
     'success' => true,
-    'message' => 'Migration complete',
+    'message' => 'Migration v2 complete',
     'results' => $results,
 ]);
