@@ -186,72 +186,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $stmt = $pdo->prepare("
-        INSERT INTO items (
-            tenant_id, item_code, name, description,
-            item_group_id, sub_category_id, abc_class, storage_type,
-            is_perishable, is_critical,
-            stock_uom_id, purchase_uom_id, issue_uom_id,
-            purchase_to_stock_factor, stock_to_issue_factor,
-            last_purchase_price, min_order_qty, standard_pack_size,
-            shelf_life_days, haccp_category,
-            storage_temp_min, storage_temp_max,
-            allergen_info, yield_percentage,
-            sap_item_no, barcode, manufacturer,
-            is_active
-        ) VALUES (
-            ?, ?, ?, ?,
-            ?, ?, ?, ?,
-            ?, ?,
-            ?, ?, ?,
-            ?, ?,
-            ?, ?, ?,
-            ?, ?,
-            ?, ?,
-            ?, ?,
-            ?, ?, ?,
-            1
-        )
-    ");
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO items (
+                tenant_id, item_code, name, description,
+                item_group_id, sub_category_id, abc_class, storage_type,
+                is_perishable, is_critical,
+                stock_uom_id, purchase_uom_id, issue_uom_id,
+                purchase_to_stock_factor, stock_to_issue_factor,
+                last_purchase_price, min_order_qty, standard_pack_size,
+                shelf_life_days, haccp_category,
+                storage_temp_min, storage_temp_max,
+                allergen_info, yield_percentage,
+                sap_item_no, barcode, manufacturer,
+                is_active
+            ) VALUES (
+                ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?,
+                ?, ?, ?,
+                ?, ?,
+                ?, ?, ?,
+                ?, ?,
+                ?, ?,
+                ?, ?,
+                ?, ?, ?,
+                1
+            )
+        ");
 
-    $stmt->execute([
-        $tenantId,
-        $itemCode,
-        trim($input['name']),
-        $input['description'] ?? null,
-        $input['item_group_id'] ?? null,
-        $input['sub_category_id'] ?? null,
-        $input['abc_class'] ?? null,
-        $input['storage_type'] ?? null,
-        $input['is_perishable'] ?? 0,
-        $input['is_critical'] ?? 0,
-        $input['stock_uom_id'] ?? null,
-        $input['purchase_uom_id'] ?? null,
-        $input['issue_uom_id'] ?? null,
-        $input['purchase_to_stock_factor'] ?? 1,
-        $input['stock_to_issue_factor'] ?? 1,
-        $input['last_purchase_price'] ?? null,
-        $input['min_order_qty'] ?? null,
-        $input['standard_pack_size'] ?? null,
-        $input['shelf_life_days'] ?? null,
-        $input['haccp_category'] ?? null,
-        $input['storage_temp_min'] ?? null,
-        $input['storage_temp_max'] ?? null,
-        $input['allergen_info'] ?? null,
-        $input['yield_percentage'] ?? null,
-        $input['sap_item_no'] ?? null,
-        $input['barcode'] ?? null,
-        $input['manufacturer'] ?? null,
-    ]);
+        $stmt->execute([
+            $tenantId,
+            $itemCode,
+            trim($input['name']),
+            $input['description'] ?? null,
+            $input['item_group_id'] ?? null,
+            $input['sub_category_id'] ?? null,
+            $input['abc_class'] ?? null,
+            $input['storage_type'] ?? null,
+            $input['is_perishable'] ?? 0,
+            $input['is_critical'] ?? 0,
+            $input['stock_uom_id'] ?? null,
+            $input['purchase_uom_id'] ?? null,
+            $input['issue_uom_id'] ?? null,
+            $input['purchase_to_stock_factor'] ?? 1,
+            $input['stock_to_issue_factor'] ?? 1,
+            $input['last_purchase_price'] ?? null,
+            $input['min_order_qty'] ?? null,
+            $input['standard_pack_size'] ?? null,
+            $input['shelf_life_days'] ?? null,
+            $input['haccp_category'] ?? null,
+            $input['storage_temp_min'] ?? null,
+            $input['storage_temp_max'] ?? null,
+            $input['allergen_info'] ?? null,
+            $input['yield_percentage'] ?? null,
+            $input['sap_item_no'] ?? null,
+            $input['barcode'] ?? null,
+            $input['manufacturer'] ?? null,
+        ]);
 
-    jsonResponse([
-        'success' => true,
-        'item' => [
-            'id' => (int) $pdo->lastInsertId(),
-            'item_code' => $itemCode,
-            'name' => trim($input['name']),
-        ],
-    ], 201);
+        jsonResponse([
+            'success' => true,
+            'item' => [
+                'id' => (int) $pdo->lastInsertId(),
+                'item_code' => $itemCode,
+                'name' => trim($input['name']),
+            ],
+        ], 201);
+    } catch (Exception $e) {
+        error_log('[API Error] items create: ' . $e->getMessage());
+        jsonError('Failed to create item: ' . $e->getMessage(), 500);
+    }
     exit;
 }
 
