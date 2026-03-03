@@ -19,8 +19,16 @@ $pdo = getDB();
 
 // Debug: check table columns
 if (!empty($_GET['debug_cols'])) {
-    $cols = $pdo->query("SHOW COLUMNS FROM stock_adjustments")->fetchAll(PDO::FETCH_COLUMN);
-    jsonResponse(['columns' => $cols]);
+    $tables = ['stock_adjustments','stock_adjustment_lines','purchase_orders','purchase_order_lines','grn','grn_lines','camp_modules','tenant_settings','suppliers'];
+    $result = [];
+    foreach ($tables as $t) {
+        try {
+            $result[$t] = $pdo->query("SHOW COLUMNS FROM `{$t}`")->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Exception $e) {
+            $result[$t] = 'ERROR: ' . $e->getMessage();
+        }
+    }
+    jsonResponse($result);
     exit;
 }
 
