@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { useUser } from './context/AppContext'
 import RouteGuard from './components/layout/RouteGuard'
@@ -15,6 +15,7 @@ import PinLogin from './pages/PinLogin'
 import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
 import AppLayout from './components/layout/AppLayout'
+import HomeLauncher from './pages/HomeLauncher'
 
 // Lazy — loaded on demand
 const Register = lazy(() => import('./pages/Register'))
@@ -69,18 +70,6 @@ function RequireAuth({ children }) {
   return children
 }
 
-/** Role-based smart home — each role lands on their primary workflow */
-function SmartHome() {
-  const user = useUser()
-  switch (user?.role) {
-    case 'chef':                return <Navigate to="/app/menu-plan" replace />
-    case 'housekeeping':        return <Navigate to="/app/issue" replace />
-    case 'stores_manager':
-    case 'procurement_officer': return <Navigate to="/app/orders" replace />
-    default:                    return <Dashboard />
-  }
-}
-
 function RedirectIfAuth({ children }) {
   const user = useUser()
   if (user) return <Navigate to="/app" replace />
@@ -104,9 +93,14 @@ export default function App() {
           <Route path="/login" element={<RedirectIfAuth><Login /></RedirectIfAuth>} />
           <Route path="/pin-login" element={<RedirectIfAuth><PinLogin /></RedirectIfAuth>} />
 
-          {/* Protected routes — with layout + route guards */}
-          <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
-            <Route index element={<SmartHome />} />
+          {/* Protected routes */}
+          <Route path="/app" element={<RequireAuth><Outlet /></RequireAuth>}>
+            {/* Home launcher — standalone, no sidebar */}
+            <Route index element={<HomeLauncher />} />
+
+            {/* Interior routes — wrapped with AppLayout (sidebar + topbar) */}
+            <Route element={<AppLayout />}>
+            <Route path="dashboard" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Dashboard /></RouteGuard>} />
 
             {/* ── Stores module ── */}
             <Route path="items" element={<RouteGuard module="stores" exclude={CHEF_ONLY}><Items /></RouteGuard>} />
@@ -153,6 +147,7 @@ export default function App() {
             <Route path="reports" element={<RouteGuard module="reports" access="manager"><Reports /></RouteGuard>} />
             <Route path="users" element={<RouteGuard module="admin" roles={ADMIN_ROLES}><UserManagement /></RouteGuard>} />
             <Route path="settings" element={<RouteGuard module="admin" access="manager"><Settings /></RouteGuard>} />
+            </Route>
           </Route>
 
           {/* Default redirect */}

@@ -33,7 +33,7 @@ const drawerSections = [
     module: 'stores',
     color: '#3b82f6',
     items: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/stock', icon: Boxes, label: 'Stock', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/items', icon: Package, label: 'Items', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/issue', icon: FileOutput, label: 'Issue', access: 'all', exclude: CHEF_ONLY },

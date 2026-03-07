@@ -6,7 +6,7 @@ import {
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
   ClipboardList, ChevronLeft, ChevronRight, Building2,
-  ClipboardCheck, FileText, PackagePlus
+  ClipboardCheck, FileText, PackagePlus, Home
 } from 'lucide-react'
 
 // ── Navigation sections (department-grouped) ──────
@@ -18,7 +18,7 @@ const navSections = [
     module: 'stores',
     label: 'Stores',
     items: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard', end: true, access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/stock', icon: Boxes, label: 'Stock Levels', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/items', icon: Package, label: 'Items Catalog', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/issue', icon: FileOutput, label: 'Issue Goods', access: 'all', exclude: CHEF_ONLY },
@@ -145,6 +145,35 @@ export default function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin">
+        {/* Home link — back to app launcher */}
+        <div className="px-2 mb-2">
+          <NavLink
+            to="/app"
+            end
+            title={collapsed ? 'Home' : undefined}
+            className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+              collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
+            }`}
+            style={({ isActive }) => ({
+              color: isActive ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
+              backgroundColor: isActive ? 'var(--sidebar-active)' : 'transparent',
+              borderLeft: isActive && !collapsed ? '3px solid var(--sidebar-accent)' : '3px solid transparent',
+            })}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'
+              e.currentTarget.style.color = 'var(--sidebar-text-active)'
+            }}
+            onMouseLeave={e => {
+              const active = location.pathname === '/app'
+              e.currentTarget.style.backgroundColor = active ? 'var(--sidebar-active)' : 'transparent'
+              e.currentTarget.style.color = active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)'
+            }}
+          >
+            <Home size={collapsed ? 20 : 18} className="shrink-0" />
+            {!collapsed && <span className="truncate">Home</span>}
+          </NavLink>
+        </div>
+
         {visibleSections.map((section, sIdx) => (
           <div key={`${section.id}-${sIdx}`} className="mb-1">
             {/* Section label */}

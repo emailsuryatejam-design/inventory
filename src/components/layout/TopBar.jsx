@@ -6,7 +6,8 @@ import SyncStatus from '../ui/SyncStatus'
 
 // ── Route-to-breadcrumb map ──────────────────────
 const BREADCRUMBS = {
-  '/app': ['Dashboard'],
+  '/app': ['Home'],
+  '/app/dashboard': ['Stores', 'Dashboard'],
   '/app/stock': ['Stores', 'Stock Levels'],
   '/app/items': ['Stores', 'Items Catalog'],
   '/app/issue': ['Stores', 'Issue Goods'],
