@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM hr_employees e
             LEFT JOIN attendance a ON a.employee_id = e.id AND a.date = ? AND a.tenant_id = ?
             LEFT JOIN leave_types lt ON a.leave_type_id = lt.id
-            WHERE e.tenant_id = ? AND e.status = 'active'
+            WHERE e.tenant_id = ? AND e.employment_status = 'active'
             ORDER BY e.first_name, e.last_name
         ");
         $stmt->execute([$date, $tenantId, $tenantId]);
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $empStmt = $pdo->prepare("
             SELECT id, employee_no, CONCAT(first_name, ' ', last_name) AS name
             FROM hr_employees
-            WHERE tenant_id = ? AND status = 'active'
+            WHERE tenant_id = ? AND employment_status = 'active'
             ORDER BY first_name, last_name
         ");
         $empStmt->execute([$tenantId]);

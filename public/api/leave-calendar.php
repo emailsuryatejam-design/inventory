@@ -49,7 +49,7 @@ $empStmt = $pdo->prepare("
     SELECT id, employee_no, first_name, last_name,
            CONCAT(first_name, ' ', last_name) AS name
     FROM hr_employees
-    WHERE tenant_id = ? AND status = 'active'
+    WHERE tenant_id = ? AND employment_status = 'active'
     ORDER BY first_name, last_name
 ");
 $empStmt->execute([$tenantId]);
