@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $stmt = $pdo->prepare("
         SELECT id, name, code, country, is_active, created_at
-        FROM regions
+        FROM hr_regions
         {$whereClause}
         ORDER BY name ASC
     ");
@@ -53,14 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireFields($input, ['name', 'code']);
 
     // Check code uniqueness within tenant
-    $check = $pdo->prepare("SELECT id FROM regions WHERE code = ? AND tenant_id = ?");
+    $check = $pdo->prepare("SELECT id FROM hr_regions WHERE code = ? AND tenant_id = ?");
     $check->execute([trim($input['code']), $tenantId]);
     if ($check->fetch()) {
         jsonError('A region with this code already exists', 400);
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO regions (tenant_id, name, code, country, is_active, created_at)
+        INSERT INTO hr_regions (tenant_id, name, code, country, is_active, created_at)
         VALUES (?, ?, ?, ?, 1, NOW())
     ");
     $stmt->execute([
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!$id) jsonError('Region ID required', 400);
 
     // Verify region belongs to tenant
-    $existing = $pdo->prepare("SELECT id FROM regions WHERE id = ? AND tenant_id = ?");
+    $existing = $pdo->prepare("SELECT id FROM hr_regions WHERE id = ? AND tenant_id = ?");
     $existing->execute([$id, $tenantId]);
     if (!$existing->fetch()) {
         jsonError('Region not found', 404);
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     // If code is being changed, validate uniqueness
     if (isset($input['code'])) {
-        $dupCheck = $pdo->prepare("SELECT id FROM regions WHERE code = ? AND tenant_id = ? AND id != ?");
+        $dupCheck = $pdo->prepare("SELECT id FROM hr_regions WHERE code = ? AND tenant_id = ? AND id != ?");
         $dupCheck->execute([trim($input['code']), $tenantId, $id]);
         if ($dupCheck->fetch()) {
             jsonError('A region with this code already exists', 400);
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $params[] = $id;
     $params[] = $tenantId;
-    $sql = "UPDATE regions SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";
+    $sql = "UPDATE hr_regions SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";
     $pdo->prepare($sql)->execute($params);
 
     jsonResponse(['success' => true, 'message' => 'Region updated successfully']);
