@@ -60,7 +60,7 @@ $dataParams[] = $offset;
 $stmt = $pdo->prepare("
     SELECT pal.id, pal.user_id, pal.action, pal.entity_type, pal.entity_id,
            pal.details, pal.created_at,
-           COALESCE(u.name, CONCAT(u.first_name, ' ', u.last_name), 'System') AS user_name
+           COALESCE(u.name, 'System') AS user_name
     FROM payroll_audit_log pal
     LEFT JOIN users u ON pal.user_id = u.id
     {$whereClause}

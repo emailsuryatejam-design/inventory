@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
     $stmt = $pdo->prepare("
-        SELECT jg.id, jg.name, jg.level, jg.min_salary, jg.max_salary, jg.created_at, jg.updated_at
+        SELECT jg.id, jg.name, jg.level, jg.min_salary, jg.max_salary, jg.created_at
         FROM job_grades jg
         {$whereClause}
         ORDER BY jg.level ASC, jg.name ASC
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 'min_salary' => $g['min_salary'] ? (float) $g['min_salary'] : null,
                 'max_salary' => $g['max_salary'] ? (float) $g['max_salary'] : null,
                 'created_at' => $g['created_at'],
-                'updated_at' => $g['updated_at'],
+                'updated_at' => $g['created_at'],
             ];
         }, $grades),
     ]);
@@ -55,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireFields($input, ['name', 'level']);
 
     $stmt = $pdo->prepare("
-        INSERT INTO job_grades (tenant_id, name, level, min_salary, max_salary, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        INSERT INTO job_grades (tenant_id, name, level, min_salary, max_salary, created_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
     ");
     $stmt->execute([
         $tenantId,
@@ -107,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         jsonError('No fields to update', 400);
     }
 
-    $updates[] = 'updated_at = NOW()';
     $params[] = $id;
     $params[] = $tenantId;
     $sql = "UPDATE job_grades SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";

@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $stmt = $pdo->prepare("
         SELECT pp.id, pp.name, pp.period_type, pp.start_date, pp.end_date,
-               pp.pay_date, pp.status, pp.created_at, pp.updated_at
+               pp.pay_date, pp.status, pp.created_at
         FROM payroll_periods pp
         {$whereClause}
         ORDER BY pp.start_date DESC
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 'pay_date'    => $p['pay_date'],
                 'status'      => $p['status'],
                 'created_at'  => $p['created_at'],
-                'updated_at'  => $p['updated_at'],
+                'updated_at'  => $p['created_at'],
             ];
         }, $periods),
     ]);
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $status = $input['status'] ?? 'open';
-    if (!in_array($status, ['open', 'closed', 'locked'])) {
+    if (!in_array($status, ['open', 'locked'])) {
         $status = 'open';
     }
 
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     }
 
     if (isset($input['status'])) {
-        $validStatuses = ['open', 'closed', 'locked'];
+        $validStatuses = ['open', 'locked'];
         if (!in_array($input['status'], $validStatuses)) {
             jsonError('Invalid status. Must be: open, closed, or locked', 400);
         }
@@ -171,7 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         jsonError('No fields to update', 400);
     }
 
-    $updates[] = 'updated_at = NOW()';
     $params[] = $periodId;
     $params[] = $tenantId;
 
