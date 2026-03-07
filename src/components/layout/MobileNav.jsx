@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShoppingCart, Boxes, Wine, Calendar,
   Menu, X, Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, BookOpen, GlassWater, Package, ChefHat,
-  ClipboardList
+  ClipboardList, Wallet, Calculator, CalendarDays, ClipboardCheck, BanknoteIcon
 } from 'lucide-react'
 
 const CHEF_ONLY = ['chef']
@@ -62,6 +62,22 @@ const drawerSections = [
     items: [
       { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
+    ],
+  },
+  {
+    label: 'Payroll & HR',
+    module: 'payroll',
+    color: '#e11d48',
+    items: [
+      { path: '/app/payroll', icon: LayoutDashboard, label: 'HR Home', access: 'manager' },
+      { path: '/app/hr-employees', icon: Users, label: 'Employees', access: 'manager' },
+      { path: '/app/departments', icon: Package, label: 'Depts', access: 'manager' },
+      { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll', access: 'manager' },
+      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
+      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
+      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
+      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
+      { path: '/app/payroll-reports', icon: BarChart3, label: 'HR Reports', access: 'manager' },
     ],
   },
   {

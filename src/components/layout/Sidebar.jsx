@@ -6,7 +6,9 @@ import {
   Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, Wine, BookOpen, GlassWater, Calendar, ChefHat,
   ClipboardList, ChevronLeft, ChevronRight, Building2,
-  ClipboardCheck, FileText, PackagePlus, Home
+  ClipboardCheck, FileText, PackagePlus, Home,
+  Wallet, Calculator, CalendarDays, BanknoteIcon, MapPin, Clock,
+  FileSignature, Route, ScrollText
 } from 'lucide-react'
 
 // ── Navigation sections (department-grouped) ──────
@@ -58,6 +60,22 @@ const navSections = [
     items: [
       { path: '/app/pos', icon: Wine, label: 'Point of Sale', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
+    ],
+  },
+  {
+    id: 'payroll',
+    module: 'payroll',
+    label: 'Payroll & HR',
+    items: [
+      { path: '/app/payroll', icon: LayoutDashboard, label: 'HR Dashboard', access: 'manager' },
+      { path: '/app/hr-employees', icon: Users, label: 'Employees', access: 'manager' },
+      { path: '/app/departments', icon: Building2, label: 'Departments', access: 'manager' },
+      { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll', access: 'manager' },
+      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
+      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
+      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
+      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
+      { path: '/app/payroll-reports', icon: BarChart3, label: 'HR Reports', access: 'manager' },
     ],
   },
   {

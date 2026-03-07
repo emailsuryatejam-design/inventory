@@ -10,6 +10,7 @@ const colorStyles = {
   purple:  { bg: '#ede9fe', text: '#7c3aed' },
   cyan:    { bg: '#cffafe', text: '#0891b2' },
   slate:   { bg: '#f1f5f9', text: '#475569' },
+  rose:    { bg: '#ffe4e6', text: '#e11d48' },
 }
 
 export default function HomeLauncher() {

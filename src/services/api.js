@@ -937,6 +937,171 @@ async function downloadCSV(endpoint) {
   URL.revokeObjectURL(a.href)
 }
 
+// ── Payroll & HR ───────────────────────────────────
+export const hrDashboard = {
+  get: () => request('payroll-dashboard.php'),
+}
+
+export const departments = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`departments.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('departments.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('departments.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  remove: (id) => request(`departments.php?id=${id}`, { method: 'DELETE' }),
+}
+
+export const jobGrades = {
+  list: () => request('job-grades.php'),
+  create: (data) => request('job-grades.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('job-grades.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  remove: (id) => request(`job-grades.php?id=${id}`, { method: 'DELETE' }),
+}
+
+export const hrEmployees = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`hr-employees.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`hr-employees-detail.php?id=${id}`),
+  create: (data) => request('hr-employees.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('hr-employees.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const allowanceTypes = {
+  list: () => request('allowance-types.php'),
+  create: (data) => request('allowance-types.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('allowance-types.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const employeeAllowances = {
+  list: (employeeId) => request(`employee-allowances.php?employee_id=${employeeId}`),
+  create: (data) => request('employee-allowances.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('employee-allowances.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  remove: (id) => request(`employee-allowances.php?id=${id}`, { method: 'DELETE' }),
+}
+
+export const payrollPeriods = {
+  list: () => request('payroll-periods.php'),
+  create: (data) => request('payroll-periods.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('payroll-periods.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const payrollRuns = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`payroll-runs.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`payroll-runs.php?id=${id}`),
+  create: (data) => request('payroll-runs.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  markPaid: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'mark_paid' }) }),
+  cancel: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'cancel' }) }),
+  remove: (id) => request(`payroll-runs.php?id=${id}`, { method: 'DELETE' }),
+  items: (runId) => request(`payroll-items.php?run_id=${runId}`),
+}
+
+export const leaveTypes = {
+  list: () => request('leave-types.php'),
+  create: (data) => request('leave-types.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('leave-types.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const leaveRequests = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`leave-requests.php${qs ? `?${qs}` : ''}`)
+  },
+  calendar: (month, year) => request(`leave-calendar.php?month=${month}&year=${year}`),
+  create: (data) => request('leave-requests.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('leave-requests.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  reject: (id, reason) => request('leave-requests.php', { method: 'PUT', body: JSON.stringify({ id, action: 'reject', reason }) }),
+}
+
+export const hrAttendance = {
+  daily: (date) => request(`attendance.php?date=${date}`),
+  monthly: (month) => request(`attendance.php?month=${month}`),
+  create: (data) => request('attendance.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('attendance.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  bulk: (data) => request('attendance.php', { method: 'POST', body: JSON.stringify({ bulk: true, entries: data }) }),
+}
+
+export const hrLoans = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`hr-loans.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('hr-loans.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('hr-loans.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  reject: (id) => request('hr-loans.php', { method: 'PUT', body: JSON.stringify({ id, action: 'reject' }) }),
+  repayments: (loanId) => request(`loan-repayments.php?loan_id=${loanId}`),
+}
+
+export const salaryAdvances = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`salary-advances.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('salary-advances.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('salary-advances.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  reject: (id) => request('salary-advances.php', { method: 'PUT', body: JSON.stringify({ id, action: 'reject' }) }),
+}
+
+export const expenseClaims = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`expense-claims.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('expense-claims.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('expense-claims.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+  reject: (id) => request('expense-claims.php', { method: 'PUT', body: JSON.stringify({ id, action: 'reject' }) }),
+}
+
+export const shifts = {
+  list: () => request('shifts.php'),
+  create: (data) => request('shifts.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('shifts.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const hrRegions = {
+  list: () => request('hr-regions.php'),
+  create: (data) => request('hr-regions.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('hr-regions.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const fieldTracking = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`field-tracking.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('field-tracking.php', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('field-tracking.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
+}
+
+export const contracts = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`contracts.php${qs ? `?${qs}` : ''}`)
+  },
+  create: (data) => request('contracts.php', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request('contracts.php', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+}
+
+export const payrollReports = {
+  get: (type, params = {}) => {
+    const qs = new URLSearchParams({ type, ...params }).toString()
+    return request(`payroll-reports.php?${qs}`)
+  },
+}
+
+export const payrollAudit = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`payroll-audit.php${qs ? `?${qs}` : ''}`)
+  },
+}
+
 // ── Tally ERP ──────────────────────────────────────
 export const tally = {
   preview: (type, params = {}) => {

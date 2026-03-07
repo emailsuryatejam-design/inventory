@@ -1,5 +1,5 @@
 import {
-  Boxes, ChefHat, Wine, ShoppingCart, BarChart3, Settings,
+  Boxes, ChefHat, Wine, ShoppingCart, BarChart3, Settings, Wallet,
 } from 'lucide-react'
 
 /**
@@ -75,6 +75,16 @@ export const APP_CARDS = [
     path: '/app/reports',
     module: 'reports',
     access: 'manager',
+  },
+  {
+    id: 'payroll',
+    label: 'Payroll & HR',
+    desc: 'Employee management, payroll, leave & attendance',
+    icon: Wallet,
+    color: 'rose',
+    path: '/app/payroll',
+    module: 'payroll',
+    roles: ADMIN_ROLES,
   },
   {
     id: 'admin',

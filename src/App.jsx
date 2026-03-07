@@ -58,6 +58,34 @@ const GRNList = lazy(() => import('./pages/GRN'))
 const GRNNew = lazy(() => import('./pages/GRNNew'))
 const GRNDetail = lazy(() => import('./pages/GRNDetail'))
 
+// Payroll & HR
+const PayrollDashboard = lazy(() => import('./pages/PayrollDashboard'))
+const Departments = lazy(() => import('./pages/Departments'))
+const JobGrades = lazy(() => import('./pages/JobGrades'))
+const HREmployees = lazy(() => import('./pages/HREmployees'))
+const HREmployeeNew = lazy(() => import('./pages/HREmployeeNew'))
+const HREmployeeDetail = lazy(() => import('./pages/HREmployeeDetail'))
+const PayrollPeriods = lazy(() => import('./pages/PayrollPeriods'))
+const PayrollRuns = lazy(() => import('./pages/PayrollRuns'))
+const PayrollRunNew = lazy(() => import('./pages/PayrollRunNew'))
+const PayrollRunDetail = lazy(() => import('./pages/PayrollRunDetail'))
+const LeaveManagement = lazy(() => import('./pages/LeaveManagement'))
+const AttendanceGrid = lazy(() => import('./pages/AttendanceGrid'))
+const HRLoans = lazy(() => import('./pages/HRLoans'))
+const SalaryAdvances = lazy(() => import('./pages/SalaryAdvances'))
+const ExpenseClaims = lazy(() => import('./pages/ExpenseClaims'))
+const PayrollReports = lazy(() => import('./pages/PayrollReports'))
+const PayrollReportView = lazy(() => import('./pages/PayrollReportView'))
+const Shifts = lazy(() => import('./pages/Shifts'))
+const HRRegions = lazy(() => import('./pages/HRRegions'))
+const FieldTracking = lazy(() => import('./pages/FieldTracking'))
+const Contracts = lazy(() => import('./pages/Contracts'))
+const ApprovalWorkflows = lazy(() => import('./pages/ApprovalWorkflows'))
+const PayrollAuditLog = lazy(() => import('./pages/PayrollAuditLog'))
+const IDCards = lazy(() => import('./pages/IDCards'))
+const IntroLetters = lazy(() => import('./pages/IntroLetters'))
+const PayslipTemplates = lazy(() => import('./pages/PayslipTemplates'))
+
 const CHEF_ONLY = ['chef']
 const KITCHEN_ROLES = ['chef', 'camp_manager', 'admin', 'director']
 const ADMIN_ROLES = ['admin', 'director', 'stores_manager']
@@ -147,6 +175,34 @@ export default function App() {
             <Route path="reports" element={<RouteGuard module="reports" access="manager"><Reports /></RouteGuard>} />
             <Route path="users" element={<RouteGuard module="admin" roles={ADMIN_ROLES}><UserManagement /></RouteGuard>} />
             <Route path="settings" element={<RouteGuard module="admin" access="manager"><Settings /></RouteGuard>} />
+
+            {/* ── Payroll & HR module ── */}
+            <Route path="payroll" element={<RouteGuard module="payroll" access="manager"><PayrollDashboard /></RouteGuard>} />
+            <Route path="departments" element={<RouteGuard module="payroll" access="manager"><Departments /></RouteGuard>} />
+            <Route path="job-grades" element={<RouteGuard module="payroll" access="manager"><JobGrades /></RouteGuard>} />
+            <Route path="hr-employees" element={<RouteGuard module="payroll" access="manager"><HREmployees /></RouteGuard>} />
+            <Route path="hr-employees/new" element={<RouteGuard module="payroll" access="manager"><HREmployeeNew /></RouteGuard>} />
+            <Route path="hr-employees/:id" element={<RouteGuard module="payroll" access="manager"><HREmployeeDetail /></RouteGuard>} />
+            <Route path="payroll-periods" element={<RouteGuard module="payroll" access="manager"><PayrollPeriods /></RouteGuard>} />
+            <Route path="payroll-runs" element={<RouteGuard module="payroll" access="manager"><PayrollRuns /></RouteGuard>} />
+            <Route path="payroll-runs/new" element={<RouteGuard module="payroll" access="manager"><PayrollRunNew /></RouteGuard>} />
+            <Route path="payroll-runs/:id" element={<RouteGuard module="payroll" access="manager"><PayrollRunDetail /></RouteGuard>} />
+            <Route path="leave" element={<RouteGuard module="payroll" access="manager"><LeaveManagement /></RouteGuard>} />
+            <Route path="attendance" element={<RouteGuard module="payroll" access="manager"><AttendanceGrid /></RouteGuard>} />
+            <Route path="hr-loans" element={<RouteGuard module="payroll" access="manager"><HRLoans /></RouteGuard>} />
+            <Route path="salary-advances" element={<RouteGuard module="payroll" access="manager"><SalaryAdvances /></RouteGuard>} />
+            <Route path="expense-claims" element={<RouteGuard module="payroll" access="manager"><ExpenseClaims /></RouteGuard>} />
+            <Route path="payroll-reports" element={<RouteGuard module="payroll" access="manager"><PayrollReports /></RouteGuard>} />
+            <Route path="payroll-reports/:type" element={<RouteGuard module="payroll" access="manager"><PayrollReportView /></RouteGuard>} />
+            <Route path="shifts" element={<RouteGuard module="payroll" access="manager"><Shifts /></RouteGuard>} />
+            <Route path="hr-regions" element={<RouteGuard module="payroll" access="manager"><HRRegions /></RouteGuard>} />
+            <Route path="field-tracking" element={<RouteGuard module="payroll" access="manager"><FieldTracking /></RouteGuard>} />
+            <Route path="contracts" element={<RouteGuard module="payroll" access="manager"><Contracts /></RouteGuard>} />
+            <Route path="approvals" element={<RouteGuard module="payroll" access="manager"><ApprovalWorkflows /></RouteGuard>} />
+            <Route path="payroll-audit" element={<RouteGuard module="payroll" access="manager"><PayrollAuditLog /></RouteGuard>} />
+            <Route path="id-cards" element={<RouteGuard module="payroll" access="manager"><IDCards /></RouteGuard>} />
+            <Route path="intro-letters" element={<RouteGuard module="payroll" access="manager"><IntroLetters /></RouteGuard>} />
+            <Route path="payslip-templates" element={<RouteGuard module="payroll" access="manager"><PayslipTemplates /></RouteGuard>} />
             </Route>
           </Route>
 
