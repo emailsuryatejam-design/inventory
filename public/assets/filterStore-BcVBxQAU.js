@@ -1,0 +1,1 @@
+const r="ws_filters_";function n(e,t){try{sessionStorage.setItem(r+e,JSON.stringify(t))}catch{}}function i(e,t={}){try{const s=sessionStorage.getItem(r+e);if(s)return{...t,...JSON.parse(s)}}catch{}return t}export{i as l,n as s};
