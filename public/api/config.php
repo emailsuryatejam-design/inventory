@@ -81,7 +81,7 @@ function jsonResponse($data, $status = 200) {
 }
 
 function jsonError($message, $status = 400) {
-    jsonResponse(['error' => true, 'message' => $message, 'code' => $status], $status);
+    jsonResponse(['error' => $message, 'code' => $status], $status);
 }
 
 function getJsonInput() {
