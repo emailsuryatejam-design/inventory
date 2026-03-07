@@ -6,14 +6,17 @@ import {
   LayoutDashboard, ShoppingCart, Boxes, Wine, Calendar,
   Menu, X, Truck, PackageCheck, FileOutput, Bell, BarChart3,
   Users, Settings, LogOut, BookOpen, GlassWater, Package, ChefHat,
-  ClipboardList, Wallet, Calculator, CalendarDays, ClipboardCheck, BanknoteIcon
+  ClipboardList, Wallet, Calculator, CalendarDays, ClipboardCheck, BanknoteIcon,
+  Building2, FileText, PackagePlus, Home, CreditCard, Globe, Briefcase,
+  UserCheck, Shield, IdCard, FileCheck, MapPin, Clock,
+  FileSignature, ScrollText
 } from 'lucide-react'
 
 const CHEF_ONLY = ['chef']
 
 // ── Primary bottom tabs by role ─────────────────
 const defaultTabs = [
-  { path: '/app', icon: LayoutDashboard, label: 'Home', end: true },
+  { path: '/app', icon: Home, label: 'Home', end: true },
   { path: '/app/orders', icon: ShoppingCart, label: 'Orders' },
   { path: '/app/stock', icon: Boxes, label: 'Stock' },
   { path: '/app/pos', icon: Wine, label: 'POS' },
@@ -26,9 +29,17 @@ const chefTabs = [
   { path: '/app/recipes', icon: BookOpen, label: 'Recipes' },
 ]
 
+const payrollTabs = [
+  { path: '/app', icon: Home, label: 'Home', end: true },
+  { path: '/app/payroll', icon: LayoutDashboard, label: 'HR Home' },
+  { path: '/app/hr-employees', icon: Users, label: 'People' },
+  { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll' },
+]
+
 // ── All nav items grouped by department ─────────
 const drawerSections = [
   {
+    group: 'stores',
     label: 'Stores',
     module: 'stores',
     color: '#3b82f6',
@@ -45,6 +56,18 @@ const drawerSections = [
     ],
   },
   {
+    group: 'stores',
+    label: 'Procurement',
+    module: 'stores',
+    color: '#10b981',
+    items: [
+      { path: '/app/purchase-orders', icon: FileText, label: 'POs', roles: ['procurement_officer', 'stores_manager', 'admin', 'director'] },
+      { path: '/app/grn', icon: PackagePlus, label: 'GRN', roles: ['procurement_officer', 'stores_manager', 'camp_storekeeper', 'admin', 'director'] },
+      { path: '/app/suppliers', icon: Building2, label: 'Suppliers', access: 'manager' },
+    ],
+  },
+  {
+    group: 'kitchen',
     label: 'Kitchen',
     module: 'kitchen',
     color: '#10b981',
@@ -56,41 +79,110 @@ const drawerSections = [
     ],
   },
   {
+    group: 'bar',
     label: 'Bar & POS',
     module: 'bar',
-    color: '#3b82f6',
+    color: '#8b5cf6',
     items: [
       { path: '/app/pos', icon: Wine, label: 'POS', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
     ],
   },
   {
-    label: 'Payroll & HR',
+    group: 'payroll',
+    label: 'People',
     module: 'payroll',
     color: '#e11d48',
     items: [
       { path: '/app/payroll', icon: LayoutDashboard, label: 'HR Home', access: 'manager' },
       { path: '/app/hr-employees', icon: Users, label: 'Employees', access: 'manager' },
-      { path: '/app/departments', icon: Package, label: 'Depts', access: 'manager' },
-      { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll', access: 'manager' },
-      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
-      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
-      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
-      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
-      { path: '/app/payroll-reports', icon: BarChart3, label: 'HR Reports', access: 'manager' },
+      { path: '/app/departments', icon: Building2, label: 'Depts', access: 'manager' },
+      { path: '/app/job-grades', icon: Briefcase, label: 'Grades', access: 'manager' },
     ],
   },
   {
+    group: 'payroll',
+    label: 'Payroll',
+    module: 'payroll',
+    color: '#e11d48',
+    items: [
+      { path: '/app/payroll-periods', icon: Calendar, label: 'Periods', access: 'manager' },
+      { path: '/app/payroll-runs', icon: Calculator, label: 'Runs', access: 'manager' },
+      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
+      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
+      { path: '/app/expense-claims', icon: CreditCard, label: 'Expenses', access: 'manager' },
+    ],
+  },
+  {
+    group: 'payroll',
+    label: 'Time & Leave',
+    module: 'payroll',
+    color: '#e11d48',
+    items: [
+      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
+      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
+      { path: '/app/shifts', icon: Clock, label: 'Shifts', access: 'manager' },
+      { path: '/app/field-tracking', icon: MapPin, label: 'Field', access: 'manager' },
+    ],
+  },
+  {
+    group: 'payroll',
+    label: 'More',
+    module: 'payroll',
+    color: '#e11d48',
+    items: [
+      { path: '/app/hr-regions', icon: Globe, label: 'Regions', access: 'manager' },
+      { path: '/app/contracts', icon: FileSignature, label: 'Contracts', access: 'manager' },
+      { path: '/app/payroll-reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+      { path: '/app/payroll-audit', icon: Shield, label: 'Audit', access: 'manager' },
+    ],
+  },
+  {
+    group: 'reports',
+    label: 'Reports',
+    module: 'reports',
+    color: '#06b6d4',
+    items: [
+      { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+    ],
+  },
+  {
+    group: 'admin',
     label: 'Admin',
     module: 'admin',
     color: '#64748b',
     items: [
-      { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
       { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
       { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
     ],
   },
 ]
+
+// ── Detect which app group the current path belongs to ──
+const payrollPaths = [
+  '/app/payroll', '/app/hr-employees', '/app/hr-employee',
+  '/app/departments', '/app/job-grades',
+  '/app/payroll-periods', '/app/payroll-runs', '/app/payroll-run',
+  '/app/leave', '/app/attendance',
+  '/app/hr-loans', '/app/salary-advances', '/app/expense-claims',
+  '/app/payroll-reports', '/app/shifts', '/app/hr-regions',
+  '/app/field-tracking', '/app/contracts', '/app/approvals',
+  '/app/payroll-audit', '/app/id-cards', '/app/intro-letters',
+  '/app/payslip-templates', '/app/allowance-types',
+]
+const kitchenPaths = ['/app/menu-plan', '/app/daily-groceries', '/app/weekly-groceries', '/app/recipes']
+const barPaths = ['/app/pos', '/app/bar-menu']
+const adminPaths = ['/app/users', '/app/settings']
+const reportPaths = ['/app/reports']
+
+function getActiveGroup(pathname) {
+  if (payrollPaths.some(p => pathname.startsWith(p))) return 'payroll'
+  if (kitchenPaths.some(p => pathname.startsWith(p))) return 'kitchen'
+  if (barPaths.some(p => pathname.startsWith(p))) return 'bar'
+  if (adminPaths.some(p => pathname.startsWith(p))) return 'admin'
+  if (reportPaths.some(p => pathname.startsWith(p))) return 'reports'
+  return 'stores'
+}
 
 function canAccess(item, role) {
   if (item.exclude && item.exclude.includes(role)) return false
@@ -113,7 +205,14 @@ export default function MobileNav() {
   const location = useLocation()
   const closingTimerRef = useRef(null)
 
-  const primaryTabs = user?.role === 'chef' ? chefTabs : defaultTabs
+  const activeGroup = getActiveGroup(location.pathname)
+  const isPayroll = activeGroup === 'payroll'
+
+  // Use payroll tabs when in payroll module
+  let primaryTabs
+  if (user?.role === 'chef') primaryTabs = chefTabs
+  else if (isPayroll) primaryTabs = payrollTabs
+  else primaryTabs = defaultTabs
 
   const primaryPaths = primaryTabs.map(t => t.path)
   const isOnMorePage = !primaryPaths.some(p => {
@@ -161,8 +260,9 @@ export default function MobileNav() {
     window.location.reload()
   }
 
-  // Filter sections — remove disabled modules and inaccessible items
+  // Filter sections — only show current app group, remove disabled modules and inaccessible items
   const visibleSections = drawerSections
+    .filter(section => section.group === activeGroup)
     .filter(section => isModuleEnabled(section.module, state.modules))
     .map(section => ({
       ...section,

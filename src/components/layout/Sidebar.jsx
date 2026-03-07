@@ -8,15 +8,17 @@ import {
   ClipboardList, ChevronLeft, ChevronRight, Building2,
   ClipboardCheck, FileText, PackagePlus, Home,
   Wallet, Calculator, CalendarDays, BanknoteIcon, MapPin, Clock,
-  FileSignature, Route, ScrollText
+  FileSignature, Route, ScrollText, CreditCard, Globe, Briefcase,
+  UserCheck, Shield, IdCard, FileCheck
 } from 'lucide-react'
 
-// ── Navigation sections (department-grouped) ──────
+// ── Navigation sections (each with a group for per-app filtering) ──────
 const CHEF_ONLY = ['chef']
 
 const navSections = [
+  // ── Stores App ──
   {
-    id: 'stores',
+    group: 'stores',
     module: 'stores',
     label: 'Stores',
     items: [
@@ -34,7 +36,7 @@ const navSections = [
     ],
   },
   {
-    id: 'stores',
+    group: 'stores',
     module: 'stores',
     label: 'Procurement',
     items: [
@@ -42,8 +44,9 @@ const navSections = [
       { path: '/app/grn', icon: PackagePlus, label: 'Goods Received', roles: ['procurement_officer', 'stores_manager', 'camp_storekeeper', 'admin', 'director'] },
     ],
   },
+  // ── Kitchen App ──
   {
-    id: 'kitchen',
+    group: 'kitchen',
     module: 'kitchen',
     label: 'Kitchen',
     items: [
@@ -53,8 +56,9 @@ const navSections = [
       { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all' },
     ],
   },
+  // ── Bar & POS App ──
   {
-    id: 'stores',
+    group: 'bar',
     module: 'bar',
     label: 'Bar & POS',
     items: [
@@ -62,33 +66,103 @@ const navSections = [
       { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
     ],
   },
+  // ── Payroll & HR App ──
   {
-    id: 'payroll',
+    group: 'payroll',
     module: 'payroll',
-    label: 'Payroll & HR',
+    label: 'People',
     items: [
       { path: '/app/payroll', icon: LayoutDashboard, label: 'HR Dashboard', access: 'manager' },
       { path: '/app/hr-employees', icon: Users, label: 'Employees', access: 'manager' },
       { path: '/app/departments', icon: Building2, label: 'Departments', access: 'manager' },
-      { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll', access: 'manager' },
-      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
-      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
-      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
-      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
-      { path: '/app/payroll-reports', icon: BarChart3, label: 'HR Reports', access: 'manager' },
+      { path: '/app/job-grades', icon: Briefcase, label: 'Job Grades', access: 'manager' },
     ],
   },
   {
-    id: 'admin',
+    group: 'payroll',
+    module: 'payroll',
+    label: 'Payroll',
+    items: [
+      { path: '/app/payroll-periods', icon: Calendar, label: 'Pay Periods', access: 'manager' },
+      { path: '/app/payroll-runs', icon: Calculator, label: 'Payroll Runs', access: 'manager' },
+      { path: '/app/salary-advances', icon: BanknoteIcon, label: 'Advances', access: 'manager' },
+      { path: '/app/hr-loans', icon: Wallet, label: 'Loans', access: 'manager' },
+      { path: '/app/expense-claims', icon: CreditCard, label: 'Expense Claims', access: 'manager' },
+    ],
+  },
+  {
+    group: 'payroll',
+    module: 'payroll',
+    label: 'Time & Leave',
+    items: [
+      { path: '/app/leave', icon: CalendarDays, label: 'Leave', access: 'manager' },
+      { path: '/app/attendance', icon: ClipboardCheck, label: 'Attendance', access: 'manager' },
+      { path: '/app/shifts', icon: Clock, label: 'Shifts', access: 'manager' },
+      { path: '/app/field-tracking', icon: MapPin, label: 'Field Tracking', access: 'manager' },
+    ],
+  },
+  {
+    group: 'payroll',
+    module: 'payroll',
+    label: 'Settings & More',
+    items: [
+      { path: '/app/hr-regions', icon: Globe, label: 'Regions', access: 'manager' },
+      { path: '/app/contracts', icon: FileSignature, label: 'Contracts', access: 'manager' },
+      { path: '/app/approvals', icon: UserCheck, label: 'Approvals', access: 'manager' },
+      { path: '/app/payroll-reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+      { path: '/app/payslip-templates', icon: FileCheck, label: 'Payslips', access: 'manager' },
+      { path: '/app/id-cards', icon: IdCard, label: 'ID Cards', access: 'manager' },
+      { path: '/app/intro-letters', icon: ScrollText, label: 'Letters', access: 'manager' },
+      { path: '/app/payroll-audit', icon: Shield, label: 'Audit Log', access: 'manager' },
+    ],
+  },
+  // ── Reports App ──
+  {
+    group: 'reports',
+    module: 'reports',
+    label: 'Reports',
+    items: [
+      { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
+    ],
+  },
+  // ── Admin App ──
+  {
+    group: 'admin',
     module: 'admin',
     label: 'Admin',
     items: [
-      { path: '/app/reports', icon: BarChart3, label: 'Reports', access: 'manager' },
       { path: '/app/users', icon: Users, label: 'Users', roles: ['admin', 'director', 'stores_manager'] },
       { path: '/app/settings', icon: Settings, label: 'Settings', access: 'manager' },
     ],
   },
 ]
+
+// ── Detect which app group the current path belongs to ──
+const payrollPaths = [
+  '/app/payroll', '/app/hr-employees', '/app/hr-employee',
+  '/app/departments', '/app/job-grades',
+  '/app/payroll-periods', '/app/payroll-runs', '/app/payroll-run',
+  '/app/leave', '/app/attendance',
+  '/app/hr-loans', '/app/salary-advances', '/app/expense-claims',
+  '/app/payroll-reports', '/app/shifts', '/app/hr-regions',
+  '/app/field-tracking', '/app/contracts', '/app/approvals',
+  '/app/payroll-audit', '/app/id-cards', '/app/intro-letters',
+  '/app/payslip-templates', '/app/allowance-types',
+]
+
+const kitchenPaths = ['/app/menu-plan', '/app/daily-groceries', '/app/weekly-groceries', '/app/recipes']
+const barPaths = ['/app/pos', '/app/bar-menu']
+const adminPaths = ['/app/users', '/app/settings']
+const reportPaths = ['/app/reports']
+
+function getActiveGroup(pathname) {
+  if (payrollPaths.some(p => pathname.startsWith(p))) return 'payroll'
+  if (kitchenPaths.some(p => pathname.startsWith(p))) return 'kitchen'
+  if (barPaths.some(p => pathname.startsWith(p))) return 'bar'
+  if (adminPaths.some(p => pathname.startsWith(p))) return 'admin'
+  if (reportPaths.some(p => pathname.startsWith(p))) return 'reports'
+  return 'stores'
+}
 
 function canAccess(item, role) {
   if (item.exclude && item.exclude.includes(role)) return false
@@ -124,7 +198,12 @@ export default function Sidebar() {
     window.location.reload()
   }
 
+  // Determine which app we're in based on the current route
+  const activeGroup = getActiveGroup(location.pathname)
+
+  // Filter: show only sections from the active group + correct module/role access
   const visibleSections = navSections
+    .filter(section => section.group === activeGroup)
     .filter(section => isModuleEnabled(section.module, state.modules))
     .map(section => ({
       ...section,
@@ -193,7 +272,7 @@ export default function Sidebar() {
         </div>
 
         {visibleSections.map((section, sIdx) => (
-          <div key={`${section.id}-${sIdx}`} className="mb-1">
+          <div key={`${section.group}-${sIdx}`} className="mb-1">
             {/* Section label */}
             {!collapsed && (
               <div
