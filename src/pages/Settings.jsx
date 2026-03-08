@@ -92,6 +92,7 @@ export default function Settings() {
           <PrinterConfig toast={toast} />
           <ReceiptConfig toast={toast} />
           <TallyConfig toast={toast} />
+          <DemoDataManager toast={toast} />
         </>
       )}
 
@@ -864,6 +865,172 @@ function ModuleManager({ camps, toast }) {
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+// ── Demo Data Manager ─────────────────────────────
+
+function DemoDataManager({ toast }) {
+  const [sections, setSections] = useState({
+    foundation: true, items: true, hr: true, operations: true, kitchen: true,
+  })
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [seeding, setSeeding] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  useEffect(() => { loadStatus() }, [])
+
+  async function loadStatus() {
+    setLoading(true)
+    try {
+      const res = await rawRequest('seed-demo.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'status' }),
+      })
+      setStatus(res.sections)
+    } catch (e) {
+      console.error('Status check failed:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSeed() {
+    const selected = Object.entries(sections).filter(([,v]) => v).map(([k]) => k)
+    if (!selected.length) return toast.error('Select at least one section')
+    setSeeding(true)
+    try {
+      const res = await rawRequest('seed-demo.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'seed', sections: selected }),
+      })
+      toast.success(`Seeded in ${res.elapsed_seconds}s`)
+      loadStatus()
+    } catch (e) {
+      toast.error('Seed failed: ' + e.message)
+    } finally {
+      setSeeding(false)
+    }
+  }
+
+  async function handleDelete() {
+    const selected = Object.entries(sections).filter(([,v]) => v).map(([k]) => k)
+    if (!selected.length) return toast.error('Select at least one section')
+    setDeleting(true)
+    setConfirmDelete(false)
+    try {
+      const res = await rawRequest('seed-demo.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', sections: selected }),
+      })
+      toast.success(`Deleted in ${res.elapsed_seconds}s`)
+      loadStatus()
+    } catch (e) {
+      toast.error('Delete failed: ' + e.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function toggle(key) {
+    setSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const SECTIONS = [
+    { key: 'foundation', label: 'Foundation', desc: 'Camps, UOMs, Groups, Sub-Categories, Suppliers',
+      stat: s => s ? `${s.camps} camps · ${s.suppliers} suppliers` : null },
+    { key: 'items', label: 'Items & Categories', desc: '~700 items across 22 groups with sub-categories',
+      stat: s => s ? `${s.count} items` : null },
+    { key: 'hr', label: 'HR & Payroll', desc: 'Employees, departments, payroll, leave, attendance',
+      stat: s => s ? `${s.employees} employees · ${s.payroll_runs} payroll runs` : null },
+    { key: 'operations', label: 'Orders & Stock', desc: 'Orders, stock balances across all camps',
+      stat: s => s ? `${s.orders} orders · ${s.dispatches} dispatches` : null },
+    { key: 'kitchen', label: 'Kitchen & Recipes', desc: 'Recipes with ingredient mappings',
+      stat: s => s ? `${s.recipes} recipes · ${s.menus} menus` : null },
+  ]
+
+  if (loading) return <SettingSkeleton icon={TestTube2} title="Demo Data" />
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-1">
+        <TestTube2 size={18} className="text-gray-400" />
+        <h3 className="font-semibold text-gray-900">Demo Data</h3>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">
+        Populate your account with sample data to explore all features, or remove it when done.
+      </p>
+
+      <div className="space-y-2 mb-4">
+        {SECTIONS.map(({ key, label, desc, stat }) => {
+          const s = status?.[key]
+          const isSeeded = s?.seeded
+          return (
+            <label key={key} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer transition">
+              <input
+                type="checkbox"
+                checked={sections[key]}
+                onChange={() => toggle(key)}
+                className="mt-0.5 text-green-600 focus:ring-green-500 rounded"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900">{label}</span>
+                  <span className={`w-2 h-2 rounded-full ${isSeeded ? 'bg-green-500' : 'bg-gray-300'}`} />
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                {isSeeded && stat(s) && (
+                  <p className="text-xs text-green-600 mt-0.5">{stat(s)}</p>
+                )}
+              </div>
+            </label>
+          )
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handleSeed}
+          disabled={seeding || deleting}
+          className="inline-flex items-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+        >
+          {seeding ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
+          {seeding ? 'Seeding...' : 'Seed Selected'}
+        </button>
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            disabled={seeding || deleting}
+            className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50"
+          >
+            <Trash2 size={14} /> Delete Selected
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {deleting ? 'Deleting...' : 'Confirm Delete'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-400 mt-3">
+        Data is seeded into your current account. Delete only removes demo-seeded data.
+      </p>
     </div>
   )
 }
