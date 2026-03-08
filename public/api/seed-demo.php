@@ -213,18 +213,18 @@ function seedFoundation(PDO $pdo, int $tid): array {
     $existingCodes = $existingCamps->fetchAll(PDO::FETCH_COLUMN);
 
     $newCamps = [
-        ['TAR', 'Tarangire Wilderness Lodge', 'Tarangire', 'camp'],
-        ['NGO', 'Ngorongoro Crater Lodge', 'Ngorongoro', 'camp'],
-        ['SRN', 'Serengeti North Camp', 'Serengeti', 'camp'],
-        ['SRS', 'Serengeti South Camp', 'Serengeti', 'camp'],
-        ['SRW', 'Serengeti West Camp', 'Serengeti', 'camp'],
+        ['TAR', 'Tarangire Wilderness Lodge', 'camp'],
+        ['NGO', 'Ngorongoro Crater Lodge', 'camp'],
+        ['SRN', 'Serengeti North Camp', 'camp'],
+        ['SRS', 'Serengeti South Camp', 'camp'],
+        ['SRW', 'Serengeti West Camp', 'camp'],
     ];
 
-    $campStmt = $pdo->prepare("INSERT INTO camps (tenant_id, code, name, location, type, is_active, created_at) VALUES (?,?,?,?,?,1,NOW())");
+    $campStmt = $pdo->prepare("INSERT INTO camps (tenant_id, code, name, type, is_active) VALUES (?,?,?,?,1)");
     $inserted = 0;
     foreach ($newCamps as $c) {
         if (!in_array($c[0], $existingCodes)) {
-            $campStmt->execute([$tid, $c[0], $c[1], $c[2], $c[3]]);
+            $campStmt->execute([$tid, $c[0], $c[1], $c[2]]);
             $inserted++;
         }
     }
@@ -241,7 +241,7 @@ function seedFoundation(PDO $pdo, int $tid): array {
         ['CN','Can'],['BG','Bag'],['RL','Roll'],['DZ','Dozen'],
         ['PR','Pair'],['ST','Set'],['CS','Case'],
     ];
-    $uomStmt = $pdo->prepare("INSERT INTO units_of_measure (tenant_id, code, name, created_at) VALUES (?,?,?,NOW())");
+    $uomStmt = $pdo->prepare("INSERT INTO units_of_measure (tenant_id, code, name) VALUES (?,?,?)");
     $ins = 0;
     foreach ($uoms as $u) {
         if (!in_array($u[0], $existUomCodes)) { $uomStmt->execute([$tid, $u[0], $u[1]]); $ins++; }
@@ -737,8 +737,8 @@ function seedItems(PDO $pdo, int $tid): array {
     $itemStmt = $pdo->prepare("
         INSERT INTO items (tenant_id, item_code, name, item_group_id, sub_category_id, stock_uom_id,
             purchase_uom_id, issue_uom_id, last_purchase_price, abc_class, storage_type,
-            is_perishable, is_critical, is_active, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,NOW())
+            is_perishable, is_critical, is_active)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)
     ");
 
     $count = 0;
@@ -985,7 +985,7 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
 
     $sbStmt = $pdo->prepare("
         INSERT INTO stock_balances (tenant_id, camp_id, item_id, current_qty, current_value, unit_cost,
-            par_level, min_level, max_level, stock_status, created_at)
+            par_level, min_level, max_level, stock_status, updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,NOW())
     ");
 
