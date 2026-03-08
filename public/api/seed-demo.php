@@ -222,6 +222,9 @@ function doSeed(PDO $pdo, int $tid, array $sections, int $userId): array {
     $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
     $stats = [];
 
+    // Ensure schema supports 3-char sub-category codes
+    try { $pdo->exec("ALTER TABLE item_sub_categories MODIFY COLUMN code VARCHAR(10) NOT NULL"); } catch (Exception $e) {}
+
     try {
         if (in_array('foundation', $sections)) {
             $stats['foundation'] = seedFoundation($pdo, $tid);
@@ -250,6 +253,11 @@ function doSeed(PDO $pdo, int $tid, array $sections, int $userId): array {
 // ═══════════════════════════════════════════════════
 function seedFoundation(PDO $pdo, int $tid): array {
     $stats = [];
+
+    // -- Ensure sub-category code column is wide enough for 3-char codes --
+    try {
+        $pdo->exec("ALTER TABLE item_sub_categories MODIFY COLUMN code VARCHAR(10) NOT NULL");
+    } catch (Exception $e) { /* ignore if already correct */ }
 
     // -- Camps (skip HO which already exists) --
     $existingCamps = $pdo->prepare("SELECT code FROM camps WHERE tenant_id = ?");
