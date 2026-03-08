@@ -76,19 +76,6 @@ function getStatus(PDO $pdo, int $tid): array {
     $recipes = $count('kitchen_recipes');
     $menus = $count('kitchen_menu_plans');
 
-    // Debug: check UOMs, sub-categories, and item FK values
-    $uomCount = $count('units_of_measure');
-    $subCatCount = $count('item_sub_categories');
-    $grpCount = $count('item_groups');
-
-    // Check a sample item's raw FK values
-    $sampleItem = null;
-    try {
-        $s = $pdo->prepare("SELECT id, name, item_group_id, sub_category_id, stock_uom_id FROM items WHERE tenant_id = ? LIMIT 1");
-        $s->execute([$tid]);
-        $sampleItem = $s->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) { $sampleItem = ['error' => $e->getMessage()]; }
-
     return [
         'sections' => [
             'foundation' => ['seeded' => $suppliers > 10, 'camps' => $camps, 'users' => $users, 'suppliers' => $suppliers],
@@ -96,12 +83,6 @@ function getStatus(PDO $pdo, int $tid): array {
             'hr' => ['seeded' => $employees > 10, 'employees' => $employees, 'payroll_runs' => $payrollRuns],
             'operations' => ['seeded' => $orders > 10, 'orders' => $orders, 'dispatches' => $dispatches],
             'kitchen' => ['seeded' => $recipes > 10, 'recipes' => $recipes, 'menus' => $menus],
-        ],
-        'debug' => [
-            'uoms' => $uomCount,
-            'sub_categories' => $subCatCount,
-            'item_groups' => $grpCount,
-            'sample_item' => $sampleItem,
         ],
     ];
 }
@@ -821,31 +802,11 @@ function seedItems(PDO $pdo, int $tid): array {
         $count++;
     }
 
-    // Debug: check first item in DB after insert
-    $dbCheck = null;
-    try {
-        $chk = $pdo->prepare("SELECT id, item_code, sub_category_id, stock_uom_id, item_group_id FROM items WHERE tenant_id = ? AND item_code = 'ITM-0002' LIMIT 1");
-        $chk->execute([$tid]);
-        $dbCheck = $chk->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) { $dbCheck = ['error' => $e->getMessage()]; }
-
-    // Capture first 5 subIds for debugging
-    $sampleSubIds = array_slice($subIds, 0, 5, true);
-    // Capture the first item's sid value
-    $firstItem = $allItems[0] ?? null;
-    $firstSubCode = $firstItem ? $firstItem[2] : null;
-    $firstSid = $firstSubCode ? ($subIds[$firstSubCode] ?? 'NOT_FOUND') : 'NO_ITEM';
-
     return [
         'items_inserted' => $count,
         'groups_found' => count($grpIds),
         'subcats_found' => count($subIds),
         'uoms_found' => count($uomIds),
-        'kg_uom_id' => $kg,
-        'debug_sample_subIds' => $sampleSubIds,
-        'debug_first_subCode' => $firstSubCode,
-        'debug_first_sid' => $firstSid,
-        'debug_db_check' => $dbCheck,
     ];
 }
 
