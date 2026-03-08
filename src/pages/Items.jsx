@@ -20,6 +20,7 @@ export default function Items() {
   const [filters, setFilters] = useState(() => loadFilters('items', {
     search: '',
     group: '',
+    sub_category: '',
     abc_class: '',
     storage_type: '',
     page: 1,
@@ -27,8 +28,8 @@ export default function Items() {
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    saveFilters('items', { search: filters.search, group: filters.group, abc_class: filters.abc_class, storage_type: filters.storage_type })
-  }, [filters.search, filters.group, filters.abc_class, filters.storage_type])
+    saveFilters('items', { search: filters.search, group: filters.group, sub_category: filters.sub_category, abc_class: filters.abc_class, storage_type: filters.storage_type })
+  }, [filters.search, filters.group, filters.sub_category, filters.abc_class, filters.storage_type])
 
   useEffect(() => {
     loadItems()
@@ -43,6 +44,7 @@ export default function Items() {
         per_page: 25,
         search: filters.search,
         group: filters.group,
+        sub_category: filters.sub_category,
         abc_class: filters.abc_class,
         storage_type: filters.storage_type,
       })
@@ -62,7 +64,7 @@ export default function Items() {
     setFilters(prev => ({ ...prev, [key]: value, page: 1 }))
   }
 
-  const activeFilterCount = [filters.group, filters.abc_class, filters.storage_type].filter(Boolean).length
+  const activeFilterCount = [filters.group, filters.sub_category, filters.abc_class, filters.storage_type].filter(Boolean).length
 
   return (
     <div>
@@ -123,18 +125,35 @@ export default function Items() {
       {/* Filters Panel */}
       {showFilters && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Item Group</label>
               <select
                 value={filters.group}
-                onChange={(e) => handleFilter('group', e.target.value)}
+                onChange={(e) => {
+                  setFilters(prev => ({ ...prev, group: e.target.value, sub_category: '', page: 1 }))
+                }}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
               >
                 <option value="">All Groups</option>
                 {data?.groups?.map(g => (
                   <option key={g.id} value={g.id}>{g.code} — {g.name}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Sub-Category</label>
+              <select
+                value={filters.sub_category}
+                onChange={(e) => handleFilter('sub_category', e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+              >
+                <option value="">All Sub-Categories</option>
+                {(data?.sub_categories || [])
+                  .filter(s => !filters.group || s.item_group_id == filters.group)
+                  .map(s => (
+                    <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
+                  ))}
               </select>
             </div>
             <div>
@@ -167,7 +186,7 @@ export default function Items() {
           </div>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => setFilters(prev => ({ ...prev, group: '', abc_class: '', storage_type: '', page: 1 }))}
+              onClick={() => setFilters(prev => ({ ...prev, group: '', sub_category: '', abc_class: '', storage_type: '', page: 1 }))}
               className="mt-3 text-sm text-red-600 hover:text-red-700 font-medium"
             >
               Clear all filters
@@ -206,6 +225,7 @@ export default function Items() {
                       <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Code</th>
                       <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Item Name</th>
                       <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Group</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Sub-Cat</th>
                       <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">UOM</th>
                       <th className="text-center text-xs font-medium text-gray-500 px-4 py-3">ABC</th>
                       <th className="text-center text-xs font-medium text-gray-500 px-4 py-3">Storage</th>
@@ -228,6 +248,9 @@ export default function Items() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-gray-500">{item.group_code}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-gray-500">{item.sub_cat_name || '—'}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-gray-500">{item.stock_uom}</span>
@@ -271,8 +294,14 @@ export default function Items() {
                         {item.is_critical && <span className="text-red-500 text-xs">●</span>}
                       </div>
                       <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-xs text-gray-400">{item.group_name}</span>
+                        {item.sub_cat_name && (
+                          <>
+                            <span className="text-xs text-gray-300">›</span>
+                            <span className="text-xs text-gray-400">{item.sub_cat_name}</span>
+                          </>
+                        )}
                         <span className="text-xs text-gray-300">·</span>
                         <span className="text-xs text-gray-400">{item.stock_uom}</span>
                         {item.last_purchase_price && (

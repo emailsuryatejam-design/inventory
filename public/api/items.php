@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $search = trim($_GET['search'] ?? '');
     $groupId = $_GET['group'] ?? '';
     $abcClass = $_GET['abc_class'] ?? '';
+    $subCategoryId = $_GET['sub_category'] ?? '';
     $storageType = $_GET['storage_type'] ?? '';
     $active = $_GET['active'] ?? '1';
 
@@ -51,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($groupId) {
         $where[] = 'i.item_group_id = ?';
         $params[] = (int) $groupId;
+    }
+
+    if ($subCategoryId) {
+        $where[] = 'i.sub_category_id = ?';
+        $params[] = (int) $subCategoryId;
     }
 
     if ($abcClass && in_array($abcClass, ['A', 'B', 'C'])) {
@@ -104,6 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Load item groups for filter dropdown (tenant-filtered)
     $groups = getTenantItemGroups($pdo, $tenantId);
 
+    // Load sub-categories for filter dropdown
+    $subCatStmt = $pdo->prepare("SELECT id, code, name, item_group_id FROM item_sub_categories WHERE tenant_id = ? ORDER BY name");
+    $subCatStmt->execute([$tenantId]);
+    $subCats = $subCatStmt->fetchAll();
+
     jsonResponse([
         'items' => array_map(function($i) {
             return [
@@ -137,6 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'groups' => array_map(function($g) {
             return ['id' => (int) $g['id'], 'code' => $g['code'], 'name' => $g['name']];
         }, $groups),
+        'sub_categories' => array_map(function($s) {
+            return ['id' => (int) $s['id'], 'code' => $s['code'], 'name' => $s['name'], 'item_group_id' => (int) $s['item_group_id']];
+        }, $subCats),
         'pagination' => [
             'page' => $page,
             'per_page' => $perPage,

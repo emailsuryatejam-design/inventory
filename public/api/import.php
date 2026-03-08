@@ -116,6 +116,10 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
     $groupStmt->execute([$tenantId]);
     $groupMap = array_column($groupStmt->fetchAll(), 'id', 'code'); // code => id
 
+    $subCatStmt = $pdo->prepare("SELECT id, code FROM item_sub_categories WHERE tenant_id = ?");
+    $subCatStmt->execute([$tenantId]);
+    $subCatMap = array_column($subCatStmt->fetchAll(), 'id', 'code'); // code => id
+
     $uomStmt = $pdo->prepare("SELECT id, code FROM units_of_measure WHERE tenant_id = ?");
     $uomStmt->execute([$tenantId]);
     $uomMap = array_column($uomStmt->fetchAll(), 'id', 'code'); // code => id
@@ -159,6 +163,16 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
             $groupId = $groupMap[$groupCode] ?? null;
             if (!$groupId) {
                 $rowErrors[] = "Unknown group code: '{$groupCode}'";
+            }
+        }
+
+        // Sub-category code validation
+        $subCategoryId = null;
+        $subCatCode = $row['Sub Category Code'] ?? '';
+        if ($subCatCode) {
+            $subCategoryId = $subCatMap[$subCatCode] ?? null;
+            if (!$subCategoryId) {
+                $rowErrors[] = "Unknown sub-category code: '{$subCatCode}'";
             }
         }
 
@@ -214,6 +228,7 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
                 'name' => $name,
                 'description' => $row['Description'] ?? null,
                 'group_id' => $groupId,
+                'sub_category_id' => $subCategoryId,
                 'stock_uom_id' => $stockUomId,
                 'purchase_uom_id' => $purchaseUomId ?: $stockUomId,
                 'issue_uom_id' => $issueUomId ?: $stockUomId,
@@ -239,6 +254,7 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
             'errors' => array_slice($errors, 0, 50),
             'preview' => array_slice(array_map(fn($v) => $v['row'], $valid), 0, 10),
             'available_groups' => array_keys($groupMap),
+            'available_sub_categories' => array_keys($subCatMap),
             'available_uoms' => array_keys($uomMap),
         ];
     }
@@ -250,12 +266,12 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
         $stmt = $pdo->prepare("
             INSERT INTO items (
                 tenant_id, item_code, name, description,
-                item_group_id, stock_uom_id, purchase_uom_id, issue_uom_id,
+                item_group_id, sub_category_id, stock_uom_id, purchase_uom_id, issue_uom_id,
                 abc_class, storage_type,
                 is_perishable, is_critical,
                 shelf_life_days, min_order_qty, standard_pack_size,
                 is_active, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
         ");
 
         // Auto-generate item codes if needed
@@ -273,6 +289,7 @@ function processItemsImport(PDO $pdo, int $tenantId, array $rows, string $mode, 
                 $v['name'],
                 $v['description'],
                 $v['group_id'],
+                $v['sub_category_id'],
                 $v['stock_uom_id'],
                 $v['purchase_uom_id'],
                 $v['issue_uom_id'],

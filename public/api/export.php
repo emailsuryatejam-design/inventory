@@ -163,12 +163,12 @@ switch ($type) {
         $entity = trim($_GET['entity'] ?? 'items');
         $templates = [
             'items' => [
-                'headers' => ['Item Code', 'Name', 'Description', 'Group Code',
+                'headers' => ['Item Code', 'Name', 'Description', 'Group Code', 'Sub Category Code',
                               'Stock UOM Code', 'Purchase UOM Code', 'Issue UOM Code',
                               'ABC Class', 'Storage Type',
                               'Is Perishable', 'Is Critical',
                               'Shelf Life Days', 'Min Order Qty', 'Standard Pack Size'],
-                'example' => ['ITM-001', 'Rice Basmati 5kg', 'Premium basmati rice', 'DRY',
+                'example' => ['ITM-001', 'Rice Basmati 5kg', 'Premium basmati rice', 'DRY', 'GRAINS',
                               'KG', 'KG', 'KG',
                               'A', 'ambient',
                               'No', 'No',

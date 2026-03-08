@@ -62,7 +62,11 @@ export default function ItemNew() {
   }
 
   function handleChange(field, value) {
-    setForm(prev => ({ ...prev, [field]: value }))
+    if (field === 'item_group_id') {
+      setForm(prev => ({ ...prev, item_group_id: value, sub_category_id: '' }))
+    } else {
+      setForm(prev => ({ ...prev, [field]: value }))
+    }
   }
 
   async function handleSubmit(e) {
@@ -131,7 +135,9 @@ export default function ItemNew() {
           <Field label="Sub-Category">
             <select value={form.sub_category_id} onChange={e => handleChange('sub_category_id', e.target.value)} className="input-field">
               <option value="">None</option>
-              {subCategories.map(s => <option key={s.id} value={s.id}>{s.code} — {s.name}</option>)}
+              {subCategories
+                .filter(s => !form.item_group_id || s.item_group_id == form.item_group_id)
+                .map(s => <option key={s.id} value={s.id}>{s.code} — {s.name}</option>)}
             </select>
           </Field>
         </Section>

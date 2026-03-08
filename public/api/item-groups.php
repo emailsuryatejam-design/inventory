@@ -50,10 +50,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 }
 
-// ── POST — Create Item Group ──
+// ── POST — Create Item Group or Sub-Category ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireManager();
     $input = getJsonInput();
+    $entity = $input['entity'] ?? ($_GET['entity'] ?? 'group');
+
+    if ($entity === 'sub_category') {
+        // ── Create Sub-Category ──
+        requireFields($input, ['name', 'item_group_id']);
+
+        // Validate group exists within tenant
+        $groupCheck = $pdo->prepare("SELECT id FROM item_groups WHERE id = ? AND tenant_id = ?");
+        $groupCheck->execute([(int) $input['item_group_id'], $tenantId]);
+        if (!$groupCheck->fetch()) {
+            jsonError('Invalid item group', 400);
+        }
+
+        // Auto-generate code if not provided
+        $code = trim($input['code'] ?? '');
+        if (!$code) {
+            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM item_sub_categories WHERE tenant_id = ?");
+            $countStmt->execute([$tenantId]);
+            $count = (int) $countStmt->fetchColumn();
+            $code = 'SC-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+        }
+
+        // Check code uniqueness within tenant
+        $check = $pdo->prepare("SELECT id FROM item_sub_categories WHERE code = ? AND tenant_id = ?");
+        $check->execute([$code, $tenantId]);
+        if ($check->fetch()) {
+            jsonError('Sub-category code already exists', 400);
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO item_sub_categories (tenant_id, code, name, item_group_id)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([$tenantId, $code, trim($input['name']), (int) $input['item_group_id']]);
+
+        jsonResponse([
+            'success' => true,
+            'sub_category' => [
+                'id' => (int) $pdo->lastInsertId(),
+                'code' => $code,
+                'name' => trim($input['name']),
+                'item_group_id' => (int) $input['item_group_id'],
+            ],
+        ], 201);
+        exit;
+    }
+
+    // ── Create Item Group (default) ──
     requireFields($input, ['name']);
 
     // Auto-generate code if not provided
