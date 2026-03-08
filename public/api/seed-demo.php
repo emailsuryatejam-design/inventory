@@ -813,12 +813,31 @@ function seedItems(PDO $pdo, int $tid): array {
         $count++;
     }
 
+    // Debug: check first item in DB after insert
+    $dbCheck = null;
+    try {
+        $chk = $pdo->prepare("SELECT id, item_code, sub_category_id, stock_uom_id, item_group_id FROM items WHERE tenant_id = ? AND item_code = 'ITM-0002' LIMIT 1");
+        $chk->execute([$tid]);
+        $dbCheck = $chk->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { $dbCheck = ['error' => $e->getMessage()]; }
+
+    // Capture first 5 subIds for debugging
+    $sampleSubIds = array_slice($subIds, 0, 5, true);
+    // Capture the first item's sid value
+    $firstItem = $allItems[0] ?? null;
+    $firstSubCode = $firstItem ? $firstItem[2] : null;
+    $firstSid = $firstSubCode ? ($subIds[$firstSubCode] ?? 'NOT_FOUND') : 'NO_ITEM';
+
     return [
         'items_inserted' => $count,
         'groups_found' => count($grpIds),
         'subcats_found' => count($subIds),
         'uoms_found' => count($uomIds),
         'kg_uom_id' => $kg,
+        'debug_sample_subIds' => $sampleSubIds,
+        'debug_first_subCode' => $firstSubCode,
+        'debug_first_sid' => $firstSid,
+        'debug_db_check' => $dbCheck,
     ];
 }
 
