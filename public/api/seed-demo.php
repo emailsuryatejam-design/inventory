@@ -995,7 +995,7 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
     $items = $itemStmt->fetchAll();
     if (empty($items)) return ['skipped' => true, 'reason' => 'No items to create orders for'];
 
-    $campCodes = ['TAR','NGO','SRN','SRS','SRW'];
+    $campCodes = array_keys($campIds); // Include ALL camps (HO + seeded camps)
     $stats = ['orders' => 0, 'order_lines' => 0];
 
     // Create ~100 camp orders over 12 months
@@ -1009,6 +1009,9 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
         VALUES (?,?,?,?,?,'auto_approved','approved')
     ");
 
+    // Order statuses for realistic demo data
+    $statusPool = ['submitted','pending_review','approved','completed'];
+
     for ($m = 11; $m >= 0; $m--) {
         foreach ($campCodes as $ci => $cc) {
             // 2 orders per camp per month
@@ -1016,7 +1019,14 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
                 $day = rand(1, 28);
                 $date = date('Y-m-d', strtotime("-{$m} months +{$day} days"));
                 $orderNum = 'ORD-' . $cc . '-' . date('ym', strtotime($date)) . '-' . str_pad($stats['orders'] + 1, 4, '0', STR_PAD_LEFT);
-                $status = $m > 0 ? 'completed' : 'draft';
+                // Varied statuses: old months completed, recent months mixed
+                if ($m > 2) {
+                    $status = 'completed';
+                } elseif ($m > 0) {
+                    $status = $statusPool[array_rand($statusPool)];
+                } else {
+                    $status = ['draft','submitted','pending_review'][rand(0,2)];
+                }
                 $lineCount = rand(10, 25);
                 $totalValue = 0;
 
