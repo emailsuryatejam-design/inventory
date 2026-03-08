@@ -349,6 +349,39 @@ export default function Sidebar() {
           )}
         </button>
 
+        {/* Settings — always visible for managers/admins */}
+        {isManager(user?.role) && (
+          <div className="px-2 mb-1">
+            <NavLink
+              to="/app/settings"
+              title={collapsed ? 'Settings' : undefined}
+              className={`group flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
+              }`}
+              style={{
+                color: location.pathname.startsWith('/app/settings') ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
+                backgroundColor: location.pathname.startsWith('/app/settings') ? 'var(--sidebar-active)' : 'transparent',
+                borderLeft: location.pathname.startsWith('/app/settings') && !collapsed ? '3px solid var(--sidebar-accent)' : '3px solid transparent',
+              }}
+              onMouseEnter={e => {
+                if (!location.pathname.startsWith('/app/settings')) {
+                  e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'
+                  e.currentTarget.style.color = 'var(--sidebar-text-active)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!location.pathname.startsWith('/app/settings')) {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                  e.currentTarget.style.color = 'var(--sidebar-text)'
+                }
+              }}
+            >
+              <Settings size={collapsed ? 20 : 18} className="shrink-0" />
+              {!collapsed && <span className="truncate">Settings</span>}
+            </NavLink>
+          </div>
+        )}
+
         {/* User + Logout */}
         <div className="px-3 py-2">
           <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''} mb-2`}>
