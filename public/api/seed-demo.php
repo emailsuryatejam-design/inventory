@@ -76,6 +76,19 @@ function getStatus(PDO $pdo, int $tid): array {
     $recipes = $count('kitchen_recipes');
     $menus = $count('kitchen_menu_plans');
 
+    // Debug: check UOMs, sub-categories, and item FK values
+    $uomCount = $count('units_of_measure');
+    $subCatCount = $count('item_sub_categories');
+    $grpCount = $count('item_groups');
+
+    // Check a sample item's raw FK values
+    $sampleItem = null;
+    try {
+        $s = $pdo->prepare("SELECT id, name, item_group_id, sub_category_id, stock_uom_id FROM items WHERE tenant_id = ? LIMIT 1");
+        $s->execute([$tid]);
+        $sampleItem = $s->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { $sampleItem = ['error' => $e->getMessage()]; }
+
     return [
         'sections' => [
             'foundation' => ['seeded' => $suppliers > 10, 'camps' => $camps, 'users' => $users, 'suppliers' => $suppliers],
@@ -83,6 +96,12 @@ function getStatus(PDO $pdo, int $tid): array {
             'hr' => ['seeded' => $employees > 10, 'employees' => $employees, 'payroll_runs' => $payrollRuns],
             'operations' => ['seeded' => $orders > 10, 'orders' => $orders, 'dispatches' => $dispatches],
             'kitchen' => ['seeded' => $recipes > 10, 'recipes' => $recipes, 'menus' => $menus],
+        ],
+        'debug' => [
+            'uoms' => $uomCount,
+            'sub_categories' => $subCatCount,
+            'item_groups' => $grpCount,
+            'sample_item' => $sampleItem,
         ],
     ];
 }
@@ -255,29 +274,23 @@ function seedFoundation(PDO $pdo, int $tid): array {
     }
     $stats['camps'] = $inserted;
 
-    // -- UOMs --
-    $existUoms = $pdo->prepare("SELECT code FROM units_of_measure WHERE tenant_id = ?");
-    $existUoms->execute([$tid]);
-    $existUomCodes = $existUoms->fetchAll(PDO::FETCH_COLUMN);
-
+    // -- UOMs (upsert to handle cross-tenant unique constraints) --
     $uoms = [
         ['KG','Kilogram'],['G','Gram'],['L','Litre'],['ML','Millilitre'],
         ['PC','Piece'],['PK','Pack'],['BX','Box'],['BT','Bottle'],
         ['CN','Can'],['BG','Bag'],['RL','Roll'],['DZ','Dozen'],
         ['PR','Pair'],['ST','Set'],['CS','Case'],
     ];
-    $uomStmt = $pdo->prepare("INSERT IGNORE INTO units_of_measure (tenant_id, code, name) VALUES (?,?,?)");
-    $ins = 0;
+    $uomStmt = $pdo->prepare("
+        INSERT INTO units_of_measure (tenant_id, code, name) VALUES (?,?,?)
+        ON DUPLICATE KEY UPDATE tenant_id = VALUES(tenant_id), name = VALUES(name)
+    ");
     foreach ($uoms as $u) {
-        if (!in_array($u[0], $existUomCodes)) { $uomStmt->execute([$tid, $u[0], $u[1]]); $ins++; }
+        $uomStmt->execute([$tid, $u[0], $u[1]]);
     }
-    $stats['uoms'] = $ins;
+    $stats['uoms'] = count($uoms);
 
-    // -- Item Groups --
-    $existGroups = $pdo->prepare("SELECT code FROM item_groups WHERE tenant_id = ?");
-    $existGroups->execute([$tid]);
-    $existGroupCodes = $existGroups->fetchAll(PDO::FETCH_COLUMN);
-
+    // -- Item Groups (upsert) --
     $groups = [
         ['FP','Fresh Produce'],['MP','Meat & Poultry'],['DE','Dairy & Eggs'],
         ['DG','Dry Goods & Grains'],['CP','Canned & Preserved'],['SC','Spices & Condiments'],
@@ -287,19 +300,17 @@ function seedFoundation(PDO $pdo, int $tid): array {
         ['LT','Linen & Textiles'],['MF','Medical & First Aid'],['FE','Fuel & Energy'],
         ['SE','Safari Equipment'],['LN','Laundry'],['PK','Packaging'],['GL','Gardening'],
     ];
-    $grpStmt = $pdo->prepare("INSERT IGNORE INTO item_groups (tenant_id, code, name) VALUES (?,?,?)");
-    $ins = 0;
+    $grpStmt = $pdo->prepare("
+        INSERT INTO item_groups (tenant_id, code, name) VALUES (?,?,?)
+        ON DUPLICATE KEY UPDATE tenant_id = VALUES(tenant_id), name = VALUES(name)
+    ");
     foreach ($groups as $g) {
-        if (!in_array($g[0], $existGroupCodes)) { $grpStmt->execute([$tid, $g[0], $g[1]]); $ins++; }
+        $grpStmt->execute([$tid, $g[0], $g[1]]);
     }
-    $stats['item_groups'] = $ins;
+    $stats['item_groups'] = count($groups);
 
-    // -- Sub-Categories --
-    $existSub = $pdo->prepare("SELECT code FROM item_sub_categories WHERE tenant_id = ?");
-    $existSub->execute([$tid]);
-    $existSubCodes = $existSub->fetchAll(PDO::FETCH_COLUMN);
-
-    // Get group IDs
+    // -- Sub-Categories (upsert) --
+    // Get group IDs (just created/updated above)
     $grpIds = [];
     $gs = $pdo->prepare("SELECT id, code FROM item_groups WHERE tenant_id = ?");
     $gs->execute([$tid]);
@@ -330,16 +341,17 @@ function seedFoundation(PDO $pdo, int $tid): array {
         ['GL', [['FRT2','Fertilizers'],['GTL','Garden Tools'],['IRG','Irrigation']]],
     ];
 
-    $subStmt = $pdo->prepare("INSERT IGNORE INTO item_sub_categories (tenant_id, code, name, item_group_id) VALUES (?,?,?,?)");
+    $subStmt = $pdo->prepare("
+        INSERT INTO item_sub_categories (tenant_id, code, name, item_group_id) VALUES (?,?,?,?)
+        ON DUPLICATE KEY UPDATE tenant_id = VALUES(tenant_id), name = VALUES(name), item_group_id = VALUES(item_group_id)
+    ");
     $ins = 0;
     foreach ($subCats as [$grpCode, $subs]) {
         $gid = $grpIds[$grpCode] ?? null;
         if (!$gid) continue;
         foreach ($subs as [$code, $name]) {
-            if (!in_array($code, $existSubCodes)) {
-                $subStmt->execute([$tid, $code, $name, $gid]);
-                $ins++;
-            }
+            $subStmt->execute([$tid, $code, $name, $gid]);
+            $ins++;
         }
     }
     $stats['sub_categories'] = $ins;
@@ -393,22 +405,43 @@ function seedItems(PDO $pdo, int $tid): array {
     $cnt->execute([$tid]);
     if ((int)$cnt->fetchColumn() > 100) return ['skipped' => true, 'reason' => 'Items already exist'];
 
-    // Get group & sub-category IDs
+    // Get group & sub-category IDs (tenant-specific, with global fallback)
     $grpIds = [];
     $gs = $pdo->prepare("SELECT id, code FROM item_groups WHERE tenant_id = ?");
     $gs->execute([$tid]);
     foreach ($gs->fetchAll() as $r) $grpIds[$r['code']] = (int)$r['id'];
+    // Fallback: check all tenants if some groups are missing
+    if (count($grpIds) < 22) {
+        $gsAll = $pdo->query("SELECT id, code FROM item_groups ORDER BY id DESC");
+        foreach ($gsAll->fetchAll() as $r) {
+            if (!isset($grpIds[$r['code']])) $grpIds[$r['code']] = (int)$r['id'];
+        }
+    }
 
     $subIds = [];
     $ss = $pdo->prepare("SELECT id, code FROM item_sub_categories WHERE tenant_id = ?");
     $ss->execute([$tid]);
     foreach ($ss->fetchAll() as $r) $subIds[$r['code']] = (int)$r['id'];
+    // Fallback: check all tenants if some sub-categories are missing
+    if (count($subIds) < 50) {
+        $ssAll = $pdo->query("SELECT id, code FROM item_sub_categories ORDER BY id DESC");
+        foreach ($ssAll->fetchAll() as $r) {
+            if (!isset($subIds[$r['code']])) $subIds[$r['code']] = (int)$r['id'];
+        }
+    }
 
-    // Get UOM IDs
+    // Get UOM IDs (tenant-specific, with global fallback)
     $uomIds = [];
     $us = $pdo->prepare("SELECT id, code FROM units_of_measure WHERE tenant_id = ?");
     $us->execute([$tid]);
     foreach ($us->fetchAll() as $r) $uomIds[$r['code']] = (int)$r['id'];
+    // Fallback: check all tenants if some UOMs are missing
+    if (count($uomIds) < 15) {
+        $usAll = $pdo->query("SELECT id, code FROM units_of_measure ORDER BY id DESC");
+        foreach ($usAll->fetchAll() as $r) {
+            if (!isset($uomIds[$r['code']])) $uomIds[$r['code']] = (int)$r['id'];
+        }
+    }
 
     $kg = $uomIds['KG'] ?? null; $g = $uomIds['G'] ?? null;
     $l = $uomIds['L'] ?? null; $ml = $uomIds['ML'] ?? null;
@@ -780,7 +813,13 @@ function seedItems(PDO $pdo, int $tid): array {
         $count++;
     }
 
-    return ['items_inserted' => $count];
+    return [
+        'items_inserted' => $count,
+        'groups_found' => count($grpIds),
+        'subcats_found' => count($subIds),
+        'uoms_found' => count($uomIds),
+        'kg_uom_id' => $kg,
+    ];
 }
 
 // ═══════════════════════════════════════════════════
@@ -836,12 +875,24 @@ function seedHR(PDO $pdo, int $tid, int $userId): array {
     $cs->execute([$tid]);
     foreach ($cs->fetchAll() as $r) $campIds[$r['code']] = (int)$r['id'];
 
+    // Job titles by department
+    $jobTitles = [
+        'KIT' => ['Head Chef','Sous Chef','Chef de Partie','Line Cook','Kitchen Helper','Pastry Chef','Kitchen Porter'],
+        'HSK' => ['Head Housekeeper','Room Attendant','Laundry Attendant','Public Area Cleaner','Linen Keeper'],
+        'FO'  => ['Front Office Manager','Receptionist','Guest Relations Officer','Concierge','Night Auditor'],
+        'MNT' => ['Maintenance Manager','Electrician','Plumber','Groundskeeper','Handyman','Pool Technician'],
+        'SAF' => ['Safari Guide','Head Guide','Naturalist','Tracker','Activity Coordinator','Driver Guide'],
+        'BAR' => ['Head Barman','Bartender','Sommelier','Barista','Waiter','Restaurant Supervisor'],
+        'ADM' => ['Office Manager','Accountant','HR Officer','Stores Manager','Procurement Officer','IT Support'],
+        'TRP' => ['Fleet Manager','Driver','Mechanic','Logistics Coordinator','Pilot'],
+    ];
+
     // Employees (~80)
     $empStmt = $pdo->prepare("
         INSERT IGNORE INTO hr_employees (tenant_id, employee_no, first_name, last_name, email, phone,
-            department_id, job_grade_id, employment_type, employment_status,
+            department_id, job_grade_id, job_title, employment_type, employment_status,
             gender, basic_salary, hire_date, camp_id, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())
     ");
 
     $firstNames_m = ['Joseph','Emmanuel','Peter','John','James','Michael','David','Daniel','Frank','George',
@@ -871,9 +922,14 @@ function seedHR(PDO $pdo, int $tid, int $userId): array {
         $salary = rand($jgs[$grade-1][2], $jgs[$grade-1][3]);
         $hireDate = date('Y-m-d', strtotime('-' . rand(30, 400) . ' days'));
 
+        // Pick a job title based on department and grade
+        $deptTitles = $jobTitles[$dept] ?? ['Staff'];
+        $titleIdx = $grade <= 3 ? 0 : ($grade <= 4 ? min(1, count($deptTitles)-1) : array_rand($deptTitles));
+        $jobTitle = $deptTitles[$titleIdx];
+
         $empStmt->execute([
             $tid, $empNo, $fn, $ln, $email, $phone,
-            $deptIds[$dept], $jgIds[$grade], 'full_time', 'active',
+            $deptIds[$dept], $jgIds[$grade], $jobTitle, 'full_time', 'active',
             $isFemale ? 'female' : 'male', $salary, $hireDate,
             $campIds[$camp] ?? null,
         ]);
