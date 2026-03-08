@@ -1058,6 +1058,184 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
         }
     }
 
+    // ── Issue Vouchers ──
+    $costCenterIds = [];
+    $ccStmt = $pdo->prepare("SELECT id, code FROM cost_centers WHERE tenant_id = ?");
+    $ccStmt->execute([$tid]);
+    foreach ($ccStmt->fetchAll() as $r) $costCenterIds[$r['code']] = (int)$r['id'];
+
+    $issueTypes = ['kitchen', 'housekeeping', 'bar', 'maintenance', 'guest', 'office', 'other'];
+    $issueCCMap = ['kitchen' => 'KIT', 'bar' => 'BAR', 'housekeeping' => 'HSK', 'maintenance' => 'MNT', 'guest' => 'GEN', 'office' => 'ADM', 'other' => 'GEN'];
+    $receiverNames = ['John Msangi','Grace Kimaro','Hassan Mwinyi','Amina Salum','Peter Nkya','Fatma Ally','Joseph Moshi','Sarah Kombe'];
+
+    $ivStmt = $pdo->prepare("
+        INSERT IGNORE INTO issue_vouchers (voucher_number, camp_id, issue_type, cost_center_id,
+            issue_date, issued_by, received_by_name, department, total_value, notes, status, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,'confirmed',?)
+    ");
+    $ivlStmt = $pdo->prepare("
+        INSERT IGNORE INTO issue_voucher_lines (voucher_id, item_id, quantity, unit_cost, total_value, notes)
+        VALUES (?,?,?,?,?,NULL)
+    ");
+
+    $ivCount = 0;
+    for ($m = 5; $m >= 0; $m--) {
+        foreach ($campCodes as $cc) {
+            $cid = $campIds[$cc] ?? null;
+            if (!$cid) continue;
+            // 2 issue vouchers per camp per month
+            for ($v = 0; $v < 2; $v++) {
+                $day = rand(1, 28);
+                $date = date('Y-m-d', strtotime("-{$m} months +{$day} days"));
+                $type = $issueTypes[array_rand($issueTypes)];
+                $ccCode = $issueCCMap[$type] ?? 'GEN';
+                $ccId = $costCenterIds[$ccCode] ?? ($costCenterIds['GEN'] ?? null);
+                $voucherNum = 'ISS-' . $cc . '-' . date('ym', strtotime($date)) . '-' . str_pad($ivCount + 1, 4, '0', STR_PAD_LEFT);
+
+                $ivStmt->execute([
+                    $voucherNum, $cid, $type, $ccId,
+                    $date, $userId, $receiverNames[array_rand($receiverNames)],
+                    ucfirst($type), 0, "Issue for $type - $cc",
+                    $date . ' ' . rand(7,16) . ':' . str_pad(rand(0,59), 2, '0', STR_PAD_LEFT) . ':00'
+                ]);
+                $voucherId = (int)$pdo->lastInsertId();
+                if (!$voucherId) continue;
+
+                // 3-8 line items
+                $lineCount = rand(3, 8);
+                $usedIdx = array_rand($items, min($lineCount, count($items)));
+                if (!is_array($usedIdx)) $usedIdx = [$usedIdx];
+                $totalVal = 0;
+                foreach ($usedIdx as $idx) {
+                    $item = $items[$idx];
+                    $qty = rand(1, 20);
+                    $cost = $item['last_purchase_price'] ?: rand(2000, 15000);
+                    $lv = $qty * $cost;
+                    $ivlStmt->execute([$voucherId, $item['id'], $qty, $cost, $lv]);
+                    $totalVal += $lv;
+                }
+                $pdo->prepare("UPDATE issue_vouchers SET total_value=? WHERE id=?")->execute([$totalVal, $voucherId]);
+                $ivCount++;
+            }
+        }
+    }
+    // Add 2 issues dated TODAY so "Issues Today" shows on dashboard
+    foreach (array_slice($campCodes, 0, 2) as $cc) {
+        $cid = $campIds[$cc] ?? null;
+        if (!$cid) continue;
+        $today = date('Y-m-d');
+        $voucherNum = 'ISS-' . $cc . '-' . date('ym') . '-' . str_pad($ivCount + 1, 4, '0', STR_PAD_LEFT);
+        $ivStmt->execute([
+            $voucherNum, $cid, 'kitchen', $costCenterIds['KIT'] ?? null,
+            $today, $userId, $receiverNames[0], 'Kitchen', 0, "Daily kitchen issue",
+            $today . ' 08:00:00'
+        ]);
+        $vid = (int)$pdo->lastInsertId();
+        if ($vid) {
+            $totalVal = 0;
+            foreach (array_slice($items, 0, 5) as $item) {
+                $qty = rand(2, 10); $cost = $item['last_purchase_price'] ?: 5000; $lv = $qty * $cost;
+                $ivlStmt->execute([$vid, $item['id'], $qty, $cost, $lv]);
+                $totalVal += $lv;
+            }
+            $pdo->prepare("UPDATE issue_vouchers SET total_value=? WHERE id=?")->execute([$totalVal, $vid]);
+        }
+        $ivCount++;
+    }
+    $stats['issue_vouchers'] = $ivCount;
+
+    // ── Dispatches (for completed/approved orders) ──
+    $completedOrders = $pdo->prepare("
+        SELECT id, order_number, camp_id, total_value FROM orders
+        WHERE tenant_id = ? AND status IN ('completed','approved')
+        ORDER BY created_at DESC LIMIT 50
+    ");
+    $completedOrders->execute([$tid]);
+    $ordersForDispatch = $completedOrders->fetchAll();
+
+    $dispStmt = $pdo->prepare("
+        INSERT IGNORE INTO dispatches (dispatch_number, order_id, camp_id, status, total_value,
+            dispatched_by, dispatch_date, vehicle_details, driver_name, notes, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    ");
+    $dlStmt = $pdo->prepare("
+        INSERT IGNORE INTO dispatch_lines (dispatch_id, item_id, dispatched_qty, unit_cost, total_value)
+        VALUES (?,?,?,?,?)
+    ");
+
+    $vehicles = ['TZ-ABC-1234 Land Cruiser','TZ-DEF-5678 Hilux','TZ-GHI-9012 Canter','TZ-JKL-3456 Dyna'];
+    $drivers = ['Baraka Mushi','Emmanuel Lyimo','Rashid Omari','Daniel Swai','Godfrey Kimaro'];
+    $dispStatuses = ['delivered','delivered','delivered','in_transit','dispatched']; // mostly delivered
+
+    $dispCount = 0;
+    foreach ($ordersForDispatch as $i => $ord) {
+        $dStatus = $dispStatuses[$i % count($dispStatuses)];
+        $dDate = date('Y-m-d', strtotime("-" . max(0, 50 - $i) . " days"));
+        $dNum = 'DSP-' . str_pad($dispCount + 1, 4, '0', STR_PAD_LEFT);
+
+        $dispStmt->execute([
+            $dNum, $ord['id'], $ord['camp_id'], $dStatus, $ord['total_value'],
+            $userId, $dDate, $vehicles[array_rand($vehicles)], $drivers[array_rand($drivers)],
+            "Dispatch for {$ord['order_number']}", $dDate . ' 10:00:00'
+        ]);
+        $dispId = (int)$pdo->lastInsertId();
+        if (!$dispId) continue;
+
+        // Get order lines for this dispatch
+        $olStmt = $pdo->prepare("SELECT item_id, requested_qty, estimated_unit_cost FROM order_lines WHERE order_id = ?");
+        $olStmt->execute([$ord['id']]);
+        foreach ($olStmt->fetchAll() as $ol) {
+            $dlStmt->execute([$dispId, $ol['item_id'], $ol['requested_qty'], $ol['estimated_unit_cost'], $ol['requested_qty'] * $ol['estimated_unit_cost']]);
+        }
+        $dispCount++;
+    }
+    $stats['dispatches'] = $dispCount;
+
+    // ── Receipts (for delivered dispatches) ──
+    $deliveredDisp = $pdo->prepare("
+        SELECT d.id, d.dispatch_number, d.camp_id, d.dispatch_date
+        FROM dispatches d
+        JOIN camps c ON d.camp_id = c.id
+        WHERE c.tenant_id = ? AND d.status = 'delivered'
+        ORDER BY d.dispatch_date DESC LIMIT 40
+    ");
+    $deliveredDisp->execute([$tid]);
+    $dispsForReceipt = $deliveredDisp->fetchAll();
+
+    $rcptStmt = $pdo->prepare("
+        INSERT IGNORE INTO receipts (receipt_number, dispatch_id, camp_id, received_by, received_date, status, notes, created_at)
+        VALUES (?,?,?,?,?,?,?,?)
+    ");
+    $rlStmt = $pdo->prepare("
+        INSERT IGNORE INTO receipt_lines (receipt_id, item_id, expected_qty, received_qty, accepted_qty, rejected_qty, is_received)
+        VALUES (?,?,?,?,?,?,1)
+    ");
+
+    $rcptCount = 0;
+    foreach ($dispsForReceipt as $j => $disp) {
+        $rDate = date('Y-m-d', strtotime($disp['dispatch_date'] . ' +1 day'));
+        $rNum = 'RCV-' . str_pad($rcptCount + 1, 4, '0', STR_PAD_LEFT);
+        $rStatus = ($j < 3) ? 'pending' : 'confirmed'; // a few pending for demo
+
+        $rcptStmt->execute([
+            $rNum, $disp['id'], $disp['camp_id'], $userId,
+            $rDate, $rStatus, "Receipt for {$disp['dispatch_number']}", $rDate . ' 14:00:00'
+        ]);
+        $rcptId = (int)$pdo->lastInsertId();
+        if (!$rcptId) continue;
+
+        // Get dispatch lines for receipt lines
+        $dlGet = $pdo->prepare("SELECT item_id, dispatched_qty, unit_cost FROM dispatch_lines WHERE dispatch_id = ?");
+        $dlGet->execute([$disp['id']]);
+        foreach ($dlGet->fetchAll() as $dl) {
+            $rejQty = (rand(0, 10) > 8) ? rand(1, 3) : 0; // ~20% chance of rejection
+            $accQty = max(0, $dl['dispatched_qty'] - $rejQty);
+            $rlStmt->execute([$rcptId, $dl['item_id'], $dl['dispatched_qty'], $dl['dispatched_qty'], $accQty, $rejQty]);
+        }
+        $rcptCount++;
+    }
+    $stats['receipts'] = $rcptCount;
+
     // Stock Balances — seed current quantities for all items across all camps
     $allItems = $pdo->prepare("SELECT id, last_purchase_price FROM items WHERE tenant_id = ?");
     $allItems->execute([$tid]);
