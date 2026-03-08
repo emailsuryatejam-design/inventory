@@ -25,30 +25,38 @@ $action = $input['action'] ?? 'status';
 $sections = $input['sections'] ?? ['foundation', 'items', 'hr', 'operations', 'kitchen'];
 $startTime = microtime(true);
 
-switch ($action) {
-    case 'status':
-        jsonResponse(getStatus($pdo, $tenantId));
-        break;
-    case 'seed':
-        $result = doSeed($pdo, $tenantId, $sections, (int)$auth['user_id']);
-        $result['elapsed_seconds'] = round(microtime(true) - $startTime, 2);
-        jsonResponse($result);
-        break;
-    case 'delete':
-        $result = doDelete($pdo, $tenantId, $sections);
-        $result['elapsed_seconds'] = round(microtime(true) - $startTime, 2);
-        jsonResponse($result);
-        break;
-    default:
-        jsonError('Unknown action. Use: status, seed, delete', 400);
+try {
+    switch ($action) {
+        case 'status':
+            jsonResponse(getStatus($pdo, $tenantId));
+            break;
+        case 'seed':
+            $result = doSeed($pdo, $tenantId, $sections, (int)$auth['user_id']);
+            $result['elapsed_seconds'] = round(microtime(true) - $startTime, 2);
+            jsonResponse($result);
+            break;
+        case 'delete':
+            $result = doDelete($pdo, $tenantId, $sections);
+            $result['elapsed_seconds'] = round(microtime(true) - $startTime, 2);
+            jsonResponse($result);
+            break;
+        default:
+            jsonError('Unknown action. Use: status, seed, delete', 400);
+    }
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine(),
+    ]);
+    exit;
 }
 
 // ═══════════════════════════════════════════════════
 // STATUS
 // ═══════════════════════════════════════════════════
 function getStatus(PDO $pdo, int $tid): array {
-    $c = fn($table) => (int)$pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE tenant_id=?")->execute([$tid]) ? $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE tenant_id=?")->execute([$tid]) : 0;
-    // Better approach:
     $count = function($table) use ($pdo, $tid) {
         try {
             $s = $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE tenant_id = ?");
@@ -63,7 +71,7 @@ function getStatus(PDO $pdo, int $tid): array {
     $items = $count('items');
     $employees = $count('hr_employees');
     $payrollRuns = $count('payroll_runs');
-    $orders = $count('camp_orders');
+    $orders = $count('orders');
     $dispatches = $count('dispatches');
     $recipes = $count('kitchen_recipes');
     $menus = $count('menu_plans');
@@ -114,8 +122,8 @@ function doDelete(PDO $pdo, int $tid, array $sections): array {
             $deleted['grns'] = $del('grns');
             $deleted['po_lines'] = $del('purchase_order_lines');
             $deleted['pos'] = $del('purchase_orders');
-            $deleted['order_lines'] = $del('camp_order_lines');
-            $deleted['orders'] = $del('camp_orders');
+            $deleted['order_lines'] = $del('order_lines');
+            $deleted['orders'] = $del('orders');
         }
 
         if (in_array('hr', $sections)) {
@@ -328,21 +336,21 @@ function seedFoundation(PDO $pdo, int $tid): array {
     if ((int)$existSup->fetchColumn() < 10) {
         $supStmt = $pdo->prepare("INSERT INTO suppliers (tenant_id, supplier_code, name, contact_person, email, phone, city, country, payment_terms, is_active, created_at) VALUES (?,?,?,?,?,?,?,?,?,1,NOW())");
         $suppliers = [
-            ['SUP-001','Arusha Fresh Market','Juma Bakari','juma@arushafresh.co.tz','+255 754 100001','Arusha','Tanzania','Net 7'],
-            ['SUP-002','Kilimanjaro Meats','Asha Mwenda','asha@kilimeats.co.tz','+255 754 100002','Arusha','Tanzania','Net 14'],
-            ['SUP-003','Tanzania Dairy Ltd','Hassan Omar','hassan@tzdairy.co.tz','+255 754 100003','Dar es Salaam','Tanzania','Net 30'],
-            ['SUP-004','Safari Beverages','Grace Kimaro','grace@safaribev.co.tz','+255 754 100004','Arusha','Tanzania','Net 14'],
-            ['SUP-005','East Africa Wines','David Mushi','david@eawines.co.tz','+255 754 100005','Dar es Salaam','Tanzania','Net 30'],
-            ['SUP-006','Clean Pro Supplies','Fatma Ali','fatma@cleanpro.co.tz','+255 754 100006','Arusha','Tanzania','Net 14'],
-            ['SUP-007','Serengeti Hardware','Peter Massawe','peter@serhw.co.tz','+255 754 100007','Arusha','Tanzania','Net 30'],
-            ['SUP-008','Ngorongoro Linen Co','Rose Mlay','rose@ngolinen.co.tz','+255 754 100008','Arusha','Tanzania','Net 30'],
-            ['SUP-009','TZ Office Supplies','John Shirima','john@tzoffice.co.tz','+255 754 100009','Dar es Salaam','Tanzania','Net 14'],
-            ['SUP-010','Fuel Tanzania','Amina Mhando','amina@fueltz.co.tz','+255 754 100010','Arusha','Tanzania','COD'],
-            ['SUP-011','Spice World TZ','Khalid Juma','khalid@spicetz.co.tz','+255 754 100011','Zanzibar','Tanzania','Net 7'],
-            ['SUP-012','Lake Zone Fisheries','Sarah Maganga','sarah@lzfish.co.tz','+255 754 100012','Mwanza','Tanzania','COD'],
-            ['SUP-013','Bakery Essentials','Monica Tarimo','monica@bakeryess.co.tz','+255 754 100013','Arusha','Tanzania','Net 14'],
-            ['SUP-014','Safari Gear Co','James Ngowi','james@safarigear.co.tz','+255 754 100014','Arusha','Tanzania','Net 30'],
-            ['SUP-015','Green Gardens TZ','Esther Mwakasege','esther@greentz.co.tz','+255 754 100015','Arusha','Tanzania','Net 7'],
+            ['SUP-001','Arusha Fresh Market','Juma Bakari','juma@arushafresh.co.tz','+255 754 100001','Arusha','Tanzania',7],
+            ['SUP-002','Kilimanjaro Meats','Asha Mwenda','asha@kilimeats.co.tz','+255 754 100002','Arusha','Tanzania',14],
+            ['SUP-003','Tanzania Dairy Ltd','Hassan Omar','hassan@tzdairy.co.tz','+255 754 100003','Dar es Salaam','Tanzania',30],
+            ['SUP-004','Safari Beverages','Grace Kimaro','grace@safaribev.co.tz','+255 754 100004','Arusha','Tanzania',14],
+            ['SUP-005','East Africa Wines','David Mushi','david@eawines.co.tz','+255 754 100005','Dar es Salaam','Tanzania',30],
+            ['SUP-006','Clean Pro Supplies','Fatma Ali','fatma@cleanpro.co.tz','+255 754 100006','Arusha','Tanzania',14],
+            ['SUP-007','Serengeti Hardware','Peter Massawe','peter@serhw.co.tz','+255 754 100007','Arusha','Tanzania',30],
+            ['SUP-008','Ngorongoro Linen Co','Rose Mlay','rose@ngolinen.co.tz','+255 754 100008','Arusha','Tanzania',30],
+            ['SUP-009','TZ Office Supplies','John Shirima','john@tzoffice.co.tz','+255 754 100009','Dar es Salaam','Tanzania',14],
+            ['SUP-010','Fuel Tanzania','Amina Mhando','amina@fueltz.co.tz','+255 754 100010','Arusha','Tanzania',0],
+            ['SUP-011','Spice World TZ','Khalid Juma','khalid@spicetz.co.tz','+255 754 100011','Zanzibar','Tanzania',7],
+            ['SUP-012','Lake Zone Fisheries','Sarah Maganga','sarah@lzfish.co.tz','+255 754 100012','Mwanza','Tanzania',0],
+            ['SUP-013','Bakery Essentials','Monica Tarimo','monica@bakeryess.co.tz','+255 754 100013','Arusha','Tanzania',14],
+            ['SUP-014','Safari Gear Co','James Ngowi','james@safarigear.co.tz','+255 754 100014','Arusha','Tanzania',30],
+            ['SUP-015','Green Gardens TZ','Esther Mwakasege','esther@greentz.co.tz','+255 754 100015','Arusha','Tanzania',7],
         ];
         foreach ($suppliers as $s) $supStmt->execute(array_merge([$tid], $s));
         $stats['suppliers'] = count($suppliers);
@@ -840,7 +848,7 @@ function seedHR(PDO $pdo, int $tid, int $userId): array {
 
         $empStmt->execute([
             $tid, $empNo, $fn, $ln, $email, $phone,
-            $deptIds[$dept], $jgIds[$grade], 'permanent', 'active',
+            $deptIds[$dept], $jgIds[$grade], 'full_time', 'active',
             $isFemale ? 'female' : 'male', $salary, $hireDate,
             $campIds[$camp] ?? null,
         ]);
@@ -902,7 +910,7 @@ function seedHR(PDO $pdo, int $tid, int $userId): array {
 // SEED: OPERATIONS
 // ═══════════════════════════════════════════════════
 function seedOperations(PDO $pdo, int $tid, int $userId): array {
-    $cnt = $pdo->prepare("SELECT COUNT(*) FROM camp_orders WHERE tenant_id = ?");
+    $cnt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE tenant_id = ?");
     $cnt->execute([$tid]);
     if ((int)$cnt->fetchColumn() > 10) return ['skipped' => true];
 
@@ -918,18 +926,17 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
     $items = $itemStmt->fetchAll();
     if (empty($items)) return ['skipped' => true, 'reason' => 'No items to create orders for'];
 
-    $hoId = $campIds['HO'] ?? null;
     $campCodes = ['TAR','NGO','SRN','SRS','SRW'];
     $stats = ['orders' => 0, 'order_lines' => 0];
 
     // Create ~100 camp orders over 12 months
     $orderStmt = $pdo->prepare("
-        INSERT INTO camp_orders (tenant_id, order_number, camp_id, status, priority, requested_by,
-            requested_date, notes, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?)
+        INSERT INTO orders (tenant_id, order_number, camp_id, status, created_by,
+            total_items, total_value, flagged_items, notes, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
     ");
     $lineStmt = $pdo->prepare("
-        INSERT INTO camp_order_lines (tenant_id, order_id, item_id, qty_requested, qty_approved, unit_price, notes)
+        INSERT INTO order_lines (tenant_id, order_id, item_id, requested_qty, approved_qty, estimated_unit_cost, notes)
         VALUES (?,?,?,?,?,?,?)
     ");
 
@@ -940,17 +947,19 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
                 $day = rand(1, 28);
                 $date = date('Y-m-d', strtotime("-{$m} months +{$day} days"));
                 $orderNum = 'ORD-' . $cc . '-' . date('ym', strtotime($date)) . '-' . str_pad($stats['orders'] + 1, 4, '0', STR_PAD_LEFT);
-                $status = $m > 0 ? 'completed' : 'pending';
+                $status = $m > 0 ? 'completed' : 'draft';
+                $lineCount = rand(10, 25);
+                $totalValue = 0;
 
                 $orderStmt->execute([
-                    $tid, $orderNum, $campIds[$cc] ?? null, $status, 'normal',
-                    $userId, $date, "Monthly order for $cc", $date . ' 09:00:00'
+                    $tid, $orderNum, $campIds[$cc] ?? null, $status, $userId,
+                    $lineCount, 0, 0, "Monthly order for $cc",
+                    $date . ' 09:00:00', $date . ' 09:00:00'
                 ]);
                 $orderId = (int)$pdo->lastInsertId();
                 $stats['orders']++;
 
                 // 10-25 lines per order
-                $lineCount = rand(10, 25);
                 $usedItems = array_rand($items, min($lineCount, count($items)));
                 if (!is_array($usedItems)) $usedItems = [$usedItems];
 
@@ -959,8 +968,12 @@ function seedOperations(PDO $pdo, int $tid, int $userId): array {
                     $qty = rand(1, 50);
                     $price = $item['last_purchase_price'] ?: rand(2000, 20000);
                     $lineStmt->execute([$tid, $orderId, $item['id'], $qty, $qty, $price, null]);
+                    $totalValue += $qty * $price;
                     $stats['order_lines']++;
                 }
+
+                // Update total_value on the order
+                $pdo->prepare("UPDATE orders SET total_items=?, total_value=? WHERE id=?")->execute([count($usedItems), $totalValue, $orderId]);
             }
         }
     }
@@ -1028,46 +1041,46 @@ function seedKitchen(PDO $pdo, int $tid): array {
     ");
 
     $recipes = [
-        ['Eggs Benedict','Poached eggs on muffin with hollandaise','breakfast','Continental',4,20,15,'intermediate',
+        ['Eggs Benedict','Poached eggs on muffin with hollandaise','breakfast','Continental',4,20,15,'medium',
          '["Poach eggs","Toast muffins","Make hollandaise","Assemble"]',
          [['Eggs',2],['Butter',0.05],['Lemons',0.25],['Bacon',0.1]]],
-        ['Nyama Choma','Traditional East African grilled meat','main_course','African',6,30,60,'easy',
+        ['Nyama Choma','Traditional East African grilled meat','dinner','African',6,30,60,'easy',
          '["Marinate beef","Prepare charcoal","Grill meat","Serve with ugali"]',
          [['Beef Sirloin',0.3],['Lemons',0.5],['Garlic',0.02],['Salt',0.01]]],
-        ['Chicken Tikka Masala','Spiced chicken in tomato cream sauce','main_course','Indian',4,30,40,'intermediate',
+        ['Chicken Tikka Masala','Spiced chicken in tomato cream sauce','dinner','Indian',4,30,40,'medium',
          '["Marinate chicken","Grill chicken","Make masala sauce","Combine and simmer"]',
          [['Chicken Breast',0.25],['Yogurt',0.1],['Tomatoes',0.2],['Cream',0.1],['Garam Masala',0.01]]],
         ['Caesar Salad','Classic caesar with croutons and parmesan','salad','Continental',4,15,5,'easy',
          '["Wash lettuce","Make dressing","Toast croutons","Toss and serve"]',
          [['Lettuce Romaine',0.15],['Parmesan',0.03],['Olive Oil',0.02],['Lemons',0.25],['Garlic',0.005]]],
-        ['Pasta Carbonara','Classic Italian pasta with egg and bacon','main_course','Italian',4,10,20,'intermediate',
+        ['Pasta Carbonara','Classic Italian pasta with egg and bacon','dinner','Italian',4,10,20,'medium',
          '["Cook pasta","Fry bacon","Mix eggs with cheese","Combine"]',
          [['Spaghetti',0.125],['Bacon',0.05],['Eggs',1],['Parmesan',0.03]]],
         ['Butternut Soup','Creamy roasted butternut squash soup','soup','Continental',6,15,40,'easy',
          '["Roast butternut","Sauté onions","Blend together","Season and serve"]',
          [['Pumpkin',0.25],['Red Onions',0.05],['Cream',0.05],['Butter',0.02]]],
-        ['Grilled Tilapia','Fresh tilapia with herbs and lemon','main_course','African',4,15,20,'easy',
+        ['Grilled Tilapia','Fresh tilapia with herbs and lemon','dinner','African',4,15,20,'easy',
          '["Season fish","Heat grill","Grill each side","Serve with vegetables"]',
          [['Tilapia',0.25],['Lemons',0.5],['Olive Oil',0.02],['Garlic',0.01]]],
-        ['Chocolate Lava Cake','Warm chocolate cake with molten center','dessert','Continental',4,20,15,'advanced',
+        ['Chocolate Lava Cake','Warm chocolate cake with molten center','dessert','Continental',4,20,15,'hard',
          '["Melt chocolate and butter","Whisk eggs and sugar","Fold together","Bake 12 minutes"]',
          [['Dark Chocolate',0.05],['Butter',0.05],['Eggs',1],['Sugar',0.03],['Flour',0.02]]],
-        ['Pilau Rice','Spiced Swahili rice dish','main_course','African',6,15,45,'intermediate',
+        ['Pilau Rice','Spiced Swahili rice dish','dinner','African',6,15,45,'medium',
          '["Fry onions","Toast spices","Add rice and stock","Steam until done"]',
          [['Basmati Rice',0.1],['Red Onions',0.1],['Pilau Masala',0.01],['Garlic',0.01]]],
         ['Fruit Salad','Fresh tropical fruit medley','dessert','Continental',4,15,0,'easy',
          '["Cut all fruits","Mix gently","Add honey","Chill and serve"]',
          [['Mangoes',0.15],['Pineapple',0.15],['Watermelon',0.15],['Passion Fruit',0.1]]],
-        ['Chapati','East African flatbread','bread','African',8,30,20,'intermediate',
+        ['Chapati','East African flatbread','bread','African',8,30,20,'medium',
          '["Mix flour and water","Knead dough","Roll thin rounds","Cook on griddle"]',
          [['Flour',0.1],['Vegetable Oil',0.02],['Salt',0.005]]],
-        ['French Onion Soup','Classic caramelized onion soup','soup','Continental',4,15,60,'intermediate',
+        ['French Onion Soup','Classic caramelized onion soup','soup','Continental',4,15,60,'medium',
          '["Slice onions","Caramelize slowly","Add stock","Top with cheese and broil"]',
          [['White Onions',0.3],['Butter',0.03],['Beef Stock',0.01]]],
-        ['Lamb Rack','Herb-crusted rack of lamb','main_course','Continental',4,20,35,'advanced',
+        ['Lamb Rack','Herb-crusted rack of lamb','dinner','Continental',4,20,35,'hard',
          '["Season lamb","Sear all sides","Apply herb crust","Roast to medium-rare"]',
          [['Lamb Rack',0.25],['Rosemary',0.01],['Garlic',0.01],['Mustard',0.01],['Olive Oil',0.02]]],
-        ['Prawn Curry','Coconut prawn curry with rice','main_course','Indian',4,15,25,'intermediate',
+        ['Prawn Curry','Coconut prawn curry with rice','dinner','Indian',4,15,25,'medium',
          '["Sauté aromatics","Add coconut milk","Add prawns","Simmer 5 minutes"]',
          [['Prawns',0.2],['Coconut Milk',0.1],['Curry Powder',0.01],['Tomatoes',0.1]]],
         ['Pancakes','Fluffy breakfast pancakes','breakfast','Continental',4,10,15,'easy',
