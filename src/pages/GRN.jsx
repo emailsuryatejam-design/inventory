@@ -71,7 +71,7 @@ export default function GRN() {
 
   function formatCurrency(v) {
     if (!v) return '—'
-    return `KES ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    return `TZS ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
   return (

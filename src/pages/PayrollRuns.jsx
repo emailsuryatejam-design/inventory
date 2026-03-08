@@ -54,7 +54,7 @@ export default function PayrollRuns() {
 
   function formatCurrency(value) {
     if (value == null) return '--'
-    return `KES ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    return `TZS ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
   function formatDate(dateStr) {

@@ -95,7 +95,7 @@ export default function PurchaseOrderDetail() {
 
   function formatCurrency(v) {
     if (v == null) return '—'
-    return `KES ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    return `TZS ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
   if (loading) return <LoadingSpinner message="Loading purchase order..." />
@@ -332,7 +332,7 @@ export default function PurchaseOrderDetail() {
               )}
               <div className="pt-2 space-y-1.5 text-xs text-gray-500">
                 <p>Payment Terms: <span className="text-gray-900 font-medium">{po.payment_terms || 30} days</span></p>
-                <p>Currency: <span className="text-gray-900 font-medium">{po.currency || 'KES'}</span></p>
+                <p>Currency: <span className="text-gray-900 font-medium">{po.currency || 'TZS'}</span></p>
                 {po.delivery_date && (
                   <p>Delivery Date: <span className="text-gray-900 font-medium">{formatDate(po.delivery_date)}</span></p>
                 )}

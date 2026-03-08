@@ -62,10 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $scStmt->execute([$tenantId]);
     $statusRows = $scStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     $statusCounts = [
-        'pending'  => (int) ($statusRows['pending'] ?? 0),
-        'approved' => (int) ($statusRows['approved'] ?? 0),
-        'rejected' => (int) ($statusRows['rejected'] ?? 0),
-        'deducted' => (int) ($statusRows['deducted'] ?? 0),
+        'pending'   => (int) ($statusRows['pending'] ?? 0),
+        'approved'  => (int) ($statusRows['approved'] ?? 0),
+        'cancelled' => (int) ($statusRows['cancelled'] ?? 0),
+        'deducted'  => (int) ($statusRows['deducted'] ?? 0),
     ];
 
     jsonResponse([
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         jsonError('Salary advance has already been ' . $advance['status'], 400);
     }
 
-    $newStatus = $action === 'approve' ? 'approved' : 'rejected';
+    $newStatus = $action === 'approve' ? 'approved' : 'cancelled';
 
     $pdo->prepare("
         UPDATE hr_salary_advances

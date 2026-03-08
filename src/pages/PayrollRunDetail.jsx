@@ -54,8 +54,7 @@ export default function PayrollRunDetail() {
     setError('')
     try {
       if (action === 'review') {
-        // Submit for review - use approve with review action or a general update
-        await runApi.approve(id)
+        await runApi.review(id)
       } else if (action === 'approve') {
         await runApi.approve(id)
       } else if (action === 'mark_paid') {
@@ -74,7 +73,7 @@ export default function PayrollRunDetail() {
 
   function formatCurrency(value) {
     if (value == null) return '--'
-    return `KES ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    return `TZS ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
   function formatDate(dateStr) {
@@ -351,7 +350,7 @@ export default function PayrollRunDetail() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold text-green-700">
-                        KES {Number(item.net_pay).toLocaleString()}
+                        TZS {Number(item.net_pay).toLocaleString()}
                       </p>
                       <p className="text-[10px] text-gray-400">Net Pay</p>
                     </div>

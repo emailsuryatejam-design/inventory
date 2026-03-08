@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $principal       = (float) $input['principal_amount'];
     $interestRate    = (float) ($input['interest_rate'] ?? 0);
     $repaymentMonths = (int) $input['repayment_months'];
-    $loanSource      = $input['loan_source'] ?? 'internal';
+    $loanSource      = $input['loan_source'] ?? 'company';
     $interestType    = $input['interest_type'] ?? 'flat';
 
     // Auto-calculate monthly deduction if not provided

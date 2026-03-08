@@ -271,7 +271,7 @@ function LeaveRequestsTab() {
 
   async function openCreateModal() {
     try {
-      const [empRes, ltRes] = await Promise.all([hrEmployees.list({ status: 'active' }), ltApi.list()])
+      const [empRes, ltRes] = await Promise.all([hrEmployees.list({ employment_status: 'active' }), ltApi.list()])
       setEmployees(empRes.employees || [])
       setLeaveTypesList(ltRes.leave_types || [])
       setForm({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '' })

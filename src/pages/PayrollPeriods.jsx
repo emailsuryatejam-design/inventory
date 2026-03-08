@@ -9,7 +9,6 @@ import EmptyState from '../components/ui/EmptyState'
 
 const STATUS_VARIANTS = {
   open: 'ok',
-  closed: 'out',
   locked: 'low',
 }
 
@@ -370,7 +369,6 @@ export default function PayrollPeriods() {
                     className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                   >
                     <option value="open">Open</option>
-                    <option value="closed">Closed</option>
                     <option value="locked">Locked</option>
                   </select>
                 </div>

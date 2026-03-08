@@ -46,7 +46,7 @@ export default function HRLoans() {
   // Form state
   const [employees, setEmployees] = useState([])
   const [form, setForm] = useState({
-    employee_id: '', loan_type: 'personal', loan_source: 'internal',
+    employee_id: '', loan_type: 'personal', loan_source: 'company',
     institution_name: '', principal_amount: '', interest_rate: '0',
     repayment_months: '', monthly_deduction: '',
   })
@@ -90,10 +90,10 @@ export default function HRLoans() {
 
   async function openCreateModal() {
     try {
-      const empRes = await hrEmployees.list({ status: 'active' })
+      const empRes = await hrEmployees.list({ employment_status: 'active' })
       setEmployees(empRes.employees || [])
       setForm({
-        employee_id: '', loan_type: 'personal', loan_source: 'internal',
+        employee_id: '', loan_type: 'personal', loan_source: 'company',
         institution_name: '', principal_amount: '', interest_rate: '0',
         repayment_months: '', monthly_deduction: '',
       })
@@ -443,12 +443,14 @@ export default function HRLoans() {
                     onChange={e => updateForm({ loan_source: e.target.value })}
                     className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                   >
-                    <option value="internal">Internal</option>
-                    <option value="external">External</option>
+                    <option value="company">Company</option>
+                    <option value="bank">Bank</option>
+                    <option value="microfinance">Microfinance</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
               </div>
-              {form.loan_source === 'external' && (
+              {form.loan_source !== 'company' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Institution Name</label>
                   <input

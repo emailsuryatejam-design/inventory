@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validate trip_type
-    $validTripTypes = ['field_visit', 'delivery', 'client_meeting', 'training', 'other'];
+    $validTripTypes = ['field_visit', 'delivery', 'inspection', 'meeting', 'other'];
     if (!in_array($input['trip_type'], $validTripTypes)) {
         jsonError('Invalid trip type', 400);
     }

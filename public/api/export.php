@@ -88,9 +88,9 @@ switch ($type) {
     // ── Suppliers Export ───────────────────────────
     case 'suppliers':
         $stmt = $pdo->prepare("
-            SELECT s.code, s.name, s.contact_person, s.email, s.phone,
+            SELECT s.supplier_code, s.name, s.contact_person, s.email, s.phone,
                    s.address, s.city, s.country,
-                   s.payment_terms, s.lead_time_days,
+                   s.payment_terms, COALESCE(s.credit_limit, 0),
                    CASE WHEN s.is_active THEN 'Yes' ELSE 'No' END as is_active,
                    s.notes
             FROM suppliers s
@@ -104,7 +104,7 @@ switch ($type) {
             'suppliers_export_' . date('Y-m-d') . '.csv',
             ['Code', 'Name', 'Contact Person', 'Email', 'Phone',
              'Address', 'City', 'Country',
-             'Payment Terms', 'Lead Time Days', 'Active', 'Notes'],
+             'Payment Terms', 'Credit Limit', 'Active', 'Notes'],
             $rows
         );
         break;

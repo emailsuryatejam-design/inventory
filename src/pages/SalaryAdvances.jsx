@@ -9,7 +9,7 @@ import { Banknote, Plus, Check, X } from 'lucide-react'
 const STATUS_VARIANTS = {
   pending: 'pending',
   approved: 'ok',
-  rejected: 'out',
+  cancelled: 'out',
   deducted: 'low',
 }
 
@@ -17,7 +17,7 @@ const STATUS_TABS = [
   { key: '', label: 'All' },
   { key: 'pending', label: 'Pending' },
   { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
+  { key: 'cancelled', label: 'Cancelled' },
   { key: 'deducted', label: 'Deducted' },
 ]
 
@@ -55,7 +55,7 @@ export default function SalaryAdvances() {
 
   async function openCreateModal() {
     try {
-      const empRes = await hrEmployees.list({ status: 'active' })
+      const empRes = await hrEmployees.list({ employment_status: 'active' })
       setEmployees(empRes.employees || [])
       setForm({ employee_id: '', amount: '', reason: '' })
       setShowModal(true)

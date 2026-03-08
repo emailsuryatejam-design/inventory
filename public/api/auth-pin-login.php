@@ -121,14 +121,14 @@ jsonResponse([
 // ── Role-based module/permission helpers ──
 
 function getModulesForRole(string $role): array {
-    $allModules = ['stores', 'kitchen', 'bar', 'admin', 'reports'];
+    $allModules = ['stores', 'kitchen', 'bar', 'admin', 'reports', 'payroll'];
     switch ($role) {
         case 'admin':
         case 'director':
             return $allModules;
         case 'stores_manager':
         case 'procurement_officer':
-            return ['stores', 'kitchen', 'bar', 'reports'];
+            return ['stores', 'kitchen', 'bar', 'reports', 'payroll'];
         case 'camp_manager':
             return ['stores', 'kitchen', 'bar'];
         case 'camp_storekeeper':
@@ -156,6 +156,7 @@ function getPermissionsForRole(string $role): array {
                 'bar' => $full,
                 'admin' => $full,
                 'reports' => $full,
+                'payroll' => $full,
             ];
         case 'stores_manager':
             return [
@@ -163,6 +164,7 @@ function getPermissionsForRole(string $role): array {
                 'kitchen' => $readWrite,
                 'bar' => $readWrite,
                 'reports' => $readOnly,
+                'payroll' => $full,
             ];
         case 'procurement_officer':
             return [
@@ -170,6 +172,7 @@ function getPermissionsForRole(string $role): array {
                 'kitchen' => $readOnly,
                 'bar' => $readOnly,
                 'reports' => $readOnly,
+                'payroll' => $readOnly,
             ];
         case 'camp_manager':
             return [

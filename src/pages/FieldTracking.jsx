@@ -16,8 +16,8 @@ const STATUS_VARIANTS = {
 const TRIP_TYPES = [
   { value: 'field_visit', label: 'Field Visit' },
   { value: 'delivery', label: 'Delivery' },
-  { value: 'client_meeting', label: 'Client Meeting' },
-  { value: 'training', label: 'Training' },
+  { value: 'meeting', label: 'Meeting' },
+  { value: 'inspection', label: 'Inspection' },
   { value: 'other', label: 'Other' },
 ]
 

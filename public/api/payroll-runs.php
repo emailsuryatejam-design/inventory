@@ -445,8 +445,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $runId = (int) $input['id'];
     $action = $input['action'];
 
-    if (!in_array($action, ['approve', 'mark_paid', 'cancel'])) {
-        jsonError('Invalid action. Must be: approve, mark_paid, or cancel', 400);
+    if (!in_array($action, ['review', 'approve', 'mark_paid', 'cancel'])) {
+        jsonError('Invalid action. Must be: review, approve, mark_paid, or cancel', 400);
     }
 
     // Verify run exists
@@ -463,6 +463,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $currentStatus = $run['status'];
 
     switch ($action) {
+        case 'review':
+            // Submit for review from draft
+            if ($currentStatus !== 'draft') {
+                jsonError("Cannot submit for review. Current status: {$currentStatus}", 400);
+            }
+            $pdo->prepare("
+                UPDATE payroll_runs SET status = 'review' WHERE id = ? AND tenant_id = ?
+            ")->execute([$runId, $tenantId]);
+
+            jsonResponse(['success' => true, 'message' => 'Payroll run submitted for review']);
+            break;
+
         case 'approve':
             // Can approve from draft or review
             if (!in_array($currentStatus, ['draft', 'review'])) {

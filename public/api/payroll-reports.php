@@ -82,10 +82,10 @@ switch ($type) {
                    COALESCE(d.name, '--') AS dept,
                    COALESCE(jg.name, '--') AS grade,
                    COALESCE(e.basic_salary, 0) AS salary,
-                   IF(e.is_active, 'Active', 'Inactive') AS status
+                   e.employment_status AS status
             FROM hr_employees e
             LEFT JOIN departments d ON e.department_id = d.id
-            LEFT JOIN job_grades jg ON e.grade_id = jg.id
+            LEFT JOIN job_grades jg ON e.job_grade_id = jg.id
             WHERE e.tenant_id = ?
             ORDER BY e.first_name, e.last_name
         ");
@@ -207,15 +207,15 @@ switch ($type) {
         $stmt = $pdo->prepare("
             SELECT CONCAT(e.first_name, ' ', e.last_name) AS name,
                    e.employee_no,
-                   l.amount,
-                   COALESCE(l.total_repaid, 0) AS repaid,
-                   (l.amount - COALESCE(l.total_repaid, 0)) AS balance,
+                   l.principal_amount AS amount,
+                   (l.principal_amount - l.outstanding_balance) AS repaid,
+                   l.outstanding_balance AS balance,
                    l.status
             FROM hr_loans l
             JOIN hr_employees e ON l.employee_id = e.id
             WHERE l.tenant_id = ?
               AND l.status IN ('active', 'approved')
-            ORDER BY balance DESC
+            ORDER BY l.outstanding_balance DESC
         ");
         $stmt->execute([$tenantId]);
         foreach ($stmt->fetchAll() as $r) {
@@ -232,17 +232,17 @@ switch ($type) {
 
     case 'attendance_report':
         $title = 'Attendance Report';
-        $headers = ['Employee', 'Employee No', 'Present', 'Absent', 'Late', 'Half Day', 'Total Days'];
+        $headers = ['Employee', 'Employee No', 'Present', 'Absent', 'On Leave', 'Half Day', 'Total Days'];
 
         $stmt = $pdo->prepare("
             SELECT CONCAT(e.first_name, ' ', e.last_name) AS name,
                    e.employee_no,
                    SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present,
                    SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) AS absent,
-                   SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) AS late,
+                   SUM(CASE WHEN a.status = 'on_leave' THEN 1 ELSE 0 END) AS late,
                    SUM(CASE WHEN a.status = 'half_day' THEN 1 ELSE 0 END) AS half_day,
                    COUNT(*) AS total
-            FROM hr_attendance a
+            FROM attendance a
             JOIN hr_employees e ON a.employee_id = e.id
             WHERE a.tenant_id = ?
               AND a.date >= ?
@@ -275,7 +275,7 @@ switch ($type) {
                    sa.reason,
                    sa.status,
                    sa.created_at
-            FROM salary_advances sa
+            FROM hr_salary_advances sa
             JOIN hr_employees e ON sa.employee_id = e.id
             WHERE sa.tenant_id = ?
               AND sa.created_at >= ?
@@ -332,9 +332,9 @@ switch ($type) {
 
         $stmt = $pdo->prepare("
             SELECT COALESCE(d.name, 'Unassigned') AS dept,
-                   SUM(CASE WHEN e.is_active = 1 THEN 1 ELSE 0 END) AS active,
-                   SUM(CASE WHEN e.is_active = 0 THEN 1 ELSE 0 END) AS inactive,
-                   0 AS on_leave,
+                   SUM(CASE WHEN e.employment_status = 'active' THEN 1 ELSE 0 END) AS active,
+                   SUM(CASE WHEN e.employment_status IN ('inactive','suspended','terminated') THEN 1 ELSE 0 END) AS inactive,
+                   SUM(CASE WHEN e.employment_status = 'on_leave' THEN 1 ELSE 0 END) AS on_leave,
                    COUNT(*) AS total
             FROM hr_employees e
             LEFT JOIN departments d ON e.department_id = d.id
@@ -363,7 +363,7 @@ switch ($type) {
                    CONCAT(e.first_name, ' ', e.last_name) AS name,
                    COALESCE(e.bank_name, '--') AS bank_name,
                    COALESCE(e.bank_branch, '--') AS bank_branch,
-                   COALESCE(e.bank_account_no, '--') AS account_no,
+                   COALESCE(e.bank_account, '--') AS account_no,
                    COALESCE(pi.net_pay, 0) AS net_pay
             FROM payroll_items pi
             JOIN payroll_runs pr ON pi.payroll_run_id = pr.id

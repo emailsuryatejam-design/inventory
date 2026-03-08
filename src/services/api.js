@@ -995,6 +995,7 @@ export const payrollRuns = {
   },
   get: (id) => request(`payroll-runs.php?id=${id}`),
   create: (data) => request('payroll-runs.php', { method: 'POST', body: JSON.stringify(data) }),
+  review: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'review' }) }),
   approve: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'approve' }) }),
   markPaid: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'mark_paid' }) }),
   cancel: (id) => request('payroll-runs.php', { method: 'PUT', body: JSON.stringify({ id, action: 'cancel' }) }),

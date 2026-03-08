@@ -38,10 +38,11 @@ $whereClause = $where ? 'AND ' . implode(' AND ', $where) : '';
 
 // Get all active items
 $itemsStmt = $pdo->prepare("
-    SELECT i.id, i.item_code, i.name, i.stock_uom,
+    SELECT i.id, i.item_code, i.name, COALESCE(uom.code, '') as stock_uom,
            ig.code as group_code, ig.name as group_name
     FROM items i
     LEFT JOIN item_groups ig ON i.item_group_id = ig.id
+    LEFT JOIN units_of_measure uom ON i.stock_uom_id = uom.id
     WHERE i.is_active = 1
     AND i.tenant_id = ?
     {$whereClause}
@@ -130,9 +131,9 @@ if ($campId) {
     $campFilterI = '';
 }
 $issStmt = $pdo->prepare("
-    SELECT il.item_id, iv.issue_type, SUM(il.qty) as issued_qty
-    FROM issue_lines il
-    JOIN issue_vouchers iv ON il.issue_voucher_id = iv.id
+    SELECT il.item_id, iv.issue_type, SUM(il.quantity) as issued_qty
+    FROM issue_voucher_lines il
+    JOIN issue_vouchers iv ON il.voucher_id = iv.id
     WHERE DATE(iv.created_at) >= ? AND DATE(iv.created_at) <= ?
     AND iv.tenant_id = ?
     {$campFilterI}

@@ -65,7 +65,7 @@ export default function ExpenseClaims() {
 
   async function openCreateModal() {
     try {
-      const empRes = await hrEmployees.list({ status: 'active' })
+      const empRes = await hrEmployees.list({ employment_status: 'active' })
       setEmployees(empRes.employees || [])
       setForm({ employee_id: '', title: '', amount: '', category: 'transport', description: '' })
       setShowModal(true)

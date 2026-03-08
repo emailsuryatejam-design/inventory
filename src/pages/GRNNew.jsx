@@ -337,11 +337,11 @@ export default function GRNNew() {
                       />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-sm text-gray-600">KES {Number(line.unit_cost).toLocaleString()}</span>
+                      <span className="text-sm text-gray-600">TZS {Number(line.unit_cost).toLocaleString()}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="text-sm font-medium text-gray-900">
-                        KES {Math.round(line.received_qty * line.unit_cost).toLocaleString()}
+                        TZS {Math.round(line.received_qty * line.unit_cost).toLocaleString()}
                       </span>
                     </td>
                   </tr>
@@ -386,7 +386,7 @@ export default function GRNNew() {
                   <div>
                     <label className="block text-[10px] text-gray-400 mb-1">Total</label>
                     <p className="text-sm font-medium text-gray-900 py-1.5">
-                      KES {Math.round(line.received_qty * line.unit_cost).toLocaleString()}
+                      TZS {Math.round(line.received_qty * line.unit_cost).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -428,7 +428,7 @@ export default function GRNNew() {
             <div>
               <p className="text-sm text-gray-500">{lines.filter(l => l.received_qty > 0).length} items received</p>
               <p className="text-lg font-bold text-gray-900">
-                KES {Math.round(totalValue).toLocaleString()}
+                TZS {Math.round(totalValue).toLocaleString()}
               </p>
             </div>
             <button

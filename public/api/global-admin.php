@@ -391,8 +391,8 @@ case 'suspend':
     $id = (int)$input['id'];
     $reason = trim($input['reason'] ?? '');
 
-    $pdo->prepare("UPDATE tenants SET status = 'suspended', notes = CONCAT(IFNULL(notes,''), '\nSuspended: $reason') WHERE id = ?")
-        ->execute([$id]);
+    $pdo->prepare("UPDATE tenants SET status = 'suspended', notes = CONCAT(IFNULL(notes,''), CONCAT('\nSuspended: ', ?)) WHERE id = ?")
+        ->execute([$reason, $id]);
 
     jsonResponse(['success' => true, 'message' => 'Tenant suspended']);
     break;

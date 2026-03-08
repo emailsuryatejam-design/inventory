@@ -340,7 +340,7 @@ export default function PurchaseOrderNew() {
                       <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
                       <p className="text-xs text-gray-400">
                         {item.group_name} · {item.purchase_uom || item.stock_uom}
-                        {item.last_purchase_price > 0 && ` · KES ${Number(item.last_purchase_price).toLocaleString()}`}
+                        {item.last_purchase_price > 0 && ` · TZS ${Number(item.last_purchase_price).toLocaleString()}`}
                       </p>
                     </div>
                     <Plus size={18} className="text-green-600 flex-shrink-0" />
@@ -421,7 +421,7 @@ export default function PurchaseOrderNew() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-sm font-medium text-gray-900">
-                          KES {Math.round(lineTotal + lineTax).toLocaleString()}
+                          TZS {Math.round(lineTotal + lineTax).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -483,7 +483,7 @@ export default function PurchaseOrderNew() {
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-1">Total</label>
                       <p className="text-sm font-medium text-gray-900 py-1.5">
-                        KES {Math.round(lineTotal).toLocaleString()}
+                        TZS {Math.round(lineTotal).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -514,11 +514,11 @@ export default function PurchaseOrderNew() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-xs text-gray-500 space-y-0.5">
-                <p>Subtotal: KES {Math.round(subtotal).toLocaleString()}</p>
-                {taxTotal > 0 && <p>Tax: KES {Math.round(taxTotal).toLocaleString()}</p>}
+                <p>Subtotal: TZS {Math.round(subtotal).toLocaleString()}</p>
+                {taxTotal > 0 && <p>Tax: TZS {Math.round(taxTotal).toLocaleString()}</p>}
               </div>
               <p className="text-lg font-bold text-gray-900">
-                KES {Math.round(grandTotal).toLocaleString()}
+                TZS {Math.round(grandTotal).toLocaleString()}
               </p>
             </div>
             <div className="flex items-center gap-2">

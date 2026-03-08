@@ -77,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO payroll_periods (tenant_id, name, period_type, start_date, end_date, pay_date, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        INSERT INTO payroll_periods (tenant_id, name, period_type, start_date, end_date, pay_date, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     $stmt->execute([
         $tenantId,

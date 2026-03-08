@@ -21,7 +21,7 @@ const STATUS_COLORS = {
 }
 
 export default function Alerts() {
-  const { user } = useUser()
+  const user = useUser()
   const [tab, setTab] = useState('summary')
   const [summary, setSummary] = useState(null)
   const [data, setData] = useState(null)
