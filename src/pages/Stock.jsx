@@ -21,6 +21,7 @@ export default function Stock() {
     search: '',
     status: '',
     group: '',
+    sub_category: '',
     page: 1,
   }))
   const [showFilters, setShowFilters] = useState(false)
@@ -30,8 +31,8 @@ export default function Stock() {
   }, [campId])
 
   useEffect(() => {
-    saveFilters('stock', { search: filters.search, status: filters.status, group: filters.group })
-  }, [filters.search, filters.status, filters.group])
+    saveFilters('stock', { search: filters.search, status: filters.status, group: filters.group, sub_category: filters.sub_category })
+  }, [filters.search, filters.status, filters.group, filters.sub_category])
 
   useEffect(() => {
     loadStock()
@@ -48,6 +49,7 @@ export default function Stock() {
         search: filters.search,
         status: filters.status,
         group: filters.group,
+        sub_category: filters.sub_category,
       })
       setData(result)
     } catch (err) {
@@ -61,7 +63,7 @@ export default function Stock() {
     setFilters(prev => ({ ...prev, search: value, page: 1 }))
   }
 
-  const activeFilterCount = [filters.status, filters.group].filter(Boolean).length
+  const activeFilterCount = [filters.status, filters.group, filters.sub_category].filter(Boolean).length
   const summary = data?.summary
 
   const statusColors = {
@@ -168,7 +170,7 @@ export default function Stock() {
       {/* Filter Panel */}
       {showFilters && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
               <select
@@ -185,16 +187,31 @@ export default function Stock() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Item Group</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
               <select
                 value={filters.group}
-                onChange={(e) => setFilters(prev => ({ ...prev, group: e.target.value, page: 1 }))}
+                onChange={(e) => setFilters(prev => ({ ...prev, group: e.target.value, sub_category: '', page: 1 }))}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
               >
-                <option value="">All Groups</option>
+                <option value="">All Categories</option>
                 {data?.groups?.map(g => (
                   <option key={g.id} value={g.id}>{g.code} — {g.name}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Sub-Category</label>
+              <select
+                value={filters.sub_category}
+                onChange={(e) => setFilters(prev => ({ ...prev, sub_category: e.target.value, page: 1 }))}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+              >
+                <option value="">All Sub-Categories</option>
+                {(data?.sub_categories || [])
+                  .filter(sc => !filters.group || sc.group_id === Number(filters.group))
+                  .map(sc => (
+                    <option key={sc.id} value={sc.id}>{sc.code} — {sc.name}</option>
+                  ))}
               </select>
             </div>
           </div>
