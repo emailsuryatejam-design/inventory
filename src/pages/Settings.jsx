@@ -463,7 +463,7 @@ function TallyConfig({ toast }) {
             type="text"
             value={form.tally_company_name}
             onChange={e => setForm(f => ({ ...f, tally_company_name: e.target.value }))}
-            placeholder="Karibu Camps Ltd"
+            placeholder="Your Company Name"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           />
         </div>
