@@ -91,7 +91,7 @@ export default function Alerts() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div data-guide="alerts-summary" className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Stock Alerts & Projections</h1>
         <button
           onClick={() => { loadSummary(); if (tab !== 'summary') loadTabData() }}
@@ -248,7 +248,7 @@ function SummaryView({ summary, onNavigate }) {
   ]
 
   return (
-    <div data-guide="alerts-summary" className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {cards.map((c, i) => (
         <button
           key={i}

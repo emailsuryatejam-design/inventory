@@ -142,19 +142,21 @@ export default function Orders() {
       {data && (
         <div data-guide="orders-list" className="bg-white rounded-xl border border-gray-200">
           {data.orders.length === 0 ? (
-            <EmptyState
-              icon={ShoppingCart}
-              title="No orders"
-              message={filters.status ? `No ${filters.status.replace(/_/g, ' ')} orders` : 'Create your first order'}
-              action={
-                <Link
-                  to="/app/orders/new"
-                  className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                >
-                  <Plus size={16} /> New Order
-                </Link>
-              }
-            />
+            <div data-guide="order-list-first">
+              <EmptyState
+                icon={ShoppingCart}
+                title="No orders"
+                message={filters.status ? `No ${filters.status.replace(/_/g, ' ')} orders` : 'Create your first order'}
+                action={
+                  <Link
+                    to="/app/orders/new"
+                    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    <Plus size={16} /> New Order
+                  </Link>
+                }
+              />
+            </div>
           ) : (
             <>
               {/* Desktop Table */}

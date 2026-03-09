@@ -491,7 +491,7 @@ export default function POS() {
           )}
 
           {/* Service Types */}
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Select Service Type</h2>
+          <h2 data-guide="pos-categories" className="text-sm font-semibold text-gray-700 mb-3">Select Service Type</h2>
           <div data-guide="pos-service-types" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {SERVICE_TYPES.map(svc => (
               <button
@@ -520,6 +520,10 @@ export default function POS() {
               </div>
             </div>
           )}
+          {/* Hidden guide anchors for service selection screen */}
+          <span data-guide="pos-items" />
+          <span data-guide="pos-cart" />
+          <span data-guide="pos-checkout" />
         </div>
       )}
 

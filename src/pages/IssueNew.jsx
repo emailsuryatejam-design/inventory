@@ -536,7 +536,7 @@ export default function IssueNew() {
 
       {/* Issue Lines */}
       {lines.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div data-guide="issue-submit-btn" className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <FileOutput size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 text-sm">Search and add items to issue above</p>
         </div>

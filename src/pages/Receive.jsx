@@ -115,11 +115,13 @@ export default function Receive() {
       {data && (
         <div data-guide="receive-list" className="bg-white rounded-xl border border-gray-200">
           {data.receipts.length === 0 ? (
-            <EmptyState
-              icon={PackageCheck}
-              title="No receipts"
-              message={filters.status ? `No ${filters.status} receipts` : 'No goods receipts yet'}
-            />
+            <div data-guide="receive-list-first">
+              <EmptyState
+                icon={PackageCheck}
+                title="No receipts"
+                message={filters.status ? `No ${filters.status} receipts` : 'No goods receipts yet'}
+              />
+            </div>
           ) : (
             <>
               {/* Desktop Table */}

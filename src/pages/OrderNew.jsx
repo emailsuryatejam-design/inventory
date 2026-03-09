@@ -187,7 +187,7 @@ export default function OrderNew() {
 
       {/* Order Lines */}
       {lines.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div data-guide="order-cart" className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <ShoppingCart size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 text-sm">Search and add items to your order above</p>
         </div>
@@ -268,6 +268,7 @@ export default function OrderNew() {
       )}
 
       {/* Submit Bar */}
+      {lines.length === 0 && <span data-guide="submit-order-btn" />}
       {lines.length > 0 && (
         <div className="sticky bottom-16 lg:bottom-0 bg-white border border-gray-200 rounded-xl p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">

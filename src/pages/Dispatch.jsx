@@ -132,11 +132,13 @@ export default function Dispatch() {
       {data && (
         <div data-guide="dispatch-list" className="bg-white rounded-xl border border-gray-200">
           {data.dispatches.length === 0 ? (
-            <EmptyState
-              icon={Truck}
-              title="No dispatches"
-              message={filters.status ? `No ${filters.status} dispatches` : 'No dispatch notes yet'}
-            />
+            <div data-guide="dispatch-list-first">
+              <EmptyState
+                icon={Truck}
+                title="No dispatches"
+                message={filters.status ? `No ${filters.status} dispatches` : 'No dispatch notes yet'}
+              />
+            </div>
           ) : (
             <>
               {/* Desktop Table */}

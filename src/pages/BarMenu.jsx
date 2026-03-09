@@ -298,7 +298,7 @@ export default function BarMenu() {
   // ═════════ ALERTS VIEW ═════════
   if (view === 'alerts') {
     return (
-      <div>
+      <div data-guide="bar-alerts-summary">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Menu Stock Alerts</h1>
@@ -314,7 +314,7 @@ export default function BarMenu() {
 
         {/* Summary Cards */}
         {stockSummary && (
-          <div data-guide="bar-alerts-summary" className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
             {Object.entries(stockSummary).map(([key, val]) => {
               const s = STATUS_STYLES[key] || STATUS_STYLES.unknown
               return (
@@ -534,7 +534,7 @@ export default function BarMenu() {
           </h1>
           <p className="text-sm text-gray-500">{user?.camp_name || 'WebSquare'}</p>
         </div>
-        <div className="flex gap-2">
+        <div data-guide="bar-cart-btn" className="flex gap-2">
           <button
             onClick={loadAlerts}
             data-guide="bar-alerts-tab"
@@ -545,7 +545,6 @@ export default function BarMenu() {
           {cart.length > 0 && (
             <button
               onClick={() => setView('cart')}
-              data-guide="bar-cart-btn"
               className="relative flex items-center gap-1.5 text-sm text-white bg-amber-700 px-3 py-2 rounded-lg hover:bg-amber-800 transition"
             >
               <ShoppingCart size={16} />
@@ -563,6 +562,9 @@ export default function BarMenu() {
           <button onClick={() => setError('')}><X size={16} /></button>
         </div>
       )}
+
+      {/* Guide anchor for alerts summary (visible on menu view as fallback) */}
+      <span data-guide="bar-alerts-summary" />
 
       {/* Filter tabs */}
       <div data-guide="bar-category-tabs" className="flex gap-2 mb-3 overflow-x-auto pb-1">

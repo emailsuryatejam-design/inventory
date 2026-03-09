@@ -85,8 +85,10 @@ export default function UserManagement() {
       )}
 
       {/* Create Form */}
+      {/* Create Form */}
+      <div data-guide="user-form">
       {showForm && (
-        <form onSubmit={handleCreate} data-guide="user-form" className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Full Name</label>
@@ -121,7 +123,6 @@ export default function UserManagement() {
               <select
                 value={form.role}
                 onChange={e => setForm({...form, role: e.target.value})}
-                data-guide="user-role-select"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               >
                 {ROLES.map(r => (
@@ -180,6 +181,7 @@ export default function UserManagement() {
           </button>
         </form>
       )}
+      </div>
 
       {/* User List */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -190,7 +192,7 @@ export default function UserManagement() {
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Username</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Role</th>
+                <th data-guide="user-role-select" className="text-left px-4 py-3 font-medium text-gray-500">Role</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Camp</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-500">PIN</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-500">Status</th>

@@ -77,7 +77,7 @@ export default function Stock() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div data-guide="stock-summary" className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Stock Balances</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -88,7 +88,7 @@ export default function Stock() {
 
       {/* Summary Cards */}
       {summary && (
-        <div data-guide="stock-summary" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           <SummaryCard
             label="Total Value"
             value={`TZS ${(summary.total_value / 1000000).toFixed(1)}M`}
@@ -156,6 +156,7 @@ export default function Stock() {
           </select>
         )}
         <button
+          data-guide="stock-category-filter"
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition ${
             activeFilterCount > 0
@@ -190,7 +191,6 @@ export default function Stock() {
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
               <select
-                data-guide="stock-category-filter"
                 value={filters.group}
                 onChange={(e) => setFilters(prev => ({ ...prev, group: e.target.value, sub_category: '', page: 1 }))}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
