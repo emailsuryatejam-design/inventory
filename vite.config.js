@@ -62,9 +62,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'https://darkblue-goshawk-672880.hostingersite.com',
+        target: 'https://websquare.pro',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: true,
       }
     }
   }
