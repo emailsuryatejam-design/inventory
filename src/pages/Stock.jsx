@@ -144,6 +144,7 @@ export default function Stock() {
         {/* Camp selector for managers */}
         {isManager(user?.role) && (
           <select
+            data-guide="stock-camp-filter"
             value={filters.camp_id}
             onChange={(e) => setFilters(prev => ({ ...prev, camp_id: e.target.value, page: 1 }))}
             className="px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
@@ -189,6 +190,7 @@ export default function Stock() {
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
               <select
+                data-guide="stock-category-filter"
                 value={filters.group}
                 onChange={(e) => setFilters(prev => ({ ...prev, group: e.target.value, sub_category: '', page: 1 }))}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"

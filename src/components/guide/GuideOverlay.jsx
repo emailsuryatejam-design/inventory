@@ -132,31 +132,52 @@ export default function GuideOverlay() {
     }
   }, [location.pathname, isRunning])
 
-  // Auto-advance effect for 'auto' mode — action-aware
+  // Auto-advance effect for 'auto' mode — voice-aware timing
   useEffect(() => {
     if (!isRunning || !isAutoMode || !targetRect || !currentStep) return
 
     const step = currentStep
     const action = step.action || (step.advanceOn === 'click' ? 'click' : 'observe')
-    const delay = step.delay ?? 2000
 
-    // For observe steps, just countdown then advance
+    // Calculate delay based on narration length so voice can finish speaking
+    const narration = (step.title || '') + '. ' + (step.description || '')
+    const wordCount = narration.split(/\s+/).filter(Boolean).length
+    // Speech at 0.95x rate ≈ 2.5 words/sec, plus 1.5s buffer for reading subtitle
+    const voiceDuration = Math.ceil(wordCount / 2.5) * 1000 + 1500
+    const minDelay = Math.max(step.delay ?? 3000, voiceDuration)
+
+    // For observe steps, wait for voice to finish then advance
     if (action === 'observe') {
-      setAutoCountdown(delay / 1000)
+      setAutoCountdown(minDelay / 1000)
       autoTimerRef.current = setTimeout(() => {
         if (abortRef.current) return
         setAutoCountdown(0)
-        advanceAfterAction()
-      }, delay)
+        // Extra safety: if still speaking, wait a bit more
+        const checkVoice = () => {
+          if (abortRef.current) return
+          if (window.speechSynthesis?.speaking) {
+            autoTimerRef.current = setTimeout(checkVoice, 500)
+          } else {
+            advanceAfterAction()
+          }
+        }
+        checkVoice()
+      }, minDelay)
       return cleanupAutoTimer
     }
 
-    // For action steps, brief countdown then execute
-    const preDelay = Math.min(delay, 1500)
+    // For action steps, wait for voice then execute
+    const preDelay = Math.max(Math.min(minDelay, voiceDuration), 2500)
     setAutoCountdown(preDelay / 1000)
     autoTimerRef.current = setTimeout(async () => {
       if (abortRef.current) return
       setAutoCountdown(0)
+
+      // Wait for voice to finish before performing the action
+      while (window.speechSynthesis?.speaking && !abortRef.current) {
+        await wait(300)
+      }
+      if (abortRef.current) return
 
       const el = document.querySelector(step.target)
       if (!el) { advanceAfterAction(); return }
@@ -168,7 +189,7 @@ export default function GuideOverlay() {
       }
 
       if (abortRef.current) return
-      const settleDelay = (action === 'type' || action === 'clear-and-type') ? 300 : 400
+      const settleDelay = (action === 'type' || action === 'clear-and-type') ? 500 : 600
       await wait(settleDelay)
       if (abortRef.current) return
       advanceAfterAction()

@@ -248,7 +248,7 @@ function SummaryView({ summary, onNavigate }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div data-guide="alerts-summary" className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {cards.map((c, i) => (
         <button
           key={i}

@@ -96,6 +96,7 @@ export default function Orders() {
           return (
             <button
               key={tab.key}
+              data-guide={tab.key === 'pending_review' ? "status-tab-pending" : undefined}
               onClick={() => setFilters(prev => ({ ...prev, status: tab.key, page: 1 }))}
               className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all min-h-0 ${
                 filters.status === tab.key
@@ -171,8 +172,8 @@ export default function Orders() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.orders.map(order => (
-                      <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    {data.orders.map((order, index) => (
+                      <tr key={order.id} data-guide={index === 0 ? "order-list-first" : undefined} className="border-b border-gray-50 hover:bg-gray-50 transition">
                         <td className="px-4 py-3">
                           <Link to={`/app/orders/${order.id}`} className="text-sm font-mono font-medium text-gray-900 hover:text-green-600">
                             {order.order_number}
@@ -211,10 +212,11 @@ export default function Orders() {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-gray-100">
-                {data.orders.map(order => (
+                {data.orders.map((order, index) => (
                   <Link
                     key={order.id}
                     to={`/app/orders/${order.id}`}
+                    data-guide={index === 0 ? "order-list-first" : undefined}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
                   >
                     <div className="flex-1 min-w-0">

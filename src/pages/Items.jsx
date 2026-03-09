@@ -234,8 +234,8 @@ export default function Items() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map(item => (
-                      <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    {data.items.map((item, index) => (
+                      <tr key={item.id} data-guide={index === 0 ? "items-list-first" : undefined} className="border-b border-gray-50 hover:bg-gray-50 transition">
                         <td className="px-4 py-3">
                           <span className="text-sm font-mono text-gray-900">{item.item_code}</span>
                         </td>
@@ -281,10 +281,11 @@ export default function Items() {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-gray-100">
-                {data.items.map(item => (
+                {data.items.map((item, index) => (
                   <Link
                     key={item.id}
                     to={`/app/items/${item.id}`}
+                    data-guide={index === 0 ? "items-list-first" : undefined}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
                   >
                     <div className="flex-1 min-w-0">

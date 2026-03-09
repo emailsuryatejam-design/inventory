@@ -155,8 +155,8 @@ export default function Dispatch() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.dispatches.map(d => (
-                      <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    {data.dispatches.map((d, index) => (
+                      <tr key={d.id} data-guide={index === 0 ? "dispatch-list-first" : undefined} className="border-b border-gray-50 hover:bg-gray-50 transition">
                         <td className="px-4 py-3">
                           <Link to={`/app/dispatch/${d.id}`} className="text-sm font-mono font-medium text-gray-900 hover:text-green-600">
                             {d.dispatch_number}
@@ -196,10 +196,11 @@ export default function Dispatch() {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-gray-100">
-                {data.dispatches.map(d => (
+                {data.dispatches.map((d, index) => (
                   <Link
                     key={d.id}
                     to={`/app/dispatch/${d.id}`}
+                    data-guide={index === 0 ? "dispatch-list-first" : undefined}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
                   >
                     <div className="flex-1 min-w-0">

@@ -137,8 +137,8 @@ export default function Receive() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.receipts.map(r => (
-                      <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    {data.receipts.map((r, index) => (
+                      <tr key={r.id} data-guide={index === 0 ? "receive-list-first" : undefined} className="border-b border-gray-50 hover:bg-gray-50 transition">
                         <td className="px-4 py-3">
                           <Link to={`/app/receive/${r.id}`} className="text-sm font-mono font-medium text-gray-900 hover:text-green-600">
                             {r.receipt_number}
@@ -173,10 +173,11 @@ export default function Receive() {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-gray-100">
-                {data.receipts.map(r => (
+                {data.receipts.map((r, index) => (
                   <Link
                     key={r.id}
                     to={`/app/receive/${r.id}`}
+                    data-guide={index === 0 ? "receive-list-first" : undefined}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition"
                   >
                     <div className="flex-1 min-w-0">
