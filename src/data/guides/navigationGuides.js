@@ -37,7 +37,7 @@ export const navigationGuides = [
         title: 'POS Terminal',
         description: 'Point of Sale for issuing items directly. Browse categories, add to cart, and checkout.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/pos',
         advanceOn: 'next-button',
       },
       {
@@ -45,7 +45,7 @@ export const navigationGuides = [
         title: 'Bar Menu',
         description: 'The drinks menu with cocktails, beers, and spirits. Place bar orders with stock tracking.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/bar-menu',
         advanceOn: 'next-button',
       },
       {
@@ -96,7 +96,7 @@ export const navigationGuides = [
         title: 'AI Recipes',
         description: 'Get smart recipe suggestions based on ingredients currently in stock.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/recipes',
         advanceOn: 'next-button',
       },
     ],

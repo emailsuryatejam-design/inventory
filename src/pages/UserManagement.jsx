@@ -72,7 +72,7 @@ export default function UserManagement() {
         {currentUser?.role === 'admin' && (
           <button
             onClick={() => setShowForm(!showForm)}
-            data-guide="new-user-btn"
+            data-guide="add-user-btn"
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700"
           >
             {showForm ? 'Cancel' : '+ New User'}
@@ -86,7 +86,7 @@ export default function UserManagement() {
 
       {/* Create Form */}
       {showForm && (
-        <form onSubmit={handleCreate} data-guide="user-create-form" className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <form onSubmit={handleCreate} data-guide="user-form" className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Full Name</label>
@@ -121,6 +121,7 @@ export default function UserManagement() {
               <select
                 value={form.role}
                 onChange={e => setForm({...form, role: e.target.value})}
+                data-guide="user-role-select"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               >
                 {ROLES.map(r => (
@@ -199,8 +200,8 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {userList.map(u => (
-                <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
+              {userList.map((u, idx) => (
+                <tr key={u.id} data-guide={idx === 0 ? 'user-list-first' : undefined} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs">{u.username}</td>
                   <td className="px-4 py-3">
@@ -237,8 +238,8 @@ export default function UserManagement() {
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-gray-100">
-          {userList.map(u => (
-            <div key={u.id} className="p-4">
+          {userList.map((u, idx) => (
+            <div key={u.id} data-guide={idx === 0 ? 'user-list-first' : undefined} className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900">{u.name}</p>

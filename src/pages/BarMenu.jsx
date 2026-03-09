@@ -314,7 +314,7 @@ export default function BarMenu() {
 
         {/* Summary Cards */}
         {stockSummary && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+          <div data-guide="bar-alerts-summary" className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
             {Object.entries(stockSummary).map(([key, val]) => {
               const s = STATUS_STYLES[key] || STATUS_STYLES.unknown
               return (
@@ -537,7 +537,7 @@ export default function BarMenu() {
         <div className="flex gap-2">
           <button
             onClick={loadAlerts}
-            data-guide="bar-stock-alerts-btn"
+            data-guide="bar-alerts-tab"
             className="flex items-center gap-1.5 text-sm text-orange-700 bg-orange-50 border border-orange-200 px-3 py-2 rounded-lg hover:bg-orange-100 transition"
           >
             <TrendingDown size={16} /> Stock Alerts
@@ -545,6 +545,7 @@ export default function BarMenu() {
           {cart.length > 0 && (
             <button
               onClick={() => setView('cart')}
+              data-guide="bar-cart-btn"
               className="relative flex items-center gap-1.5 text-sm text-white bg-amber-700 px-3 py-2 rounded-lg hover:bg-amber-800 transition"
             >
               <ShoppingCart size={16} />
@@ -564,7 +565,7 @@ export default function BarMenu() {
       )}
 
       {/* Filter tabs */}
-      <div data-guide="bar-menu-categories" className="flex gap-2 mb-3 overflow-x-auto pb-1">
+      <div data-guide="bar-category-tabs" className="flex gap-2 mb-3 overflow-x-auto pb-1">
         <button
           onClick={() => { setActiveCategory(null); setFilterType('') }}
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
@@ -605,7 +606,7 @@ export default function BarMenu() {
       {loading ? (
         <LoadingSpinner message="Loading menu..." />
       ) : (
-        <div className="space-y-6">
+        <div data-guide="bar-menu-items" className="space-y-6">
           {Object.values(groupedItems).map(group => (
             <div key={group.code}>
               {/* Category Header */}

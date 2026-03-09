@@ -192,7 +192,7 @@ export default function OrderNew() {
           <p className="text-gray-500 text-sm">Search and add items to your order above</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 mb-4">
+        <div data-guide="order-cart" className="bg-white rounded-xl border border-gray-200 mb-4">
           <div className="divide-y divide-gray-100">
             {lines.map((line, index) => (
               <div key={line.item_id} className="flex items-center gap-3 px-4 py-3">

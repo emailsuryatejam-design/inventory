@@ -353,7 +353,7 @@ export const fullDemoGuide = {
       title: 'Open POS',
       description: 'Navigate to the Point of Sale terminal for lodge bar and restaurant sales.',
       placement: 'right',
-      route: '/app/dashboard',
+      route: '/app/pos',
       section: 'POS Sale',
       action: 'click',
       delay: 1500,

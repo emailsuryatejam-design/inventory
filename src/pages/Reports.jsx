@@ -159,7 +159,7 @@ export default function Reports() {
               ))}
             </select>
           </div>
-          <div>
+          <div data-guide="report-date-filter">
             <label className="text-xs text-gray-500 mb-1 block">From</label>
             <input
               type="date"

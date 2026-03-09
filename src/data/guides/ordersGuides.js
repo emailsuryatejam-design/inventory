@@ -25,7 +25,7 @@ export const ordersGuides = [
         advanceOn: 'click',
       },
       {
-        target: '[data-guide="order-search"]',
+        target: '[data-guide="order-search-input"]',
         title: 'Search for Items',
         description: 'Type the name of an item to search the inventory catalog. You can search by name or item code.',
         placement: 'bottom',
@@ -111,7 +111,7 @@ export const ordersGuides = [
         advanceOn: 'next-button',
       },
       {
-        target: '[data-guide="order-search-input"]',
+        target: '[data-guide="order-search"]',
         title: 'Search Orders',
         description: 'Search by order number or camp name to find a specific order quickly.',
         placement: 'bottom',

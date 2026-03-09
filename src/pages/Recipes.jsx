@@ -172,6 +172,7 @@ export default function Recipes() {
         </div>
         <button
           onClick={openCreate}
+          data-guide="recipe-generate"
           className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm"
         >
           <Plus size={16} />

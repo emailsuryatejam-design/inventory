@@ -192,7 +192,7 @@ export const operationsGuides = [
         title: 'Go to Recipes',
         description: 'Click Recipes to access AI-powered recipe suggestions.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/recipes',
         advanceOn: 'click',
       },
       {
@@ -220,7 +220,7 @@ export const operationsGuides = [
         title: 'Go to Reports',
         description: 'Click Reports in the sidebar. Available for managers and above.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/reports',
         advanceOn: 'click',
       },
       {
@@ -264,7 +264,7 @@ export const operationsGuides = [
         title: 'Go to Users',
         description: 'Click Users in the sidebar. Only available for admins and directors.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/users',
         advanceOn: 'click',
       },
       {
@@ -299,7 +299,7 @@ export const operationsGuides = [
         title: 'Go to Users',
         description: 'Navigate to User Management.',
         placement: 'right',
-        route: '/app/dashboard',
+        route: '/app/users',
         advanceOn: 'click',
       },
       {
