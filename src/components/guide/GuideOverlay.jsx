@@ -7,6 +7,7 @@ import SpotlightMask from './SpotlightMask'
 import AnimatedCursor from './AnimatedCursor'
 import GuideTooltip from './GuideTooltip'
 import AutoCountdown from './AutoCountdown'
+import VoiceSubtitle from './VoiceSubtitle'
 
 /**
  * Real-time coaching overlay that guides users through actual task performance:
@@ -69,6 +70,7 @@ export default function GuideOverlay() {
   const autoTimerRef = useRef(null)
   const [autoCountdown, setAutoCountdown] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
+  const [narrationText, setNarrationText] = useState('')
   const isAutoMode = guideMode === 'auto'
 
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function GuideOverlay() {
     if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null }
     setAutoCountdown(0)
     setIsTyping(false)
+    setNarrationText('')
     advancePendingRef.current = false
   }, [stopVoice])
 
@@ -321,10 +324,11 @@ export default function GuideOverlay() {
     const cy = rect.top + rect.height / 2
     setCursor({ x: cx, y: cy })
 
-    // Voice narration — speak the step title + description
-    if (isAutoMode && voiceEnabled) {
+    // Voice narration + subtitle — speak the step title + description
+    if (isAutoMode) {
       const narration = step.title + '. ' + (step.description || '')
-      speak(narration)
+      setNarrationText(narration)
+      if (voiceEnabled) speak(narration)
     }
 
     if (window.ResizeObserver) {
@@ -450,6 +454,13 @@ export default function GuideOverlay() {
         <AutoCountdown
           targetRect={targetRect}
           duration={autoCountdown}
+        />
+      )}
+      {isAutoMode && (
+        <VoiceSubtitle
+          text={narrationText}
+          isSpeaking={isSpeaking}
+          voiceEnabled={voiceEnabled}
         />
       )}
     </>,
