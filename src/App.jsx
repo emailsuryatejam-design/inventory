@@ -4,10 +4,7 @@ import { useUser } from './context/AppContext'
 import RouteGuard from './components/layout/RouteGuard'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import { GuideProvider } from './context/GuideContext'
-import AssistantButton from './components/guide/AssistantButton'
-import AssistantPanel from './components/guide/AssistantPanel'
-import GuideOverlay from './components/guide/GuideOverlay'
-import ReportForm from './components/guide/ReportForm'
+import AppGuideUI from './components/guide/AppGuideUI'
 
 // Eager — critical path (login, dashboard, layout, landing)
 import Login from './pages/Login'
@@ -211,11 +208,8 @@ export default function App() {
         </Routes>
       </Suspense>
 
-      {/* Global guide UI — available on all pages including login */}
-      <AssistantButton />
-      <AssistantPanel />
-      <GuideOverlay />
-      <ReportForm />
+      {/* Guide UI — only on authenticated app pages, never on login/public pages */}
+      <AppGuideUI />
     </GuideProvider>
   )
 }

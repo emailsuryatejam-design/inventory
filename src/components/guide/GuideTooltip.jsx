@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, MousePointerClick, Zap, SkipForward } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, MousePointerClick, Zap, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import GuideProgress from './GuideProgress'
 
 /**
@@ -29,6 +29,9 @@ export default function GuideTooltip({
   isAutoMode = false,
   isTyping = false,
   currentSection = null,
+  voiceEnabled = false,
+  toggleVoice = null,
+  isSpeaking = false,
 }) {
   const tooltipRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, arrowSide: 'top', arrowOffset: '50%' })
@@ -275,12 +278,29 @@ export default function GuideTooltip({
           </div>
         </div>
 
-        {/* Step counter */}
-        <p className="text-[10px] text-gray-400 mt-2 text-center">
-          Step {currentIndex + 1} of {totalSteps}
-          {isAutoMode && <span className="ml-1 text-amber-500">- auto demo</span>}
-          {coaching && !isAutoMode && <span className="ml-1 text-green-500">- watching your action</span>}
-        </p>
+        {/* Step counter + voice toggle */}
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <p className="text-[10px] text-gray-400">
+            Step {currentIndex + 1} of {totalSteps}
+            {isAutoMode && <span className="ml-1 text-amber-500">- auto demo</span>}
+            {coaching && !isAutoMode && <span className="ml-1 text-green-500">- watching your action</span>}
+          </p>
+          {isAutoMode && toggleVoice && (
+            <button
+              onClick={toggleVoice}
+              className={`compact-btn flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold transition border ${
+                voiceEnabled
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
+              }`}
+              style={{ minHeight: 'auto' }}
+              title={voiceEnabled ? 'Mute voice narration' : 'Enable voice narration'}
+            >
+              {voiceEnabled ? <Volume2 size={9} /> : <VolumeX size={9} />}
+              {voiceEnabled ? (isSpeaking ? 'Speaking' : 'Voice') : 'Muted'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

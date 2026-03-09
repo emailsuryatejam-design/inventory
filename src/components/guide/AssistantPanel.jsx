@@ -4,9 +4,10 @@ import {
   Search, X, Clock, CheckCircle2, ChevronRight, AlertCircle,
   LayoutDashboard, ShoppingCart, Truck, Boxes, Package,
   PackageCheck, FileOutput, Wine, GlassWater, Sparkles,
-  Bell, BarChart3, Users, Play, MousePointerClick, Zap
+  Bell, BarChart3, Users, Play, MousePointerClick, Zap, Volume2, VolumeX
 } from 'lucide-react'
 import useGuide from '../../hooks/useGuide'
+import useVoiceGuide from '../../hooks/useVoiceGuide'
 import useIsMobile from '../../hooks/useIsMobile'
 import { lockScroll, unlockScroll } from '../../utils/scrollLock'
 import { allGuides, searchGuides, getGuidesByCategory } from '../../data/guides'
@@ -30,6 +31,7 @@ const SUGGESTIONS = [
 
 export default function AssistantPanel() {
   const { isPanelOpen, closePanel, startGuide, completedGuides, openReport, guideMode, setGuideMode } = useGuide()
+  const { voiceEnabled, toggleVoice } = useVoiceGuide()
   const isMobile = useIsMobile()
   const location = useLocation()
   const [query, setQuery] = useState('')
@@ -185,6 +187,21 @@ export default function AssistantPanel() {
               Auto Demo
             </button>
           </div>
+          {/* Voice toggle — visible when Auto Demo is selected */}
+          {guideMode === 'auto' && (
+            <button
+              onClick={toggleVoice}
+              className={`mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all compact-btn border ${
+                voiceEnabled
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
+              }`}
+              style={{ minHeight: 'auto' }}
+            >
+              {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              {voiceEnabled ? 'Voice Narration On' : 'Voice Narration Off'}
+            </button>
+          )}
         </div>
 
         {/* Overall Progress Summary */}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import useGuide from '../../hooks/useGuide'
+import useVoiceGuide from '../../hooks/useVoiceGuide'
 import SpotlightMask from './SpotlightMask'
 import AnimatedCursor from './AnimatedCursor'
 import GuideTooltip from './GuideTooltip'
@@ -45,6 +46,8 @@ export default function GuideOverlay() {
     currentSection,
   } = useGuide()
 
+  const { speak, stop: stopVoice, isSpeaking, voiceEnabled, toggleVoice } = useVoiceGuide()
+
   const navigate = useNavigate()
   const location = useLocation()
   const pollRef = useRef(null)
@@ -74,6 +77,7 @@ export default function GuideOverlay() {
 
   const cleanup = useCallback(() => {
     abortRef.current = true
+    stopVoice()
     if (pollRef.current) { clearTimeout(pollRef.current); pollRef.current = null }
     if (clickHandlerRef.current) {
       clickHandlerRef.current.el?.removeEventListener('click', clickHandlerRef.current.fn, true)
@@ -85,7 +89,7 @@ export default function GuideOverlay() {
     setAutoCountdown(0)
     setIsTyping(false)
     advancePendingRef.current = false
-  }, [])
+  }, [stopVoice])
 
   // Lock body scroll while guide is running
   useEffect(() => {
@@ -317,6 +321,12 @@ export default function GuideOverlay() {
     const cy = rect.top + rect.height / 2
     setCursor({ x: cx, y: cy })
 
+    // Voice narration — speak the step title + description
+    if (isAutoMode && voiceEnabled) {
+      const narration = step.title + '. ' + (step.description || '')
+      speak(narration)
+    }
+
     if (window.ResizeObserver) {
       resizeObsRef.current = new ResizeObserver(() => {
         if (abortRef.current) return
@@ -432,6 +442,9 @@ export default function GuideOverlay() {
         isAutoMode={isAutoMode}
         isTyping={isTyping}
         currentSection={currentSection}
+        voiceEnabled={voiceEnabled}
+        toggleVoice={toggleVoice}
+        isSpeaking={isSpeaking}
       />
       {isAutoMode && autoCountdown > 0 && targetRect && (
         <AutoCountdown
