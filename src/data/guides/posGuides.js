@@ -13,7 +13,7 @@ export const posGuides = [
         title: 'Open POS',
         description: 'Click POS in the sidebar to open the Point of Sale terminal.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -64,7 +64,7 @@ export const posGuides = [
         title: 'Open Bar Menu',
         description: 'Click Bar Menu to see the full drinks menu.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -107,7 +107,7 @@ export const posGuides = [
         title: 'Open Bar Menu',
         description: 'Go to the Bar Menu page to check drink stock levels.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {

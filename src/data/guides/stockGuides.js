@@ -13,7 +13,7 @@ export const stockGuides = [
         title: 'Go to Stock',
         description: 'Click Stock in the sidebar to view real-time stock levels.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -48,7 +48,7 @@ export const stockGuides = [
         title: 'Go to Items',
         description: 'Click Items to browse the full inventory catalog — over 1000 items.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -83,7 +83,7 @@ export const stockGuides = [
         title: 'Go to Alerts',
         description: 'Click Alerts to see all stock level warnings across your camps.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {

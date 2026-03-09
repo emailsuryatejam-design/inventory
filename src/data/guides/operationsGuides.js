@@ -14,7 +14,7 @@ export const operationsGuides = [
         title: 'Go to Dispatch',
         description: 'Click Dispatch to view all dispatch notes and their delivery status.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -50,7 +50,7 @@ export const operationsGuides = [
         title: 'Go to Receive',
         description: 'Click Receive to see all goods receipt records.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -85,7 +85,7 @@ export const operationsGuides = [
         title: 'Go to Receive',
         description: 'Navigate to Receive to find the delivery with issues.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -113,7 +113,7 @@ export const operationsGuides = [
         title: 'Go to Issue',
         description: 'Click Issue in the sidebar to see all issue vouchers.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -164,7 +164,7 @@ export const operationsGuides = [
         title: 'Go to Issue',
         description: 'Navigate to the Issue page to see all issue vouchers.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -192,7 +192,7 @@ export const operationsGuides = [
         title: 'Go to Recipes',
         description: 'Click Recipes to access AI-powered recipe suggestions.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -220,7 +220,7 @@ export const operationsGuides = [
         title: 'Go to Reports',
         description: 'Click Reports in the sidebar. Available for managers and above.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -264,7 +264,7 @@ export const operationsGuides = [
         title: 'Go to Users',
         description: 'Click Users in the sidebar. Only available for admins and directors.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -299,7 +299,7 @@ export const operationsGuides = [
         title: 'Go to Users',
         description: 'Navigate to User Management.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {

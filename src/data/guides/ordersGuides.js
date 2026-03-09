@@ -13,7 +13,7 @@ export const ordersGuides = [
         title: 'Go to Orders',
         description: 'Click on Orders in the sidebar to see all purchase orders.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -64,7 +64,7 @@ export const ordersGuides = [
         title: 'Go to Orders',
         description: 'Navigate to the Orders page to see all pending orders.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {
@@ -99,7 +99,7 @@ export const ordersGuides = [
         title: 'Go to Orders',
         description: 'Navigate to the Orders page to see your order history.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'click',
       },
       {

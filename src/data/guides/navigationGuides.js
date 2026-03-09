@@ -13,7 +13,7 @@ export const navigationGuides = [
         title: 'Dashboard',
         description: 'This is your home page. It shows stock overview, pending orders, and quick stats for your camp.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -21,7 +21,7 @@ export const navigationGuides = [
         title: 'Orders',
         description: 'Create purchase orders for your camp and track their approval status.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -29,7 +29,7 @@ export const navigationGuides = [
         title: 'Stock',
         description: 'View current stock levels across all camps. Filter by category and see real-time balances.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -37,7 +37,7 @@ export const navigationGuides = [
         title: 'POS Terminal',
         description: 'Point of Sale for issuing items directly. Browse categories, add to cart, and checkout.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -45,7 +45,7 @@ export const navigationGuides = [
         title: 'Bar Menu',
         description: 'The drinks menu with cocktails, beers, and spirits. Place bar orders with stock tracking.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -53,7 +53,7 @@ export const navigationGuides = [
         title: 'Alerts',
         description: 'Stock alerts show items running low, critical levels, and dead stock warnings.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
     ],
@@ -72,7 +72,7 @@ export const navigationGuides = [
         title: 'Inventory Items',
         description: 'Browse all 1000+ inventory items with details, categories, and specifications.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -80,7 +80,7 @@ export const navigationGuides = [
         title: 'Receive Goods',
         description: 'Confirm receipt of dispatched goods. Verify quantities against what was sent.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -88,7 +88,7 @@ export const navigationGuides = [
         title: 'Issue Vouchers',
         description: 'Issue items to departments — kitchen, housekeeping, bar, maintenance, etc.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
       {
@@ -96,7 +96,7 @@ export const navigationGuides = [
         title: 'AI Recipes',
         description: 'Get smart recipe suggestions based on ingredients currently in stock.',
         placement: 'right',
-        route: '/app',
+        route: '/app/dashboard',
         advanceOn: 'next-button',
       },
     ],
