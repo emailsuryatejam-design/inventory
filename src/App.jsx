@@ -82,9 +82,35 @@ const PayrollAuditLog = lazy(() => import('./pages/PayrollAuditLog'))
 const IDCards = lazy(() => import('./pages/IDCards'))
 const IntroLetters = lazy(() => import('./pages/IntroLetters'))
 const PayslipTemplates = lazy(() => import('./pages/PayslipTemplates'))
+const BankExport = lazy(() => import('./pages/BankExport'))
+
+// Employee Self-Service
+const MyDashboard = lazy(() => import('./pages/MyDashboard'))
+const MyPayslips = lazy(() => import('./pages/MyPayslips'))
+const MyLeave = lazy(() => import('./pages/MyLeave'))
+const MyLoans = lazy(() => import('./pages/MyLoans'))
+const MyAttendance = lazy(() => import('./pages/MyAttendance'))
+const MyAllowances = lazy(() => import('./pages/MyAllowances'))
+const MyProfile = lazy(() => import('./pages/MyProfile'))
+const MyDocuments = lazy(() => import('./pages/MyDocuments'))
+const MyIdCard = lazy(() => import('./pages/MyIdCard'))
+const MyIntroLetter = lazy(() => import('./pages/MyIntroLetter'))
+const MyFieldWork = lazy(() => import('./pages/MyFieldWork'))
+
+// Kitchen Admin + Requisitions
+const KitchenAdmin = lazy(() => import('./pages/KitchenAdmin'))
+const RequisitionTypes = lazy(() => import('./pages/RequisitionTypes'))
+const SetMenus = lazy(() => import('./pages/SetMenus'))
+const KitchenRequisition = lazy(() => import('./pages/KitchenRequisition'))
+const KitchenStoreDashboard = lazy(() => import('./pages/KitchenStoreDashboard'))
+const KitchenStoreOrders = lazy(() => import('./pages/KitchenStoreOrders'))
+const KitchenDayClose = lazy(() => import('./pages/KitchenDayClose'))
+const KitchenReports = lazy(() => import('./pages/KitchenReports'))
+const KitchenReceiveSupply = lazy(() => import('./pages/KitchenReceiveSupply'))
 
 const CHEF_ONLY = ['chef']
 const KITCHEN_ROLES = ['chef', 'camp_manager', 'admin', 'director']
+const STORE_ROLES = ['storekeeper', 'camp_storekeeper', 'stores_manager', 'admin', 'director']
 const ADMIN_ROLES = ['admin', 'director', 'stores_manager']
 const PROCUREMENT_ROLES = ['procurement_officer', 'stores_manager', 'admin', 'director']
 const GRN_ROLES = ['procurement_officer', 'stores_manager', 'camp_storekeeper', 'admin', 'director']
@@ -163,6 +189,15 @@ export default function App() {
             <Route path="daily-groceries" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><DailyGroceries /></RouteGuard>} />
             <Route path="weekly-groceries" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><WeeklyGroceries /></RouteGuard>} />
             <Route path="recipes" element={<RouteGuard module="kitchen"><Recipes /></RouteGuard>} />
+            <Route path="set-menus" element={<RouteGuard module="kitchen" access="manager"><SetMenus /></RouteGuard>} />
+            <Route path="kitchen-admin" element={<RouteGuard module="kitchen" access="manager"><KitchenAdmin /></RouteGuard>} />
+            <Route path="requisition-types" element={<RouteGuard module="kitchen" access="manager"><RequisitionTypes /></RouteGuard>} />
+            <Route path="kitchen-requisition" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><KitchenRequisition /></RouteGuard>} />
+            <Route path="kitchen-store" element={<RouteGuard module="kitchen" roles={STORE_ROLES}><KitchenStoreDashboard /></RouteGuard>} />
+            <Route path="kitchen-store-orders" element={<RouteGuard module="kitchen" roles={STORE_ROLES}><KitchenStoreOrders /></RouteGuard>} />
+            <Route path="kitchen-day-close" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><KitchenDayClose /></RouteGuard>} />
+            <Route path="kitchen-reports" element={<RouteGuard module="kitchen" access="manager"><KitchenReports /></RouteGuard>} />
+            <Route path="kitchen-receive" element={<RouteGuard module="kitchen" roles={KITCHEN_ROLES}><KitchenReceiveSupply /></RouteGuard>} />
 
             {/* ── Bar & POS module ── */}
             <Route path="pos" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><POS /></RouteGuard>} />
@@ -200,6 +235,20 @@ export default function App() {
             <Route path="id-cards" element={<RouteGuard module="payroll" access="manager"><IDCards /></RouteGuard>} />
             <Route path="intro-letters" element={<RouteGuard module="payroll" access="manager"><IntroLetters /></RouteGuard>} />
             <Route path="payslip-templates" element={<RouteGuard module="payroll" access="manager"><PayslipTemplates /></RouteGuard>} />
+            <Route path="bank-export" element={<RouteGuard module="payroll" access="manager"><BankExport /></RouteGuard>} />
+
+            {/* ── Employee Self-Service ── */}
+            <Route path="my-dashboard" element={<RouteGuard module="payroll"><MyDashboard /></RouteGuard>} />
+            <Route path="my-payslips" element={<RouteGuard module="payroll"><MyPayslips /></RouteGuard>} />
+            <Route path="my-leave" element={<RouteGuard module="payroll"><MyLeave /></RouteGuard>} />
+            <Route path="my-loans" element={<RouteGuard module="payroll"><MyLoans /></RouteGuard>} />
+            <Route path="my-attendance" element={<RouteGuard module="payroll"><MyAttendance /></RouteGuard>} />
+            <Route path="my-allowances" element={<RouteGuard module="payroll"><MyAllowances /></RouteGuard>} />
+            <Route path="my-profile" element={<RouteGuard module="payroll"><MyProfile /></RouteGuard>} />
+            <Route path="my-documents" element={<RouteGuard module="payroll"><MyDocuments /></RouteGuard>} />
+            <Route path="my-id-card" element={<RouteGuard module="payroll"><MyIdCard /></RouteGuard>} />
+            <Route path="my-intro-letter" element={<RouteGuard module="payroll"><MyIntroLetter /></RouteGuard>} />
+            <Route path="my-field-work" element={<RouteGuard module="payroll"><MyFieldWork /></RouteGuard>} />
             </Route>
           </Route>
 

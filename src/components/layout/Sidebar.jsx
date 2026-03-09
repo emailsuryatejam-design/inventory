@@ -9,7 +9,8 @@ import {
   ClipboardCheck, FileText, PackagePlus, Home,
   Wallet, Calculator, CalendarDays, BanknoteIcon, MapPin, Clock,
   FileSignature, Route, ScrollText, CreditCard, Globe, Briefcase,
-  UserCheck, Shield, IdCard, FileCheck
+  UserCheck, Shield, IdCard, FileCheck, Download, User, Banknote,
+  FileDown, MapPinned, Award
 } from 'lucide-react'
 
 // ── Navigation sections (each with a group for per-app filtering) ──────
@@ -54,6 +55,28 @@ const navSections = [
       { path: '/app/daily-groceries', icon: ClipboardList, label: 'Daily Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'] },
       { path: '/app/weekly-groceries', icon: Calendar, label: 'Weekly Groceries', roles: ['chef', 'camp_manager', 'admin', 'director'] },
       { path: '/app/recipes', icon: BookOpen, label: 'Recipes', access: 'all' },
+      { path: '/app/set-menus', icon: CalendarDays, label: 'Set Menus', access: 'manager' },
+    ],
+  },
+  {
+    group: 'kitchen',
+    module: 'kitchen',
+    label: 'Requisitions',
+    items: [
+      { path: '/app/kitchen-requisition', icon: ClipboardList, label: 'Requisition', roles: ['chef', 'camp_manager', 'admin', 'director'] },
+      { path: '/app/kitchen-store', icon: PackageCheck, label: 'Store Dashboard', roles: ['storekeeper', 'camp_storekeeper', 'stores_manager', 'admin', 'director'] },
+      { path: '/app/kitchen-store-orders', icon: ShoppingCart, label: 'Store Orders', roles: ['storekeeper', 'camp_storekeeper', 'stores_manager', 'admin', 'director'] },
+      { path: '/app/kitchen-day-close', icon: Calendar, label: 'Day Close', roles: ['chef', 'camp_manager', 'admin', 'director'] },
+      { path: '/app/kitchen-reports', icon: BarChart3, label: 'Kitchen Reports', access: 'manager' },
+    ],
+  },
+  {
+    group: 'kitchen',
+    module: 'kitchen',
+    label: 'Kitchen Admin',
+    items: [
+      { path: '/app/kitchen-admin', icon: ChefHat, label: 'Kitchens', access: 'manager' },
+      { path: '/app/requisition-types', icon: ClipboardCheck, label: 'Req Types', access: 'manager' },
     ],
   },
   // ── Bar & POS App ──
@@ -111,9 +134,27 @@ const navSections = [
       { path: '/app/approvals', icon: UserCheck, label: 'Approvals', access: 'manager' },
       { path: '/app/payroll-reports', icon: BarChart3, label: 'Reports', access: 'manager' },
       { path: '/app/payslip-templates', icon: FileCheck, label: 'Payslips', access: 'manager' },
+      { path: '/app/bank-export', icon: Download, label: 'Bank Export', access: 'manager' },
       { path: '/app/id-cards', icon: IdCard, label: 'ID Cards', access: 'manager' },
       { path: '/app/intro-letters', icon: ScrollText, label: 'Letters', access: 'manager' },
       { path: '/app/payroll-audit', icon: Shield, label: 'Audit Log', access: 'manager' },
+    ],
+  },
+  // ── Employee Self-Service ──
+  {
+    group: 'payroll',
+    module: 'payroll',
+    label: 'My Portal',
+    items: [
+      { path: '/app/my-dashboard', icon: LayoutDashboard, label: 'My Dashboard', access: 'all' },
+      { path: '/app/my-payslips', icon: Banknote, label: 'My Payslips', access: 'all' },
+      { path: '/app/my-leave', icon: CalendarDays, label: 'My Leave', access: 'all' },
+      { path: '/app/my-loans', icon: Wallet, label: 'My Loans', access: 'all' },
+      { path: '/app/my-attendance', icon: ClipboardCheck, label: 'My Attendance', access: 'all' },
+      { path: '/app/my-allowances', icon: Award, label: 'My Allowances', access: 'all' },
+      { path: '/app/my-field-work', icon: MapPinned, label: 'Field Work', access: 'all' },
+      { path: '/app/my-profile', icon: User, label: 'My Profile', access: 'all' },
+      { path: '/app/my-documents', icon: FileDown, label: 'My Documents', access: 'all' },
     ],
   },
   // ── Reports App ──
@@ -147,10 +188,14 @@ const payrollPaths = [
   '/app/payroll-reports', '/app/shifts', '/app/hr-regions',
   '/app/field-tracking', '/app/contracts', '/app/approvals',
   '/app/payroll-audit', '/app/id-cards', '/app/intro-letters',
-  '/app/payslip-templates', '/app/allowance-types',
+  '/app/payslip-templates', '/app/allowance-types', '/app/bank-export',
+  '/app/my-dashboard', '/app/my-payslips', '/app/my-leave',
+  '/app/my-loans', '/app/my-attendance', '/app/my-allowances',
+  '/app/my-profile', '/app/my-documents', '/app/my-id-card',
+  '/app/my-intro-letter', '/app/my-field-work',
 ]
 
-const kitchenPaths = ['/app/menu-plan', '/app/daily-groceries', '/app/weekly-groceries', '/app/recipes']
+const kitchenPaths = ['/app/menu-plan', '/app/daily-groceries', '/app/weekly-groceries', '/app/recipes', '/app/set-menus', '/app/kitchen-admin', '/app/requisition-types', '/app/kitchen-requisition', '/app/kitchen-store', '/app/kitchen-store-orders', '/app/kitchen-day-close', '/app/kitchen-reports', '/app/kitchen-receive']
 const barPaths = ['/app/pos', '/app/bar-menu']
 const adminPaths = ['/app/users', '/app/settings']
 const reportPaths = ['/app/reports']

@@ -1116,3 +1116,211 @@ export const tally = {
       body: JSON.stringify(data),
     }),
 }
+
+// ── Kitchens (Kitchen Admin) ─────────────────────────
+export const kitchens = {
+  list: () => request('kitchens.php?action=list'),
+  get: (id) => request(`kitchens.php?action=get&id=${id}`),
+  save: (data) => request('kitchens.php?action=save', { method: 'POST', body: JSON.stringify(data) }),
+  toggleActive: (id) => request('kitchens.php?action=toggle_active', { method: 'POST', body: JSON.stringify({ id }) }),
+  getSettings: (id) => request(`kitchens.php?action=get_settings&id=${id}`),
+  saveSettings: (id, settings) => request('kitchens.php?action=save_settings', { method: 'POST', body: JSON.stringify({ id, ...settings }) }),
+}
+
+// ── Requisition Types ────────────────────────────────
+export const requisitionTypes = {
+  list: () => request('requisition-types.php?action=list'),
+  listAll: () => request('requisition-types.php?action=list_all'),
+  save: (data) => request('requisition-types.php?action=save', { method: 'POST', body: JSON.stringify(data) }),
+  toggleActive: (id) => request('requisition-types.php?action=toggle_active', { method: 'POST', body: JSON.stringify({ id }) }),
+  reorder: (items) => request('requisition-types.php?action=reorder', { method: 'POST', body: JSON.stringify({ items }) }),
+}
+
+// ── Set Menus (Rotational Weekly Menus) ──────────────
+export const setMenus = {
+  getWeek: () => request('set-menus.php?action=get_week'),
+  getDay: (day, type) => request(`set-menus.php?action=get_day&day=${day}&type=${encodeURIComponent(type)}`),
+  getDayWithIngredients: (day, type) => request(`set-menus.php?action=get_day_with_ingredients&day=${day}&type=${encodeURIComponent(type)}`),
+  addDish: (data) => request('set-menus.php?action=add_dish', { method: 'POST', body: JSON.stringify(data) }),
+  removeDish: (id) => request('set-menus.php?action=remove_dish', { method: 'POST', body: JSON.stringify({ id }) }),
+  reorder: (items) => request('set-menus.php?action=reorder', { method: 'POST', body: JSON.stringify({ items }) }),
+  copyDay: (data) => request('set-menus.php?action=copy_day', { method: 'POST', body: JSON.stringify(data) }),
+  clearDay: (data) => request('set-menus.php?action=clear_day', { method: 'POST', body: JSON.stringify(data) }),
+  searchRecipes: (q) => request(`set-menus.php?action=search_recipes&q=${encodeURIComponent(q)}`),
+}
+
+// ── Push Notifications ───────────────────────────────
+export const pushNotifications = {
+  vapidKey: () => request('push.php?action=vapid_key'),
+  subscribe: (data) => request('push.php?action=subscribe', { method: 'POST', body: JSON.stringify(data) }),
+  unsubscribe: (endpoint) => request('push.php?action=unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+  status: () => request('push.php?action=status'),
+  notifications: (kitchenId, limit) => request(`push.php?action=notifications&kitchen_id=${kitchenId || 0}&limit=${limit || 20}`),
+  markRead: (id) => request('push.php?action=mark_read', { method: 'POST', body: JSON.stringify({ id }) }),
+  unreadCount: (kitchenId) => request(`push.php?action=unread_count&kitchen_id=${kitchenId || 0}`),
+}
+
+// ── Kitchen Requisitions ─────────────────────────────
+export const kitchenRequisitions = {
+  list: (date, kitchenId, status) => {
+    const params = new URLSearchParams({ action: 'list', date: date || '', kitchen_id: kitchenId || '' })
+    if (status) params.set('status', status)
+    return request(`kitchen-requisitions.php?${params}`)
+  },
+  get: (id) => request(`kitchen-requisitions.php?action=get&id=${id}`),
+  autoCreateForDate: (data) => request('kitchen-requisitions.php?action=auto_create_for_date', { method: 'POST', body: JSON.stringify(data) }),
+  createSupplementary: (parentId) => request('kitchen-requisitions.php?action=create_supplementary', { method: 'POST', body: JSON.stringify({ parent_id: parentId }) }),
+  create: (data) => request('kitchen-requisitions.php?action=create', { method: 'POST', body: JSON.stringify(data) }),
+  saveLines: (reqId, lines) => request('kitchen-requisitions.php?action=save_lines', { method: 'POST', body: JSON.stringify({ requisition_id: reqId, lines }) }),
+  submit: (reqId) => request('kitchen-requisitions.php?action=submit', { method: 'POST', body: JSON.stringify({ requisition_id: reqId }) }),
+  fulfill: (reqId, lines) => request('kitchen-requisitions.php?action=fulfill', { method: 'POST', body: JSON.stringify({ requisition_id: reqId, lines }) }),
+  confirmReceipt: (reqId, lines) => request('kitchen-requisitions.php?action=confirm_receipt', { method: 'POST', body: JSON.stringify({ requisition_id: reqId, lines }) }),
+  close: (data) => request('kitchen-requisitions.php?action=close', { method: 'POST', body: JSON.stringify(data) }),
+  closeWithUnused: (data) => request('kitchen-requisitions.php?action=close_with_unused', { method: 'POST', body: JSON.stringify(data) }),
+  updateUnused: (reqId, unusedLines) => request('kitchen-requisitions.php?action=update_unused', { method: 'POST', body: JSON.stringify({ requisition_id: reqId, unused_lines: unusedLines }) }),
+  dashboardStats: (kitchenId) => request(`kitchen-requisitions.php?action=dashboard_stats&kitchen_id=${kitchenId || ''}`),
+  storeStats: (kitchenId) => request(`kitchen-requisitions.php?action=store_stats&kitchen_id=${kitchenId || ''}`),
+  daySummary: (date, kitchenId) => request(`kitchen-requisitions.php?action=day_summary&date=${date || ''}&kitchen_id=${kitchenId || ''}`),
+  getItems: (q) => request(`kitchen-requisitions.php?action=get_items${q ? `&q=${encodeURIComponent(q)}` : ''}`),
+  searchRecipes: (q) => request(`kitchen-requisitions.php?action=search_recipes&q=${encodeURIComponent(q)}`),
+  getRecipeIngredients: (recipeId) => request(`kitchen-requisitions.php?action=get_recipe_ingredients&recipe_id=${recipeId}`),
+  addSingleDish: (reqId, recipeId) => request('kitchen-requisitions.php?action=add_single_dish', { method: 'POST', body: JSON.stringify({ requisition_id: reqId, recipe_id: recipeId }) }),
+  saveDishLines: (data) => request('kitchen-requisitions.php?action=save_dish_lines', { method: 'POST', body: JSON.stringify(data) }),
+  getDishesWithIngredients: (reqId) => request(`kitchen-requisitions.php?action=get_dishes_with_ingredients&requisition_id=${reqId}`),
+}
+
+// ── Bank Export ──────────────────────────────────────
+export const bankExport = {
+  listRuns: () => request('bank-export.php?action=list_runs'),
+  generate: (runId, format) => request('bank-export.php?action=generate', { method: 'POST', body: JSON.stringify({ run_id: runId, format }) }),
+}
+
+// ── Payslips ─────────────────────────────────────────
+export const payslips = {
+  generate: (itemId) => request(`payslips.php?action=generate&id=${itemId}`),
+  list: (runId) => request(`payslips.php?action=list&run_id=${runId}`),
+  templates: () => request('payslips.php?action=templates'),
+  saveTemplate: (data) => request('payslips.php?action=save_template', { method: 'POST', body: JSON.stringify(data) }),
+  deleteTemplate: (id) => request('payslips.php?action=delete_template', { method: 'POST', body: JSON.stringify({ id }) }),
+  myPayslips: (year) => request(`payslips.php?action=my_payslips&year=${year || new Date().getFullYear()}`),
+}
+
+// ── Employee Self-Service ────────────────────────────
+export const selfService = {
+  dashboard: () => request('self-service.php?action=dashboard'),
+  profile: () => request('self-service.php?action=profile'),
+  updateProfile: (data) => request('self-service.php?action=update_profile', { method: 'POST', body: JSON.stringify(data) }),
+  saveBank: (data) => request('self-service.php?action=save_bank', { method: 'POST', body: JSON.stringify(data) }),
+  leaveBalance: (year) => request(`self-service.php?action=leave_balance&year=${year || new Date().getFullYear()}`),
+  myLeave: (year) => request(`self-service.php?action=my_leave&year=${year || new Date().getFullYear()}`),
+  requestLeave: (data) => request('self-service.php?action=request_leave', { method: 'POST', body: JSON.stringify(data) }),
+  cancelLeave: (id) => request('self-service.php?action=cancel_leave', { method: 'POST', body: JSON.stringify({ id }) }),
+  myLoans: () => request('self-service.php?action=my_loans'),
+  requestLoan: (data) => request('self-service.php?action=request_loan', { method: 'POST', body: JSON.stringify(data) }),
+  myAttendance: (month) => request(`self-service.php?action=my_attendance&month=${month || ''}`),
+  checkIn: (data) => request('self-service.php?action=check_in', { method: 'POST', body: JSON.stringify(data) }),
+  checkOut: (data) => request('self-service.php?action=check_out', { method: 'POST', body: JSON.stringify(data) }),
+  myAllowances: () => request('self-service.php?action=my_allowances'),
+  myDocuments: (type) => request(`self-service.php?action=my_documents${type ? `&type=${type}` : ''}`),
+  startVisit: (data) => request('self-service.php?action=start_visit', { method: 'POST', body: JSON.stringify(data) }),
+  endVisit: (data) => request('self-service.php?action=end_visit', { method: 'POST', body: JSON.stringify(data) }),
+  myVisits: (month) => request(`self-service.php?action=my_visits&month=${month || ''}`),
+  myIdCard: () => request('self-service.php?action=my_id_card'),
+  changePassword: (data) => request('self-service.php?action=change_password', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ── Document Templates ───────────────────────────────
+export const documentTemplates = {
+  list: (type) => request(`document-templates.php?action=list${type ? `&type=${type}` : ''}`),
+  get: (id) => request(`document-templates.php?action=get&id=${id}`),
+  save: (data) => request('document-templates.php?action=save', { method: 'POST', body: JSON.stringify(data) }),
+  duplicate: (id) => request('document-templates.php?action=duplicate', { method: 'POST', body: JSON.stringify({ id }) }),
+  remove: (id) => request('document-templates.php?action=delete', { method: 'POST', body: JSON.stringify({ id }) }),
+  generate: (templateId, employeeId) => request('document-templates.php?action=generate', { method: 'POST', body: JSON.stringify({ template_id: templateId, employee_id: employeeId }) }),
+  placeholders: () => request('document-templates.php?action=placeholders'),
+}
+
+// ── Approval Engine ──────────────────────────────────
+export const approvalEngine = {
+  list: () => request('approval-engine.php?action=list'),
+  get: (id) => request(`approval-engine.php?action=get&id=${id}`),
+  save: (data) => request('approval-engine.php?action=save', { method: 'POST', body: JSON.stringify(data) }),
+  remove: (id) => request('approval-engine.php?action=delete', { method: 'POST', body: JSON.stringify({ id }) }),
+  myPending: () => request('approval-engine.php?action=my_pending'),
+  action: (requestId, decision, comment) => request('approval-engine.php?action=action', { method: 'POST', body: JSON.stringify({ request_id: requestId, decision, comment }) }),
+  submit: (type, referenceId, description) => request('approval-engine.php?action=submit', { method: 'POST', body: JSON.stringify({ type, reference_id: referenceId, description }) }),
+}
+
+// ── Bulk Import ──────────────────────────────────────
+export const bulkImport = {
+  validate: (file, entity) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('entity', entity)
+    return request('bulk-import.php?action=validate', { method: 'POST', body: formData, isFormData: true })
+  },
+  execute: (file, entity) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('entity', entity)
+    return request('bulk-import.php?action=import', { method: 'POST', body: formData, isFormData: true })
+  },
+}
+
+// ── Trip Allowances ──────────────────────────────────
+export const tripAllowances = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams({ action: 'list', ...params }).toString()
+    return request(`trip-allowances.php?${qs}`)
+  },
+  byEmployee: (employeeId) => request(`trip-allowances.php?action=by_employee&employee_id=${employeeId}`),
+  create: (data) => request('trip-allowances.php?action=create', { method: 'POST', body: JSON.stringify(data) }),
+  update: (data) => request('trip-allowances.php?action=update', { method: 'POST', body: JSON.stringify(data) }),
+  approve: (id) => request('trip-allowances.php?action=approve', { method: 'POST', body: JSON.stringify({ id }) }),
+  reject: (id) => request('trip-allowances.php?action=reject', { method: 'POST', body: JSON.stringify({ id }) }),
+  remove: (id) => request('trip-allowances.php?action=delete', { method: 'POST', body: JSON.stringify({ id }) }),
+}
+
+// ── Employee Transfers ───────────────────────────────
+export const transfers = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams({ action: 'list', ...params }).toString()
+    return request(`transfers.php?${qs}`)
+  },
+  create: (data) => request('transfers.php?action=create', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ── M-Pesa ───────────────────────────────────────────
+export const mpesa = {
+  status: () => request('mpesa.php?action=status'),
+  saveConfig: (data) => request('mpesa.php?action=save_config', { method: 'POST', body: JSON.stringify(data) }),
+  sendPayment: (data) => request('mpesa.php?action=send_payment', { method: 'POST', body: JSON.stringify(data) }),
+  bulkSalary: (runId) => request('mpesa.php?action=bulk_salary', { method: 'POST', body: JSON.stringify({ run_id: runId }) }),
+  transactions: (page) => request(`mpesa.php?action=transactions&page=${page || 1}`),
+}
+
+// ── SMS ──────────────────────────────────────────────
+export const sms = {
+  status: () => request('sms.php?action=status'),
+  saveConfig: (data) => request('sms.php?action=save_config', { method: 'POST', body: JSON.stringify(data) }),
+  send: (phone, message) => request('sms.php?action=send', { method: 'POST', body: JSON.stringify({ phone, message }) }),
+  bulk: (recipients, template) => request('sms.php?action=bulk', { method: 'POST', body: JSON.stringify({ recipients, template }) }),
+  logs: (page) => request(`sms.php?action=logs&page=${page || 1}`),
+}
+
+// ── Kitchen Store Orders ─────────────────────────────
+export const kitchenStoreOrders = {
+  list: (status, kitchenId) => {
+    const params = new URLSearchParams({ action: 'list' })
+    if (status) params.set('status', status)
+    if (kitchenId) params.set('kitchen_id', kitchenId)
+    return request(`kitchen-store-orders.php?${params}`)
+  },
+  get: (id) => request(`kitchen-store-orders.php?action=get&id=${id}`),
+  markSent: (orderId, lines) => request('kitchen-store-orders.php?action=mark_sent', { method: 'POST', body: JSON.stringify({ order_id: orderId, lines }) }),
+  addNotes: (orderId, notes) => request('kitchen-store-orders.php?action=add_notes', { method: 'POST', body: JSON.stringify({ order_id: orderId, notes }) }),
+  getDaily: (date, kitchenId) => request(`kitchen-store-orders.php?action=get_daily&date=${date || ''}&kitchen_id=${kitchenId || ''}`),
+  submitOrder: (data) => request('kitchen-store-orders.php?action=submit_order', { method: 'POST', body: JSON.stringify(data) }),
+  confirmReceipt: (orderId, lines) => request('kitchen-store-orders.php?action=confirm_receipt', { method: 'POST', body: JSON.stringify({ order_id: orderId, lines }) }),
+  searchItems: (q) => request(`kitchen-store-orders.php?action=search_items&q=${encodeURIComponent(q)}`),
+}

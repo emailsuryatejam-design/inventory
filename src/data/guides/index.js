@@ -4,6 +4,8 @@ import { ordersGuides } from './ordersGuides'
 import { stockGuides } from './stockGuides'
 import { posGuides } from './posGuides'
 import { operationsGuides } from './operationsGuides'
+import { kitchenGuides } from './kitchenGuides'
+import { payrollGuides } from './payrollGuides'
 
 // Master list of all guides — full demo featured first
 export const allGuides = [
@@ -13,6 +15,8 @@ export const allGuides = [
   ...stockGuides,
   ...posGuides,
   ...operationsGuides,
+  ...kitchenGuides,
+  ...payrollGuides,
 ]
 
 /**
