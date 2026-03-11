@@ -234,19 +234,15 @@ if (count($allTenants) > 0) {
 // ── 6. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
-// ── 7. Ensure pos_voids table exists ─────
-runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_voids (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tenant_id INT NOT NULL,
-    reference_type ENUM('tab','tab_line') NOT NULL,
-    reference_id INT NOT NULL,
-    original_amount DECIMAL(12,2) NOT NULL,
-    reason VARCHAR(255) NOT NULL,
-    voided_by INT NOT NULL,
-    approved_by INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ref (reference_type, reference_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create pos_voids table if missing");
+// ── 7. Fix pos_voids table — old schema has different column names ─────
+// Old schema: camp_id, void_type, order_id, order_item_id, value
+// New schema needs: tenant_id, reference_type, reference_id, original_amount
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN tenant_id INT NULL AFTER id", "Add tenant_id to pos_voids");
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN reference_type ENUM('tab','tab_line') NULL AFTER tenant_id", "Add reference_type to pos_voids");
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN reference_id INT NULL AFTER reference_type", "Add reference_id to pos_voids");
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN original_amount DECIMAL(12,2) NULL AFTER reference_id", "Add original_amount to pos_voids");
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN voided_by INT NULL", "Add voided_by to pos_voids");
+runSql($pdo, "ALTER TABLE pos_voids ADD COLUMN approved_by INT NULL", "Add approved_by to pos_voids");
 
 // ── 8. Ensure pos_discounts table exists ─────
 runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_discounts (
