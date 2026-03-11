@@ -124,7 +124,23 @@ $results[] = "stock_balances indexes: " . json_encode($sbIdxMap);
 $sbCols = $pdo->query("SHOW COLUMNS FROM stock_balances")->fetchAll(PDO::FETCH_COLUMN);
 $results[] = "stock_balances columns: " . json_encode($sbCols);
 
-// ── 4. Fix stock_adjustments enum to include physical_count ─────
+// ── 4. Fix number_sequences unique key to include tenant_id ─────
+$nsIndexes = $pdo->query("SHOW INDEX FROM number_sequences")->fetchAll(PDO::FETCH_ASSOC);
+$nsIdxMap = [];
+foreach ($nsIndexes as $idx) {
+    $nsIdxMap[$idx['Key_name']][] = $idx['Column_name'];
+}
+$results[] = "number_sequences indexes: " . json_encode($nsIdxMap);
+
+// Drop uk_seq if it doesn't include tenant_id
+if (isset($nsIdxMap['uk_seq']) && !in_array('tenant_id', $nsIdxMap['uk_seq'])) {
+    runSql($pdo, "ALTER TABLE number_sequences DROP INDEX `uk_seq`", "Drop number_sequences.uk_seq (missing tenant_id)");
+    runSql($pdo, "ALTER TABLE number_sequences ADD UNIQUE INDEX uk_seq (tenant_id, prefix, camp_code, current_year, current_month)", "Add tenant-scoped uk_seq on number_sequences");
+} else {
+    $results[] = "SKIP: number_sequences.uk_seq already includes tenant_id or doesn't exist";
+}
+
+// ── 5. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
 // ── 5. Full schema debug ────────────────────────
