@@ -196,33 +196,42 @@ if ($type === 'hourly') {
 
 // ── Daily Summary ──
 if ($type === 'daily_summary') {
-    $stmt = $pdo->prepare("
-        SELECT DATE(t.closed_at) as date,
-               COUNT(*) as tab_count,
-               COALESCE(SUM(t.total), 0) as total_sales,
-               COALESCE(SUM(t.discount_amount), 0) as total_discounts,
-               COALESCE(SUM(t.covers), 0) as total_covers
-        FROM pos_tabs t
-        WHERE t.tenant_id = ? AND t.camp_id = ?
-          AND t.status = 'closed'
-          AND DATE(t.closed_at) BETWEEN ? AND ?
-        GROUP BY DATE(t.closed_at)
-        ORDER BY date DESC
-    ");
-    $stmt->execute([$tenantId, $campId, $dateFrom, $dateTo]);
-    $days = $stmt->fetchAll();
+    try {
+        $stmt = $pdo->prepare("
+            SELECT DATE(t.closed_at) as date,
+                   COUNT(*) as tab_count,
+                   COALESCE(SUM(t.total), 0) as total_sales,
+                   COALESCE(SUM(t.discount_amount), 0) as total_discounts,
+                   COALESCE(SUM(t.covers), 0) as total_covers
+            FROM pos_tabs t
+            WHERE t.tenant_id = ? AND t.camp_id = ?
+              AND t.status = 'closed'
+              AND DATE(t.closed_at) BETWEEN ? AND ?
+            GROUP BY DATE(t.closed_at)
+            ORDER BY date DESC
+        ");
+        $stmt->execute([$tenantId, $campId, $dateFrom, $dateTo]);
+        $days = $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log('[Bar Reports] daily_summary main query failed: ' . $e->getMessage());
+        $days = [];
+    }
 
     // Void totals per day
-    $voidStmt = $pdo->prepare("
-        SELECT DATE(v.created_at) as date, COALESCE(SUM(v.original_amount), 0) as total_voids
-        FROM pos_voids v
-        WHERE v.tenant_id = ? AND DATE(v.created_at) BETWEEN ? AND ?
-        GROUP BY DATE(v.created_at)
-    ");
-    $voidStmt->execute([$tenantId, $dateFrom, $dateTo]);
     $voidMap = [];
-    foreach ($voidStmt->fetchAll() as $v) {
-        $voidMap[$v['date']] = (float)$v['total_voids'];
+    try {
+        $voidStmt = $pdo->prepare("
+            SELECT DATE(v.created_at) as date, COALESCE(SUM(v.original_amount), 0) as total_voids
+            FROM pos_voids v
+            WHERE v.tenant_id = ? AND DATE(v.created_at) BETWEEN ? AND ?
+            GROUP BY DATE(v.created_at)
+        ");
+        $voidStmt->execute([$tenantId, $dateFrom, $dateTo]);
+        foreach ($voidStmt->fetchAll() as $v) {
+            $voidMap[$v['date']] = (float)$v['total_voids'];
+        }
+    } catch (Exception $e) {
+        error_log('[Bar Reports] voids query failed: ' . $e->getMessage());
     }
 
     jsonResponse([
