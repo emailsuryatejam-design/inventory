@@ -176,6 +176,15 @@ if (count($missingTenants) > 0) {
     $results[] = "OK: Inserted cost centers for tenants: " . implode(',', array_column($missingTenants, 'tenant_id'));
 }
 
+// Fix cost_centers unique key to be tenant-scoped
+$ccIdxs = $pdo->query("SHOW INDEX FROM cost_centers")->fetchAll(PDO::FETCH_ASSOC);
+$ccIdxMap = [];
+foreach ($ccIdxs as $idx) { $ccIdxMap[$idx['Key_name']][] = $idx['Column_name']; }
+if (isset($ccIdxMap['uk_cc_code']) && !in_array('tenant_id', $ccIdxMap['uk_cc_code'])) {
+    runSql($pdo, "ALTER TABLE cost_centers DROP INDEX `uk_cc_code`", "Drop cost_centers.uk_cc_code (not tenant-scoped)");
+    runSql($pdo, "ALTER TABLE cost_centers ADD UNIQUE INDEX uk_cc_code (tenant_id, code)", "Add tenant-scoped uk_cc_code");
+}
+
 // Debug cost_centers table schema
 $ccSchema = $pdo->query("SHOW COLUMNS FROM cost_centers")->fetchAll(PDO::FETCH_ASSOC);
 $ccSchemaInfo = array_map(fn($c) => $c['Field'] . ':' . $c['Type'] . ($c['Null'] === 'NO' ? ':NN' : '') . ($c['Default'] !== null ? ':d=' . $c['Default'] : ''), $ccSchema);
