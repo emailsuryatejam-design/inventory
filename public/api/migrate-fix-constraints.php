@@ -234,8 +234,50 @@ if (count($allTenants) > 0) {
 // ── 6. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
-// ── 5. Full schema debug ────────────────────────
-$debugTables = ['camp_modules', 'stock_adjustments', 'stock_adjustment_lines', 'purchase_orders', 'purchase_order_lines'];
+// ── 7. Ensure pos_voids table exists ─────
+runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_voids (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    reference_type ENUM('tab','tab_line') NOT NULL,
+    reference_id INT NOT NULL,
+    original_amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    voided_by INT NOT NULL,
+    approved_by INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ref (reference_type, reference_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create pos_voids table if missing");
+
+// ── 8. Ensure pos_discounts table exists ─────
+runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_discounts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    tab_id INT NOT NULL,
+    discount_type ENUM('percentage','fixed') NOT NULL,
+    discount_value DECIMAL(10,2) NOT NULL,
+    discount_amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    applied_by INT NOT NULL,
+    approved_by INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tab (tab_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create pos_discounts table if missing");
+
+// ── 9. Ensure pos_cash_entries table exists ─────
+runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_cash_entries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    shift_id INT NOT NULL,
+    entry_type ENUM('cash_in','cash_out','paid_out') NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    created_by INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_shift (shift_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create pos_cash_entries table if missing");
+
+// ── Debug: schema check ────────────────────────
+$debugTables = ['pos_voids', 'pos_discounts', 'pos_cash_entries', 'pos_shifts', 'pos_tabs', 'pos_tab_lines'];
 foreach ($debugTables as $dt) {
     try {
         $dtCols = $pdo->query("SHOW COLUMNS FROM {$dt}")->fetchAll(PDO::FETCH_ASSOC);
