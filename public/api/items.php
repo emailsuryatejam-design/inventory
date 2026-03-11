@@ -262,8 +262,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $input['storage_temp_max'] ?? null,
             $input['allergen_info'] ?? '',
             $input['yield_percentage'] ?? null,
-            $input['sap_item_no'] ?? '',
-            $input['barcode'] ?? '',
+            $input['sap_item_no'] ?: null,
+            $input['barcode'] ?: null,
             $input['manufacturer'] ?? '',
         ]);
 
