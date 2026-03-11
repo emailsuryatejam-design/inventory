@@ -503,16 +503,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         }
 
         // Check for bar_menu_ingredients (recipe-based deduction)
-        $menuIngStmt = $pdo->prepare("
-            SELECT bmi.item_id as menu_item_id, bming.item_id as ingredient_item_id, bming.qty_per_serving
-            FROM bar_menu_ingredients bming
-            JOIN bar_menu_items bmi ON bming.menu_item_id = bmi.id
-            WHERE bmi.item_id IN ({$ph})
-        ");
-        $menuIngStmt->execute($itemIds);
-        $recipeMap = []; // menu_item_id => [{ingredient_item_id, qty_per_serving}]
-        foreach ($menuIngStmt->fetchAll() as $row) {
-            $recipeMap[(int)$row['menu_item_id']][] = $row;
+        // bar_menu_items doesn't have item_id — ingredients link via bming.item_id
+        // For tab lines that reference inventory items directly, check if they appear in any recipe
+        $recipeMap = [];
+        try {
+            $menuIngStmt = $pdo->prepare("
+                SELECT bming.item_id as ingredient_item_id, bming.qty_per_serving, bming.menu_item_id
+                FROM bar_menu_ingredients bming
+                WHERE bming.item_id IN ({$ph})
+            ");
+            $menuIngStmt->execute($itemIds);
+            foreach ($menuIngStmt->fetchAll() as $row) {
+                $recipeMap[(int)$row['ingredient_item_id']][] = $row;
+            }
+        } catch (Exception $e) {
+            error_log('[bar-tabs] Recipe lookup failed: ' . $e->getMessage());
         }
 
         $pdo->beginTransaction();

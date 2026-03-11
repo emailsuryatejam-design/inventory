@@ -240,8 +240,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log('[API Error] ' . $e->getMessage());
-        jsonError('An unexpected error occurred. Please try again.', 500);
+        error_log('[API Error] issue.php: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+        jsonError($e->getMessage() . ' [' . basename($e->getFile()) . ':' . $e->getLine() . ']', 500);
     }
     exit;
 }
