@@ -176,6 +176,31 @@ if (count($missingTenants) > 0) {
     $results[] = "OK: Inserted cost centers for tenants: " . implode(',', array_column($missingTenants, 'tenant_id'));
 }
 
+// Debug cost_centers table schema
+$ccSchema = $pdo->query("SHOW COLUMNS FROM cost_centers")->fetchAll(PDO::FETCH_ASSOC);
+$ccSchemaInfo = array_map(fn($c) => $c['Field'] . ':' . $c['Type'] . ($c['Null'] === 'NO' ? ':NN' : '') . ($c['Default'] !== null ? ':d=' . $c['Default'] : ''), $ccSchema);
+$results[] = "cost_centers schema: " . json_encode($ccSchemaInfo);
+
+// Try explicit insert for tenant 16
+try {
+    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'HO', 'Head Office', 1)");
+    $results[] = "OK: Inserted HO cost center for tenant 16, id=" . $pdo->lastInsertId();
+} catch (Exception $e) {
+    $results[] = "ERR insert t16 HO: " . $e->getMessage();
+}
+try {
+    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'BAR', 'Bar', 1)");
+    $results[] = "OK: Inserted BAR cost center for tenant 16, id=" . $pdo->lastInsertId();
+} catch (Exception $e) {
+    $results[] = "ERR insert t16 BAR: " . $e->getMessage();
+}
+try {
+    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'KIT', 'Kitchen', 1)");
+    $results[] = "OK: Inserted KIT cost center for tenant 16, id=" . $pdo->lastInsertId();
+} catch (Exception $e) {
+    $results[] = "ERR insert t16 KIT: " . $e->getMessage();
+}
+
 // Show cost centers for debugging
 $ccList = $pdo->query("SELECT id, tenant_id, code, name FROM cost_centers ORDER BY tenant_id, id")->fetchAll(PDO::FETCH_ASSOC);
 $results[] = "cost_centers: " . json_encode($ccList);
