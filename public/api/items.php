@@ -277,7 +277,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ], 201);
     } catch (Exception $e) {
         error_log('[API Error] items create: ' . $e->getMessage());
-        jsonError('Failed to create item. Please try again.', 500);
+        // Return specific error in dev/debug mode so we can diagnose
+        $msg = $e->getMessage();
+        // Check for common column-missing errors
+        if (strpos($msg, 'Unknown column') !== false || strpos($msg, 'Column not found') !== false) {
+            jsonError('Database schema mismatch: ' . $msg, 500);
+        }
+        jsonError('Failed to create item: ' . $msg, 500);
     }
     exit;
 }
