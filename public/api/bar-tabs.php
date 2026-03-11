@@ -336,16 +336,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $itemMap[(int)$row['id']] = $row;
         }
 
-        // Also check bar_menu_items for sell prices
-        $menuPriceStmt = $pdo->prepare("
-            SELECT bmi.id as menu_item_id, bmi.price_usd, bmi.item_id
-            FROM bar_menu_items bmi
-            WHERE bmi.item_id IN ({$ph}) AND bmi.is_active = 1
-        ");
-        $menuPriceStmt->execute($itemIds);
+        // Try to get menu sell prices (bar_menu_items may link via ingredients, not item_id)
         $menuPriceMap = [];
-        foreach ($menuPriceStmt->fetchAll() as $row) {
-            if ($row['item_id']) $menuPriceMap[(int)$row['item_id']] = (float)$row['price_usd'];
+        try {
+            // Check if bar_menu_ingredients links menu items to inventory items
+            $menuPriceStmt = $pdo->prepare("
+                SELECT bmi.id as menu_item_id, bmi.price_usd, bming.item_id
+                FROM bar_menu_ingredients bming
+                JOIN bar_menu_items bmi ON bmi.id = bming.menu_item_id
+                WHERE bming.item_id IN ({$ph}) AND bmi.is_active = 1
+            ");
+            $menuPriceStmt->execute($itemIds);
+            foreach ($menuPriceStmt->fetchAll() as $row) {
+                if ($row['item_id'] && $row['price_usd']) {
+                    $menuPriceMap[(int)$row['item_id']] = (float)$row['price_usd'];
+                }
+            }
+        } catch (Exception $e) {
+            // Menu price lookup failed — proceed with cost price or explicit price
+            error_log('[bar-tabs] Menu price lookup failed: ' . $e->getMessage());
         }
 
         $pdo->beginTransaction();
