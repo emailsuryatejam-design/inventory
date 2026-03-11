@@ -650,8 +650,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         } catch (Exception $e) {
             $pdo->rollBack();
-            error_log('[API Error] bar-tabs close: ' . $e->getMessage());
-            jsonError('An unexpected error occurred. Please try again.', 500);
+            error_log('[API Error] bar-tabs close: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            jsonError($e->getMessage() . ' [' . basename($e->getFile()) . ':' . $e->getLine() . ']', 500);
         }
         exit;
     }
