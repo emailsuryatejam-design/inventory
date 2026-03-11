@@ -124,10 +124,17 @@ $results[] = "stock_balances indexes: " . json_encode($sbIdxMap);
 $sbCols = $pdo->query("SHOW COLUMNS FROM stock_balances")->fetchAll(PDO::FETCH_COLUMN);
 $results[] = "stock_balances columns: " . json_encode($sbCols);
 
-// ── 4. Fix camp_modules for module toggle ────────────────────────
-$results[] = "--- camp_modules check ---";
-$cmCols = $pdo->query("SHOW COLUMNS FROM camp_modules")->fetchAll(PDO::FETCH_ASSOC);
-$results[] = "camp_modules columns: " . json_encode(array_column($cmCols, 'Field'));
+// ── 4. Full schema debug ────────────────────────
+$debugTables = ['camp_modules', 'stock_adjustments', 'stock_adjustment_lines', 'purchase_orders', 'purchase_order_lines'];
+foreach ($debugTables as $dt) {
+    try {
+        $dtCols = $pdo->query("SHOW COLUMNS FROM {$dt}")->fetchAll(PDO::FETCH_ASSOC);
+        $colInfo = array_map(fn($c) => $c['Field'] . ':' . $c['Type'] . ($c['Null'] === 'NO' ? ':NN' : '') . ($c['Default'] !== null ? ':d=' . $c['Default'] : ''), $dtCols);
+        $results[] = "{$dt}: " . json_encode($colInfo);
+    } catch (Exception $e) {
+        $results[] = "{$dt}: ERR " . $e->getMessage();
+    }
+}
 
 header('Content-Type: application/json');
 echo json_encode(['results' => $results], JSON_PRETTY_PRINT);
