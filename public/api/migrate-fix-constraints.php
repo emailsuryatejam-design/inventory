@@ -159,6 +159,10 @@ if (count($tenantsMissingCC) > 0) {
     $results[] = "SKIP: All tenants have cost centers";
 }
 
+// Show cost centers for debugging
+$ccList = $pdo->query("SELECT id, tenant_id, code, name FROM cost_centers ORDER BY tenant_id, id")->fetchAll(PDO::FETCH_ASSOC);
+$results[] = "cost_centers: " . json_encode($ccList);
+
 // ── 6. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
