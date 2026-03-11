@@ -163,6 +163,23 @@ if (count($tenantsMissingCC) > 0) {
 $ccList = $pdo->query("SELECT id, tenant_id, code, name FROM cost_centers ORDER BY tenant_id, id")->fetchAll(PDO::FETCH_ASSOC);
 $results[] = "cost_centers: " . json_encode($ccList);
 
+// Ensure every tenant has at least one cost center (catch any missed)
+$allTenants = $pdo->query("SELECT DISTINCT t.id as tenant_id, c.code, c.name FROM tenants t JOIN camps c ON c.tenant_id = t.id WHERE t.id NOT IN (SELECT DISTINCT tenant_id FROM cost_centers)")->fetchAll(PDO::FETCH_ASSOC);
+if (count($allTenants) > 0) {
+    $ccIns = $pdo->prepare("INSERT IGNORE INTO cost_centers (tenant_id, code, name, is_active) VALUES (?, ?, ?, 1)");
+    foreach ($allTenants as $row) {
+        $ccIns->execute([$row['tenant_id'], $row['code'], $row['name']]);
+    }
+    // Also create BAR and KITCHEN cost centers for all tenants
+    foreach ($allTenants as $row) {
+        $ccIns->execute([$row['tenant_id'], 'BAR', 'Bar']);
+        $ccIns->execute([$row['tenant_id'], 'KIT', 'Kitchen']);
+    }
+    $results[] = "OK: Created cost centers for " . count($allTenants) . " more tenants";
+} else {
+    $results[] = "SKIP: All tenants have cost centers (second pass)";
+}
+
 // ── 6. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
