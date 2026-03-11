@@ -37,6 +37,10 @@ const UserManagement = lazy(() => import('./pages/UserManagement'))
 const Settings = lazy(() => import('./pages/Settings'))
 const POS = lazy(() => import('./pages/POS'))
 const BarMenu = lazy(() => import('./pages/BarMenu'))
+const BarTabs = lazy(() => import('./pages/BarTabs'))
+const BarTabDetail = lazy(() => import('./pages/BarTabDetail'))
+const BarShifts = lazy(() => import('./pages/BarShifts'))
+const BarReports = lazy(() => import('./pages/BarReports'))
 const Recipes = lazy(() => import('./pages/Recipes'))
 const DailyOverview = lazy(() => import('./pages/DailyOverview'))
 const MenuPlan = lazy(() => import('./pages/MenuPlan'))
@@ -202,6 +206,10 @@ export default function App() {
             {/* ── Bar & POS module ── */}
             <Route path="pos" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><POS /></RouteGuard>} />
             <Route path="bar-menu" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><BarMenu /></RouteGuard>} />
+            <Route path="bar-tabs" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><BarTabs /></RouteGuard>} />
+            <Route path="bar-tab/:id" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><BarTabDetail /></RouteGuard>} />
+            <Route path="bar-shifts" element={<RouteGuard module="bar" exclude={CHEF_ONLY}><BarShifts /></RouteGuard>} />
+            <Route path="bar-reports" element={<RouteGuard module="bar" access="manager"><BarReports /></RouteGuard>} />
 
             {/* ── Admin module ── */}
             <Route path="reports" element={<RouteGuard module="reports" access="manager"><Reports /></RouteGuard>} />

@@ -88,6 +88,9 @@ function getCacheTTL(endpoint) {
   if (endpoint.includes('daily-overview.php')) return 15
   if (endpoint.includes('pos.php')) return 15
   if (endpoint.includes('menu.php')) return 15
+  if (endpoint.includes('bar-tabs.php')) return 5
+  if (endpoint.includes('bar-shifts.php')) return 10
+  if (endpoint.includes('bar-reports.php')) return 15
   if (endpoint.includes('alerts.php')) return 5
   if (endpoint.includes('detail')) return 10
   return 15 // default
@@ -1306,6 +1309,65 @@ export const sms = {
   send: (phone, message) => request('sms.php?action=send', { method: 'POST', body: JSON.stringify({ phone, message }) }),
   bulk: (recipients, template) => request('sms.php?action=bulk', { method: 'POST', body: JSON.stringify({ recipients, template }) }),
   logs: (page) => request(`sms.php?action=logs&page=${page || 1}`),
+}
+
+// ── Bar Tabs ─────────────────────────────────────────
+export const barTabs = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`bar-tabs.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`bar-tabs.php?id=${id}`),
+  open: (data) => request('bar-tabs.php', { method: 'POST', body: JSON.stringify({ action: 'open', ...data }) }),
+  addItems: (tabId, items) => request('bar-tabs.php', { method: 'POST', body: JSON.stringify({ action: 'add_items', tab_id: tabId, items }) }),
+  close: (tabId, paymentMethod, paymentRef) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'close', tab_id: tabId, payment_method: paymentMethod, payment_reference: paymentRef }) }),
+  voidLine: (lineId, reason) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'void_line', line_id: lineId, reason }) }),
+  voidTab: (tabId, reason) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'void_tab', tab_id: tabId, reason }) }),
+  discount: (tabId, discountType, discountValue, reason) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'discount', tab_id: tabId, discount_type: discountType, discount_value: discountValue, reason }) }),
+  transfer: (tabId, data) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'transfer', tab_id: tabId, ...data }) }),
+  merge: (sourceTabId, targetTabId) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'merge', source_tab_id: sourceTabId, target_tab_id: targetTabId }) }),
+  split: (tabId, lineIds, guestName, covers) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'split', tab_id: tabId, line_ids: lineIds, guest_name: guestName, covers }) }),
+  complimentary: (lineId, reason) => request('bar-tabs.php', { method: 'PUT', body: JSON.stringify({ action: 'complimentary', line_id: lineId, reason }) }),
+}
+
+// ── Bar Shifts ───────────────────────────────────────
+export const barShifts = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`bar-shifts.php${qs ? `?${qs}` : ''}`)
+  },
+  get: (id) => request(`bar-shifts.php?id=${id}`),
+  open: (openingFloat) => request('bar-shifts.php', { method: 'POST', body: JSON.stringify({ action: 'open', opening_float: openingFloat }) }),
+  cashEntry: (shiftId, entryType, amount, reason) => request('bar-shifts.php', { method: 'POST', body: JSON.stringify({ action: 'cash_entry', shift_id: shiftId, entry_type: entryType, amount, reason }) }),
+  close: (id, closingCash, notes) => request('bar-shifts.php', { method: 'PUT', body: JSON.stringify({ id, closing_cash: closingCash, notes }) }),
+}
+
+// ── Bar Reports ──────────────────────────────────────
+export const barReports = {
+  topSelling: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'top_selling', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
+  profitability: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'profitability', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
+  serverPerformance: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'server_performance', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
+  hourly: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'hourly', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
+  dailySummary: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'daily_summary', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
+  paymentMethods: (params = {}) => {
+    const qs = new URLSearchParams({ type: 'payment_methods', ...params }).toString()
+    return request(`bar-reports.php?${qs}`)
+  },
 }
 
 // ── Kitchen Store Orders ─────────────────────────────
