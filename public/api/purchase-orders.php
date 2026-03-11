@@ -272,12 +272,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 created_by, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, NOW())
         ")->execute([
-            $tenantId, $poNumber, $supplierId, $user['camp_id'] ?? null,
+            $tenantId, $poNumber, $supplierId, $auth['camp_id'] ?? $user['camp_id'] ?? 0,
             $input['delivery_date'] ?? null,
-            $input['payment_terms'] ?? null,
-            $input['currency'] ?? 'TZS',
+            isset($input['payment_terms']) ? (int) $input['payment_terms'] : 30,
+            $input['currency'] ?? 'KES',
             $input['notes'] ?? null,
-            $status, $user['user_id'],
+            $status, $auth['user_id'],
         ]);
 
         $poId = (int) $pdo->lastInsertId();

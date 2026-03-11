@@ -139,9 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'toggle') {
         ")->execute([$tenantId, $campId, $moduleId]);
 
         $pdo->prepare("
-            INSERT INTO camp_modules (tenant_id, camp_id, module_key, is_enabled, enabled_by, enabled_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-        ")->execute([$tenantId, $campId, $moduleId, $enabled, $auth['user_id']]);
+            INSERT INTO camp_modules (tenant_id, camp_id, module_key, module_id, is_enabled, enabled_by, enabled_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ")->execute([$tenantId, $campId, $moduleId, $moduleId, $enabled, $auth['user_id']]);
 
         $pdo->commit();
     } catch (Exception $e) {

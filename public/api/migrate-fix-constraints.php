@@ -124,7 +124,10 @@ $results[] = "stock_balances indexes: " . json_encode($sbIdxMap);
 $sbCols = $pdo->query("SHOW COLUMNS FROM stock_balances")->fetchAll(PDO::FETCH_COLUMN);
 $results[] = "stock_balances columns: " . json_encode($sbCols);
 
-// ── 4. Full schema debug ────────────────────────
+// ── 4. Fix stock_adjustments enum to include physical_count ─────
+runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
+
+// ── 5. Full schema debug ────────────────────────
 $debugTables = ['camp_modules', 'stock_adjustments', 'stock_adjustment_lines', 'purchase_orders', 'purchase_order_lines'];
 foreach ($debugTables as $dt) {
     try {
