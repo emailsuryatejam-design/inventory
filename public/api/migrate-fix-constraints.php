@@ -159,6 +159,23 @@ if (count($tenantsMissingCC) > 0) {
     $results[] = "SKIP: All tenants have cost centers";
 }
 
+// Direct-insert cost centers for any tenant that's missing them
+$missingTenants = $pdo->query("
+    SELECT DISTINCT c.tenant_id, c.id as camp_id, c.code, c.name
+    FROM camps c
+    WHERE c.tenant_id NOT IN (SELECT DISTINCT tenant_id FROM cost_centers WHERE tenant_id IS NOT NULL)
+")->fetchAll(PDO::FETCH_ASSOC);
+$results[] = "Missing CC tenants: " . json_encode(array_column($missingTenants, 'tenant_id'));
+if (count($missingTenants) > 0) {
+    $ccDirect = $pdo->prepare("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (?, ?, ?, 1)");
+    foreach ($missingTenants as $row) {
+        try { $ccDirect->execute([$row['tenant_id'], $row['code'], $row['name']]); } catch(Exception $e) { /* ignore dupes */ }
+        try { $ccDirect->execute([$row['tenant_id'], 'BAR', 'Bar']); } catch(Exception $e) {}
+        try { $ccDirect->execute([$row['tenant_id'], 'KIT', 'Kitchen']); } catch(Exception $e) {}
+    }
+    $results[] = "OK: Inserted cost centers for tenants: " . implode(',', array_column($missingTenants, 'tenant_id'));
+}
+
 // Show cost centers for debugging
 $ccList = $pdo->query("SELECT id, tenant_id, code, name FROM cost_centers ORDER BY tenant_id, id")->fetchAll(PDO::FETCH_ASSOC);
 $results[] = "cost_centers: " . json_encode($ccList);
