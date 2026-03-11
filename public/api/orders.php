@@ -240,6 +240,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         }
 
+        if ($lineCount === 0) {
+            $pdo->rollBack();
+            jsonError('No valid order lines — all items had zero or invalid quantities', 400);
+        }
+
         $pdo->prepare("
             UPDATE orders SET total_items = ?, total_value = ?, flagged_items = ?, status = 'submitted', submitted_at = NOW()
             WHERE id = ?

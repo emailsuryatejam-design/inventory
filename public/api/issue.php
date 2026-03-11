@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $itemCostMap = [];
     if (count($itemIds) > 0) {
         $ph = implode(',', array_fill(0, count($itemIds), '?'));
-        $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
+        $icStmt = $pdo->prepare("SELECT id, name, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
         $icStmt->execute(array_merge($itemIds, [$tenantId]));
         foreach ($icStmt->fetchAll() as $row) {
             $itemCostMap[(int) $row['id']] = $row;
@@ -134,6 +134,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($input['issue_type'] === 'rooms') $mvType = 'issue_rooms';
     elseif ($input['issue_type'] === 'employee') $mvType = 'issue_employee';
     elseif ($input['issue_type'] === 'waste') $mvType = 'waste';
+
+    // Pre-check stock sufficiency for all lines
+    $stockCheckStmt = $pdo->prepare("SELECT current_qty FROM stock_balances WHERE item_id = ? AND camp_id = ?");
+    $insufficientItems = [];
+    foreach ($input['lines'] as $checkLine) {
+        if (empty($checkLine['item_id']) || empty($checkLine['qty']) || $checkLine['qty'] <= 0) continue;
+        $stockCheckStmt->execute([(int) $checkLine['item_id'], $campId]);
+        $availableQty = (float) ($stockCheckStmt->fetchColumn() ?: 0);
+        if ($availableQty < (float) $checkLine['qty']) {
+            $itemName = $itemCostMap[(int) $checkLine['item_id']]['name'] ?? "Item #{$checkLine['item_id']}";
+            $insufficientItems[] = "{$itemName} (available: {$availableQty}, requested: {$checkLine['qty']})";
+        }
+    }
+    if (!empty($insufficientItems)) {
+        jsonError('Insufficient stock for: ' . implode(', ', $insufficientItems), 400);
+    }
 
     $pdo->beginTransaction();
     try {

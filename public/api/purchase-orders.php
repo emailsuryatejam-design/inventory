@@ -293,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
         ");
 
+        $poLineCount = 0;
         foreach ($input['lines'] as $line) {
             if (empty($line['item_id']) || empty($line['quantity']) || $line['quantity'] <= 0) continue;
 
@@ -307,11 +308,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $subtotal  += $lineSubtotal;
             $taxAmount += $lineTax;
+            $poLineCount++;
 
             $lineStmt->execute([
                 $tenantId, $poId, $itemId, $qty, $unitPrice,
                 $taxRate, $lineTax, $lineTotal, $line['description'] ?? null,
             ]);
+        }
+
+        if ($poLineCount === 0) {
+            $pdo->rollBack();
+            jsonError('No valid PO lines — all items had zero or invalid quantities', 400);
         }
 
         $grandTotal = $subtotal + $taxAmount;

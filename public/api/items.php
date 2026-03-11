@@ -277,9 +277,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ], 201);
     } catch (Exception $e) {
         error_log('[API Error] items create: ' . $e->getMessage());
-        // Return specific error in dev/debug mode so we can diagnose
         $msg = $e->getMessage();
-        // Check for common column-missing errors
+        // Friendly duplicate entry errors
+        if (strpos($msg, 'Duplicate entry') !== false) {
+            if (strpos($msg, 'uk_sap_item_no') !== false) {
+                jsonError('An item with this SAP Item No already exists', 400);
+            }
+            if (strpos($msg, 'barcode') !== false) {
+                jsonError('An item with this barcode already exists', 400);
+            }
+            jsonError('Duplicate entry: this item already exists', 400);
+        }
         if (strpos($msg, 'Unknown column') !== false || strpos($msg, 'Column not found') !== false) {
             jsonError('Database schema mismatch: ' . $msg, 500);
         }
@@ -322,7 +330,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $updates[] = "{$field} = ?";
-            $params[] = $input[$field];
+            // Convert empty unique fields to NULL to avoid duplicate constraint violations
+            if (in_array($field, ['sap_item_no', 'barcode']) && empty($input[$field])) {
+                $params[] = null;
+            } else {
+                $params[] = $input[$field];
+            }
         }
     }
 
@@ -334,7 +347,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $params[] = $id;
     $params[] = $tenantId;
     $sql = "UPDATE items SET " . implode(', ', $updates) . " WHERE id = ? AND tenant_id = ?";
-    $pdo->prepare($sql)->execute($params);
+    try {
+        $pdo->prepare($sql)->execute($params);
+    } catch (Exception $e) {
+        $msg = $e->getMessage();
+        if (strpos($msg, 'Duplicate entry') !== false) {
+            if (strpos($msg, 'uk_sap_item_no') !== false) {
+                jsonError('An item with this SAP Item No already exists', 400);
+            }
+            if (strpos($msg, 'barcode') !== false) {
+                jsonError('An item with this barcode already exists', 400);
+            }
+            jsonError('Duplicate entry: this value already exists', 400);
+        }
+        jsonError('Failed to update item: ' . $msg, 500);
+    }
 
     jsonResponse(['success' => true, 'message' => 'Item updated successfully']);
     exit;

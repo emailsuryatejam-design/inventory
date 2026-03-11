@@ -289,6 +289,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         jsonError('Supplier not found', 404);
     }
 
+    // Check for active purchase orders
+    $activePOs = $pdo->prepare("
+        SELECT COUNT(*) FROM purchase_orders
+        WHERE supplier_id = ? AND tenant_id = ? AND status NOT IN ('cancelled', 'received')
+    ");
+    $activePOs->execute([$id, $tenantId]);
+    $poCount = (int) $activePOs->fetchColumn();
+    if ($poCount > 0) {
+        jsonError("Cannot deactivate supplier: {$poCount} active purchase order(s) exist. Close or cancel them first.", 400);
+    }
+
     $stmt = $pdo->prepare("UPDATE suppliers SET is_active = 0, updated_at = NOW() WHERE id = ? AND tenant_id = ?");
     $stmt->execute([$id, $tenantId]);
 

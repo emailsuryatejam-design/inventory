@@ -219,25 +219,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             }
         }
 
+        // Check for discrepancies (received != expected)
+        $discrepancyStmt = $pdo->prepare("
+            SELECT rl.id, rl.item_id, i.name as item_name, rl.expected_qty, rl.received_qty
+            FROM receipt_lines rl
+            JOIN items i ON rl.item_id = i.id
+            WHERE rl.receipt_id = ? AND rl.is_received = 1
+            AND rl.received_qty != rl.expected_qty
+        ");
+        $discrepancyStmt->execute([$id]);
+        $discrepancies = $discrepancyStmt->fetchAll();
+        $hasDiscrepancy = count($discrepancies) > 0;
+        $receiptStatus = $hasDiscrepancy ? 'confirmed_with_discrepancy' : 'confirmed';
+
         // Update receipt status
         $pdo->prepare("
             UPDATE receipts
-            SET status = 'confirmed', received_by = ?, received_date = CURDATE(),
+            SET status = ?, received_by = ?, received_date = CURDATE(),
                 notes = ?, updated_at = NOW()
             WHERE id = ?
-        ")->execute([$auth['user_id'], $input['notes'] ?? null, $id]);
+        ")->execute([$receiptStatus, $auth['user_id'], $input['notes'] ?? null, $id]);
+
+        // If discrepancies found, create alerts
+        if ($hasDiscrepancy) {
+            $alertStmt = $pdo->prepare("
+                INSERT INTO alerts (tenant_id, alert_type, severity, title, message, reference_type, reference_id, camp_id, created_at)
+                VALUES (?, 'discrepancy', 'high', ?, ?, 'receipt', ?, ?, NOW())
+            ");
+            $discItems = array_map(function($d) {
+                return "{$d['item_name']}: expected {$d['expected_qty']}, received {$d['received_qty']}";
+            }, $discrepancies);
+            $alertStmt->execute([
+                $tenantId,
+                "Receiving discrepancy on {$receipt['receipt_number']}",
+                implode('; ', $discItems),
+                $id,
+                $campId,
+            ]);
+        }
 
         $pdo->commit();
 
-        jsonResponse([
-            'message' => 'Receipt confirmed',
+        $response = [
+            'message' => $hasDiscrepancy ? 'Receipt confirmed with discrepancies' : 'Receipt confirmed',
             'receipt' => [
                 'id' => $id,
                 'receipt_number' => $receipt['receipt_number'],
                 'total_value' => $totalValue,
-                'status' => 'confirmed',
+                'status' => $receiptStatus,
             ],
-        ]);
+        ];
+        if ($hasDiscrepancy) {
+            $response['discrepancies'] = array_map(function($d) {
+                return [
+                    'item_name' => $d['item_name'],
+                    'expected_qty' => (float) $d['expected_qty'],
+                    'received_qty' => (float) $d['received_qty'],
+                    'difference' => (float) $d['received_qty'] - (float) $d['expected_qty'],
+                ];
+            }, $discrepancies);
+        }
+        jsonResponse($response);
 
     } catch (Exception $e) {
         $pdo->rollBack();

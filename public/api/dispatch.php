@@ -127,13 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $orderId = (int) $input['order_id'];
 
-    // Get order details
+    // Get order details (tenant-isolated)
     $order = $pdo->prepare("
         SELECT o.*, c.code as camp_code, c.id as camp_id
         FROM orders o JOIN camps c ON o.camp_id = c.id
-        WHERE o.id = ? AND o.status IN ('stores_approved', 'procurement_processed')
+        WHERE o.id = ? AND o.tenant_id = ? AND o.status IN ('stores_approved', 'procurement_processed')
     ");
-    $order->execute([$orderId]);
+    $order->execute([$orderId, $tenantId]);
     $order = $order->fetch();
 
     if (!$order) {
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $itemCostMap = [];
         if (count($itemIds) > 0) {
             $ph = implode(',', array_fill(0, count($itemIds), '?'));
-            $icStmt = $pdo->prepare("SELECT id, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
+            $icStmt = $pdo->prepare("SELECT id, name, weighted_avg_cost, last_purchase_price FROM items WHERE id IN ({$ph}) AND tenant_id = ?");
             $icStmt->execute(array_merge($itemIds, [$tenantId]));
             foreach ($icStmt->fetchAll() as $row) {
                 $itemCostMap[(int) $row['id']] = $row;
@@ -184,6 +184,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO dispatch_lines (tenant_id, dispatch_id, item_id, dispatched_qty, unit_cost, total_value)
             VALUES (?, ?, ?, ?, ?, ?)
         ");
+
+        // Pre-check stock sufficiency for all lines
+        $stockCheckStmt = $pdo->prepare("SELECT current_qty FROM stock_balances WHERE item_id = ? AND camp_id = ?");
+        $insufficientItems = [];
+        foreach ($input['lines'] as $checkLine) {
+            if (empty($checkLine['item_id']) || empty($checkLine['qty']) || $checkLine['qty'] <= 0) continue;
+            $stockCheckStmt->execute([(int) $checkLine['item_id'], $hoId]);
+            $availableQty = (float) ($stockCheckStmt->fetchColumn() ?: 0);
+            if ($availableQty < (float) $checkLine['qty']) {
+                $itemName = $itemCostMap[(int) $checkLine['item_id']]['name'] ?? "Item #{$checkLine['item_id']}";
+                $insufficientItems[] = "{$itemName} (available: {$availableQty}, requested: {$checkLine['qty']})";
+            }
+        }
+        if (!empty($insufficientItems)) {
+            $pdo->rollBack();
+            jsonError('Insufficient stock at HO for: ' . implode(', ', $insufficientItems), 400);
+        }
 
         $deductStmt = $pdo->prepare("
             UPDATE stock_balances SET current_qty = GREATEST(0, current_qty - ?), updated_at = NOW()
@@ -211,6 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lineStmt->execute([$tenantId, $dispatchId, $itemId, $qty, $unitCost, $lineValue]);
             $deductStmt->execute([$qty, $itemId, $hoId]);
             $mvStmt->execute([$tenantId, $itemId, $hoId, $qty, $unitCost, $lineValue, $dispatchId, $user['user_id']]);
+        }
+
+        if ($lineCount === 0) {
+            $pdo->rollBack();
+            jsonError('No valid dispatch lines — all items had zero or invalid quantities', 400);
         }
 
         // Update dispatch total

@@ -118,10 +118,17 @@ $summaryStmt = $pdo->prepare("
 $summaryStmt->execute($summaryParams);
 $summary = $summaryStmt->fetch();
 
-// Load camps, groups, and sub-categories for filters
-$camps = $pdo->query('SELECT id, code, name, type FROM camps WHERE is_active = 1 ORDER BY name')->fetchAll();
-$groups = $pdo->query('SELECT id, code, name FROM item_groups ORDER BY name')->fetchAll();
-$subCategories = $pdo->query('SELECT sc.id, sc.code, sc.name, sc.item_group_id, g.code as group_code FROM item_sub_categories sc LEFT JOIN item_groups g ON sc.item_group_id = g.id ORDER BY g.name, sc.name')->fetchAll();
+// Load camps, groups, and sub-categories for filters (tenant-isolated)
+$tenantId = requireTenant($auth);
+$campsStmt = $pdo->prepare('SELECT id, code, name, type FROM camps WHERE is_active = 1 AND tenant_id = ? ORDER BY name');
+$campsStmt->execute([$tenantId]);
+$camps = $campsStmt->fetchAll();
+$groupsStmt = $pdo->prepare('SELECT id, code, name FROM item_groups WHERE tenant_id = ? ORDER BY name');
+$groupsStmt->execute([$tenantId]);
+$groups = $groupsStmt->fetchAll();
+$subCatStmt = $pdo->prepare('SELECT sc.id, sc.code, sc.name, sc.item_group_id, g.code as group_code FROM item_sub_categories sc LEFT JOIN item_groups g ON sc.item_group_id = g.id WHERE sc.tenant_id = ? ORDER BY g.name, sc.name');
+$subCatStmt->execute([$tenantId]);
+$subCategories = $subCatStmt->fetchAll();
 
 jsonResponse([
     'stock' => array_map(function($r) {
