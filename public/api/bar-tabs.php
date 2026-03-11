@@ -338,14 +338,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Also check bar_menu_items for sell prices
         $menuPriceStmt = $pdo->prepare("
-            SELECT bmi.id as menu_item_id, bmi.sell_price, bmi.item_id
+            SELECT bmi.id as menu_item_id, bmi.price_usd, bmi.item_id
             FROM bar_menu_items bmi
             WHERE bmi.item_id IN ({$ph}) AND bmi.is_active = 1
         ");
         $menuPriceStmt->execute($itemIds);
         $menuPriceMap = [];
         foreach ($menuPriceStmt->fetchAll() as $row) {
-            if ($row['item_id']) $menuPriceMap[(int)$row['item_id']] = (float)$row['sell_price'];
+            if ($row['item_id']) $menuPriceMap[(int)$row['item_id']] = (float)$row['price_usd'];
         }
 
         $pdo->beginTransaction();
