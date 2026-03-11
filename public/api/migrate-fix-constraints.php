@@ -140,7 +140,26 @@ if (isset($nsIdxMap['uk_seq']) && !in_array('tenant_id', $nsIdxMap['uk_seq'])) {
     $results[] = "SKIP: number_sequences.uk_seq already includes tenant_id or doesn't exist";
 }
 
-// ── 5. Fix stock_adjustments enum to include physical_count ─────
+// ── 5. Create cost centers for tenants that don't have any ─────
+$tenantsMissingCC = $pdo->query("
+    SELECT DISTINCT t.id as tenant_id, c.id as camp_id, c.code as camp_code, c.name as camp_name
+    FROM camps c
+    JOIN tenants t ON c.tenant_id = t.id
+    WHERE t.id NOT IN (SELECT DISTINCT tenant_id FROM cost_centers)
+    ORDER BY t.id, c.id
+")->fetchAll(PDO::FETCH_ASSOC);
+
+if (count($tenantsMissingCC) > 0) {
+    $ccInsert = $pdo->prepare("INSERT IGNORE INTO cost_centers (tenant_id, code, name, is_active) VALUES (?, ?, ?, 1)");
+    foreach ($tenantsMissingCC as $row) {
+        $ccInsert->execute([$row['tenant_id'], $row['camp_code'], $row['camp_name']]);
+    }
+    $results[] = "OK: Created cost centers for " . count($tenantsMissingCC) . " tenant/camp combos";
+} else {
+    $results[] = "SKIP: All tenants have cost centers";
+}
+
+// ── 6. Fix stock_adjustments enum to include physical_count ─────
 runSql($pdo, "ALTER TABLE stock_adjustments MODIFY COLUMN adjustment_type ENUM('damage','expiry','correction','write_off','found','transfer','physical_count') NOT NULL", "Add physical_count to stock_adjustments.adjustment_type enum");
 
 // ── 5. Full schema debug ────────────────────────
