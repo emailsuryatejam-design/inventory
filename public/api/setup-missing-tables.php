@@ -256,6 +256,44 @@ try {
     $results[] = "suppliers: " . $e->getMessage();
 }
 
+// ══════════════════════════════════════════════════════
+// 10. hr_employees — add user_id column for self-service linking
+// ══════════════════════════════════════════════════════
+try {
+    addCol($pdo, 'hr_employees', 'user_id', 'INT DEFAULT NULL AFTER tenant_id', $results);
+    addCol($pdo, 'hr_employees', 'annual_leave_days', 'INT DEFAULT 21 AFTER basic_salary', $results);
+    addIndex($pdo, 'hr_employees', 'idx_hre_user', 'user_id', $results);
+    // Link test employee to claude user
+    $pdo->exec("UPDATE hr_employees SET user_id = (SELECT id FROM users WHERE username = 'claude' AND tenant_id = hr_employees.tenant_id LIMIT 1) WHERE tenant_id = 16 AND user_id IS NULL AND id = 401");
+    $results[] = "hr_employees: OK";
+} catch (Exception $e) {
+    $results[] = "hr_employees: " . $e->getMessage();
+}
+
+// ══════════════════════════════════════════════════════
+// 11. set_menu_items — rotational set menu table
+// ══════════════════════════════════════════════════════
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS set_menu_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        camp_id INT DEFAULT NULL,
+        day_of_week TINYINT NOT NULL COMMENT '1=Mon...7=Sun',
+        type_code VARCHAR(30) NOT NULL,
+        recipe_id INT NOT NULL,
+        recipe_name VARCHAR(200) NOT NULL,
+        sort_order INT DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_setmenu_tenant (tenant_id),
+        INDEX idx_setmenu_day (tenant_id, day_of_week, type_code),
+        UNIQUE KEY uq_setmenu_dish (tenant_id, day_of_week, type_code, recipe_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $results[] = "set_menu_items: OK";
+} catch (Exception $e) {
+    $results[] = "set_menu_items: " . $e->getMessage();
+}
+
 jsonResponse([
     'success' => true,
     'message' => 'Migration v2 complete',
