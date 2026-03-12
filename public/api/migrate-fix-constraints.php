@@ -185,35 +185,6 @@ if (isset($ccIdxMap['uk_cc_code']) && !in_array('tenant_id', $ccIdxMap['uk_cc_co
     runSql($pdo, "ALTER TABLE cost_centers ADD UNIQUE INDEX uk_cc_code (tenant_id, code)", "Add tenant-scoped uk_cc_code");
 }
 
-// Debug cost_centers table schema
-$ccSchema = $pdo->query("SHOW COLUMNS FROM cost_centers")->fetchAll(PDO::FETCH_ASSOC);
-$ccSchemaInfo = array_map(fn($c) => $c['Field'] . ':' . $c['Type'] . ($c['Null'] === 'NO' ? ':NN' : '') . ($c['Default'] !== null ? ':d=' . $c['Default'] : ''), $ccSchema);
-$results[] = "cost_centers schema: " . json_encode($ccSchemaInfo);
-
-// Try explicit insert for tenant 16
-try {
-    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'HO', 'Head Office', 1)");
-    $results[] = "OK: Inserted HO cost center for tenant 16, id=" . $pdo->lastInsertId();
-} catch (Exception $e) {
-    $results[] = "ERR insert t16 HO: " . $e->getMessage();
-}
-try {
-    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'BAR', 'Bar', 1)");
-    $results[] = "OK: Inserted BAR cost center for tenant 16, id=" . $pdo->lastInsertId();
-} catch (Exception $e) {
-    $results[] = "ERR insert t16 BAR: " . $e->getMessage();
-}
-try {
-    $pdo->exec("INSERT INTO cost_centers (tenant_id, code, name, is_active) VALUES (16, 'KIT', 'Kitchen', 1)");
-    $results[] = "OK: Inserted KIT cost center for tenant 16, id=" . $pdo->lastInsertId();
-} catch (Exception $e) {
-    $results[] = "ERR insert t16 KIT: " . $e->getMessage();
-}
-
-// Show cost centers for debugging
-$ccList = $pdo->query("SELECT id, tenant_id, code, name FROM cost_centers ORDER BY tenant_id, id")->fetchAll(PDO::FETCH_ASSOC);
-$results[] = "cost_centers: " . json_encode($ccList);
-
 // Ensure every tenant has at least one cost center (catch any missed)
 $allTenants = $pdo->query("SELECT DISTINCT t.id as tenant_id, c.code, c.name FROM tenants t JOIN camps c ON c.tenant_id = t.id WHERE t.id NOT IN (SELECT DISTINCT tenant_id FROM cost_centers)")->fetchAll(PDO::FETCH_ASSOC);
 if (count($allTenants) > 0) {
@@ -396,18 +367,6 @@ if ($tenantsNoKitchens) {
         $kInsert->execute([$row['tenant_id'], $row['camp_id'], $row['name'] . ' Kitchen']);
     }
     $results[] = "OK: Created default kitchens for " . count($tenantsNoKitchens) . " tenants";
-}
-
-// ── Debug: schema check ────────────────────────
-$debugTables = ['pos_voids', 'pos_discounts', 'pos_cash_entries', 'pos_shifts', 'pos_tabs', 'pos_tab_lines'];
-foreach ($debugTables as $dt) {
-    try {
-        $dtCols = $pdo->query("SHOW COLUMNS FROM {$dt}")->fetchAll(PDO::FETCH_ASSOC);
-        $colInfo = array_map(fn($c) => $c['Field'] . ':' . $c['Type'] . ($c['Null'] === 'NO' ? ':NN' : '') . ($c['Default'] !== null ? ':d=' . $c['Default'] : ''), $dtCols);
-        $results[] = "{$dt}: " . json_encode($colInfo);
-    } catch (Exception $e) {
-        $results[] = "{$dt}: ERR " . $e->getMessage();
-    }
 }
 
 header('Content-Type: application/json');

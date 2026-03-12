@@ -641,7 +641,7 @@ switch ($action) {
             $items = $stmt->fetchAll();
         } else {
             $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, i.stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id WHERE i.tenant_id = ? AND i.is_active = 1 AND (i.name LIKE ? OR i.item_code LIKE ?) ORDER BY g.name, i.name");
+            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, COALESCE(u.code, 'EA') AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id WHERE i.tenant_id = ? AND i.is_active = 1 AND (i.name LIKE ? OR i.item_code LIKE ?) ORDER BY g.name, i.name");
             $stmt->execute([$tenantId, "%$escaped%", "%$escaped%"]);
             $items = $stmt->fetchAll();
         }
