@@ -234,7 +234,7 @@ switch ($action) {
         $itemMap = [];
         if ($itemIds) {
             $ph = implode(',', array_fill(0, count($itemIds), '?'));
-            $bStmt = $pdo->prepare("SELECT id, name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, stock_uom AS uom FROM items WHERE tenant_id = ? AND id IN ($ph)");
+            $bStmt = $pdo->prepare("SELECT i.id, i.name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, COALESCE(u.code, 'EA') AS uom FROM items i LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id WHERE i.tenant_id = ? AND i.id IN ($ph)");
             $bStmt->execute(array_merge([$tenantId], array_values($itemIds)));
             foreach ($bStmt->fetchAll() as $it) {
                 $itemMap[(int)$it['id']] = $it;
@@ -636,7 +636,7 @@ switch ($action) {
         $q = trim($_GET['q'] ?? '');
 
         if (!$q) {
-            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, i.stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id WHERE i.tenant_id = ? AND i.is_active = 1 ORDER BY g.name, i.name");
+            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, COALESCE(u.code, 'EA') AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id LEFT JOIN units_of_measure u ON i.stock_uom_id = u.id WHERE i.tenant_id = ? AND i.is_active = 1 ORDER BY g.name, i.name");
             $stmt->execute([$tenantId]);
             $items = $stmt->fetchAll();
         } else {
