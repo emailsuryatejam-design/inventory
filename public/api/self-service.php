@@ -517,7 +517,7 @@ case 'my_documents':
     }
 
     $stmt = $pdo->prepare("
-        SELECT ed.id, ed.document_type, ed.title, ed.file_url, ed.created_at
+        SELECT ed.id, ed.document_type, ed.file_name, ed.file_path, ed.created_at
         FROM employee_documents ed
         $where
         ORDER BY ed.created_at DESC
