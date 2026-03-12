@@ -296,6 +296,83 @@ try {
     $results[] = "set_menu_items: " . $e->getMessage();
 }
 
+// ══════════════════════════════════════════════════════
+// 12. companies — company info for self-service
+// ══════════════════════════════════════════════════════
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS companies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        name VARCHAR(200) NOT NULL,
+        logo_url VARCHAR(500) DEFAULT NULL,
+        address TEXT DEFAULT NULL,
+        phone VARCHAR(50) DEFAULT NULL,
+        email VARCHAR(200) DEFAULT NULL,
+        website VARCHAR(200) DEFAULT NULL,
+        tax_pin VARCHAR(50) DEFAULT NULL,
+        currency VARCHAR(10) DEFAULT 'KES',
+        is_primary TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_company_tenant (tenant_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Seed company for tenant 16 if none
+    $check = $pdo->query("SELECT id FROM companies WHERE tenant_id = 16")->fetch();
+    if (!$check) {
+        $pdo->exec("INSERT INTO companies (tenant_id, name, currency, is_primary) VALUES (16, 'Claude QA', 'KES', 1)");
+    }
+    $results[] = "companies: OK";
+} catch (Exception $e) { $results[] = "companies: " . $e->getMessage(); }
+
+// ══════════════════════════════════════════════════════
+// 13. bank_details — for employee profiles
+// ══════════════════════════════════════════════════════
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS bank_details (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        employee_id INT NOT NULL,
+        bank_name VARCHAR(200) DEFAULT NULL,
+        branch VARCHAR(200) DEFAULT NULL,
+        account_number VARCHAR(100) DEFAULT NULL,
+        account_name VARCHAR(200) DEFAULT NULL,
+        swift_code VARCHAR(20) DEFAULT NULL,
+        is_primary TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_bd_tenant (tenant_id),
+        INDEX idx_bd_employee (employee_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $results[] = "bank_details: OK";
+} catch (Exception $e) { $results[] = "bank_details: " . $e->getMessage(); }
+
+// ══════════════════════════════════════════════════════
+// 14. employee_documents — for self-service document storage
+// ══════════════════════════════════════════════════════
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS employee_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        employee_id INT NOT NULL,
+        document_type VARCHAR(100) NOT NULL,
+        file_name VARCHAR(500) NOT NULL,
+        file_path VARCHAR(1000) DEFAULT NULL,
+        file_size INT DEFAULT 0,
+        uploaded_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_ed_tenant (tenant_id),
+        INDEX idx_ed_employee (employee_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $results[] = "employee_documents: OK";
+} catch (Exception $e) { $results[] = "employee_documents: " . $e->getMessage(); }
+
+// ══════════════════════════════════════════════════════
+// 15. leave_types — add days_per_year if missing
+// ══════════════════════════════════════════════════════
+try {
+    addCol($pdo, 'leave_types', 'days_per_year', 'INT DEFAULT 21 AFTER default_days', $results);
+    $pdo->exec("UPDATE leave_types SET days_per_year = default_days WHERE days_per_year IS NULL OR days_per_year = 0");
+    $results[] = "leave_types: OK";
+} catch (Exception $e) { $results[] = "leave_types: " . $e->getMessage(); }
+
 jsonResponse([
     'success' => true,
     'message' => 'Migration v2 complete',
