@@ -28,6 +28,11 @@ $userRole = $auth['role'] ?? '';
 
 $action = $_GET['action'] ?? '';
 
+// Debug: check auth values
+if ($action === 'debug_auth') {
+    jsonResponse(['userId' => $userId, 'tenantId' => $tenantId, 'auth_keys' => array_keys($auth), 'v' => 'user_id_fix_v2']);
+}
+
 // Resolve employee ID for current user
 function getMyEmployee($pdo, $userId, $tenantId) {
     static $emp = null;
