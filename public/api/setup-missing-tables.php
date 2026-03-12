@@ -263,8 +263,10 @@ try {
     addCol($pdo, 'hr_employees', 'user_id', 'INT DEFAULT NULL AFTER tenant_id', $results);
     addCol($pdo, 'hr_employees', 'annual_leave_days', 'INT DEFAULT 21 AFTER basic_salary', $results);
     addIndex($pdo, 'hr_employees', 'idx_hre_user', 'user_id', $results);
-    // Link test employee to claude user
-    $pdo->exec("UPDATE hr_employees SET user_id = (SELECT id FROM users WHERE username = 'claude' AND tenant_id = hr_employees.tenant_id LIMIT 1) WHERE tenant_id = 16 AND user_id IS NULL AND id = 401");
+    // Link test employee to claude user (user_id = 31)
+    $pdo->exec("UPDATE hr_employees SET user_id = 31, annual_leave_days = 21 WHERE tenant_id = 16 AND id = 401");
+    $check = $pdo->query("SELECT user_id FROM hr_employees WHERE id = 401")->fetch();
+    $results[] = "employee 401 user_id = " . ($check['user_id'] ?? 'NULL');
     $results[] = "hr_employees: OK";
 } catch (Exception $e) {
     $results[] = "hr_employees: " . $e->getMessage();
