@@ -123,13 +123,16 @@ case 'dashboard':
     $upcomingLeave = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Field work today
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) AS visits_today
-        FROM field_visits
-        WHERE employee_id = ? AND tenant_id = ? AND DATE(check_in_time) = CURDATE()
-    ");
-    $stmt->execute([$empId, $tenantId]);
-    $fieldToday = $stmt->fetch(PDO::FETCH_ASSOC);
+    $fieldToday = ['visits_today' => 0];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) AS visits_today
+            FROM field_visits
+            WHERE employee_id = ? AND tenant_id = ? AND DATE(check_in_time) = CURDATE()
+        ");
+        $stmt->execute([$empId, $tenantId]);
+        $fieldToday = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { /* table may not exist */ }
 
     jsonResponse([
         'employee' => [
