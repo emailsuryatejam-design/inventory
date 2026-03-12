@@ -23,8 +23,8 @@ set_exception_handler(function($e) {
 $auth     = requireAuth();
 $tenantId = requireTenant($auth);
 $pdo      = getDB();
-$userId   = $GLOBALS['user_id'];
-$userRole = $GLOBALS['user_role'] ?? '';
+$userId   = $auth['id'] ?? 0;
+$userRole = $auth['role'] ?? '';
 
 $action = $_GET['action'] ?? '';
 

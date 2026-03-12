@@ -9,8 +9,8 @@ require_once __DIR__ . '/middleware.php';
 $auth     = requireAuth();
 $tenantId = requireTenant($auth);
 $pdo      = getDB();
-$userId   = $GLOBALS['user_id'];
-$userRole = $GLOBALS['user_role'] ?? '';
+$userId   = $auth['id'] ?? 0;
+$userRole = $auth['role'] ?? '';
 
 if (!in_array($userRole, ['admin', 'director'])) {
     jsonError('Access denied', 403);
