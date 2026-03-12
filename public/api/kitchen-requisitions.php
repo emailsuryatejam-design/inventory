@@ -636,12 +636,12 @@ switch ($action) {
         $q = trim($_GET['q'] ?? '');
 
         if (!$q) {
-            $stmt = $pdo->prepare("SELECT id, name, item_code AS code, group_name AS category, stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items WHERE tenant_id = ? AND is_active = 1 ORDER BY group_name, name");
+            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, i.stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id WHERE i.tenant_id = ? AND i.is_active = 1 ORDER BY g.name, i.name");
             $stmt->execute([$tenantId]);
             $items = $stmt->fetchAll();
         } else {
             $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-            $stmt = $pdo->prepare("SELECT id, name, item_code AS code, group_name AS category, stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items WHERE tenant_id = ? AND is_active = 1 AND (name LIKE ? OR item_code LIKE ?) ORDER BY group_name, name");
+            $stmt = $pdo->prepare("SELECT i.id, i.name, i.item_code AS code, COALESCE(g.name, 'Uncategorized') AS category, i.stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items i LEFT JOIN item_groups g ON i.item_group_id = g.id WHERE i.tenant_id = ? AND i.is_active = 1 AND (i.name LIKE ? OR i.item_code LIKE ?) ORDER BY g.name, i.name");
             $stmt->execute([$tenantId, "%$escaped%", "%$escaped%"]);
             $items = $stmt->fetchAll();
         }
@@ -679,7 +679,7 @@ switch ($action) {
         if (!$recipe) jsonError('Recipe not found', 404);
 
         $stmt = $pdo->prepare("SELECT ri.id, ri.item_id, ri.qty, ri.uom, ri.is_primary,
-            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
+            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, 'General' AS category
             FROM kitchen_recipe_ingredients ri
             LEFT JOIN items i ON i.id = ri.item_id
             WHERE ri.recipe_id = ? ORDER BY ri.is_primary DESC, i.name");
@@ -760,7 +760,7 @@ switch ($action) {
             if ($recipeIds) {
                 $ph = implode(',', array_fill(0, count($recipeIds), '?'));
                 $bStmt = $pdo->prepare("SELECT ri.recipe_id, ri.item_id, ri.qty, ri.uom,
-                    i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
+                    i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, 'General' AS category
                     FROM kitchen_recipe_ingredients ri
                     LEFT JOIN items i ON i.id = ri.item_id
                     WHERE ri.recipe_id IN ($ph)");
@@ -871,7 +871,7 @@ switch ($action) {
         $recipeIds = array_unique(array_column($dishes, 'recipe_id'));
         $ph = implode(',', array_fill(0, count($recipeIds), '?'));
         $iStmt = $pdo->prepare("SELECT ri.recipe_id, ri.item_id, ri.qty, ri.uom, ri.is_primary,
-            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
+            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, 'General' AS category
             FROM kitchen_recipe_ingredients ri
             LEFT JOIN items i ON i.id = ri.item_id
             WHERE ri.recipe_id IN ($ph)
