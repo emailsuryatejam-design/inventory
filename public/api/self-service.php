@@ -61,7 +61,7 @@ case 'dashboard':
         SELECT pi.net_pay, pp.name AS period_name, pp.pay_date, c.currency
         FROM payroll_items pi
         JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        JOIN payroll_periods pp ON pr.period_id = pp.id
         LEFT JOIN companies c ON c.tenant_id = pi.tenant_id AND c.is_primary = 1
         WHERE pi.employee_id = ? AND pi.tenant_id = ? AND pr.status IN ('approved','paid')
         ORDER BY pp.pay_date DESC LIMIT 1
@@ -104,7 +104,7 @@ case 'dashboard':
         SELECT pi.id, pi.net_pay, pp.name AS period_name, pp.pay_date
         FROM payroll_items pi
         JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        JOIN payroll_periods pp ON pr.period_id = pp.id
         WHERE pi.employee_id = ? AND pi.tenant_id = ? AND pr.status IN ('approved','paid')
         ORDER BY pp.pay_date DESC LIMIT 3
     ");
@@ -177,19 +177,16 @@ case 'profile':
             'last_name' => $emp['last_name'],
             'email' => $emp['email'],
             'phone' => $emp['phone'] ?? '',
-            'id_number' => $emp['id_number'] ?? '',
+            'id_number' => $emp['national_id'] ?? '',
             'tax_pin' => $emp['tax_pin'] ?? '',
             'nssf_no' => $emp['nssf_no'] ?? '',
             'nhif_no' => $emp['nhif_no'] ?? '',
             'date_of_birth' => $emp['date_of_birth'] ?? '',
             'gender' => $emp['gender'] ?? '',
-            'marital_status' => $emp['marital_status'] ?? '',
-            'address' => $emp['address'] ?? '',
-            'city' => $emp['city'] ?? '',
-            'join_date' => $emp['join_date'] ?? '',
             'job_title' => $emp['job_title'] ?? '',
             'department' => $deptName,
-            'photo_url' => $emp['photo_url'] ?? null,
+            'hire_date' => $emp['hire_date'] ?? '',
+            'photo_url' => $emp['profile_photo'] ?? null,
         ],
         'bank_details' => $banks,
     ]);
@@ -200,7 +197,7 @@ case 'update_profile':
     if (!$emp) jsonError('Employee record not found');
 
     $input = json_decode(file_get_contents('php://input'), true);
-    $allowed = ['phone', 'address', 'city', 'emergency_contact', 'emergency_phone'];
+    $allowed = ['phone', 'email'];
     $sets = [];
     $vals = [];
     foreach ($allowed as $field) {
@@ -398,7 +395,7 @@ case 'my_attendance':
     $month = $_GET['month'] ?? date('Y-m');
     $stmt = $pdo->prepare("
         SELECT * FROM attendance
-        WHERE employee_id = ? AND tenant_id = ? AND DATE_FORMAT(date, '%Y-%m') = ?
+        WHERE employee_id = ? AND tenant_id = ? AND DATE_FORMAT(date, '%Y-%m') = ? COLLATE utf8mb4_unicode_ci
         ORDER BY date ASC
     ");
     $stmt->execute([$emp['id'], $tenantId, $month]);
@@ -616,7 +613,7 @@ case 'my_id_card':
     if (!$emp) jsonError('Employee record not found');
 
     // Get company info
-    $stmt = $pdo->prepare("SELECT name, address, city, phone, email, logo_url FROM companies WHERE tenant_id = ? AND is_primary = 1");
+    $stmt = $pdo->prepare("SELECT name, address, phone, email, logo_url FROM companies WHERE tenant_id = ? AND is_primary = 1");
     $stmt->execute([$tenantId]);
     $company = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -635,9 +632,9 @@ case 'my_id_card':
             'employee_no' => $emp['employee_no'],
             'job_title' => $emp['job_title'] ?? '',
             'department' => $deptName,
-            'id_number' => $emp['id_number'] ?? '',
-            'photo_url' => $emp['photo_url'] ?? null,
-            'join_date' => $emp['join_date'] ?? '',
+            'id_number' => $emp['national_id'] ?? '',
+            'photo_url' => $emp['profile_photo'] ?? null,
+            'hire_date' => $emp['hire_date'] ?? '',
         ],
         'company' => $company,
     ]);
