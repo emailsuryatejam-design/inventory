@@ -13,7 +13,7 @@ set_error_handler(function($severity, $message, $file, $line) {
 set_exception_handler(function($e) {
     header('Content-Type: application/json');
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+    echo json_encode(['error' => $e->getMessage()]);
     exit;
 });
 
@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log('[API Error] issue.php: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
-        jsonError($e->getMessage() . ' [' . basename($e->getFile()) . ':' . $e->getLine() . ']', 500);
+        jsonError('An unexpected error occurred. Please try again.', 500);
     }
     exit;
 }

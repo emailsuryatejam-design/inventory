@@ -35,7 +35,7 @@ set_error_handler(function($severity, $message, $file, $line) {
 set_exception_handler(function($e) {
     header('Content-Type: application/json');
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+    echo json_encode(['error' => $e->getMessage()]);
     exit;
 });
 
