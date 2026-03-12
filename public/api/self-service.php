@@ -666,3 +666,4 @@ case 'change_password':
 default:
     jsonError('Invalid action. Use: dashboard, profile, update_profile, save_bank, leave_balance, my_leave, request_leave, cancel_leave, my_loans, request_loan, my_attendance, check_in, check_out, my_allowances, my_documents, start_visit, end_visit, my_visits, my_id_card, change_password');
 }
+// deploy 1773338084
