@@ -105,7 +105,7 @@ switch ($action) {
         $req = $stmt->fetch();
         if (!$req) jsonError('Requisition not found', 404);
 
-        $lines = $pdo->prepare("SELECT rl.*, i.stock_qty AS current_stock FROM kitchen_requisition_lines rl LEFT JOIN items i ON i.id = rl.item_id WHERE rl.requisition_id = ? ORDER BY rl.item_name");
+        $lines = $pdo->prepare("SELECT rl.*, 0 AS current_stock FROM kitchen_requisition_lines rl LEFT JOIN items i ON i.id = rl.item_id WHERE rl.requisition_id = ? ORDER BY rl.item_name");
         $lines->execute([$id]);
 
         jsonResponse(['requisition' => $req, 'lines' => $lines->fetchAll()]);
@@ -234,7 +234,7 @@ switch ($action) {
         $itemMap = [];
         if ($itemIds) {
             $ph = implode(',', array_fill(0, count($itemIds), '?'));
-            $bStmt = $pdo->prepare("SELECT id, name, stock_qty, portion_weight, order_mode, uom FROM items WHERE tenant_id = ? AND id IN ($ph)");
+            $bStmt = $pdo->prepare("SELECT id, name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, stock_uom AS uom FROM items WHERE tenant_id = ? AND id IN ($ph)");
             $bStmt->execute(array_merge([$tenantId], array_values($itemIds)));
             foreach ($bStmt->fetchAll() as $it) {
                 $itemMap[(int)$it['id']] = $it;
@@ -636,12 +636,12 @@ switch ($action) {
         $q = trim($_GET['q'] ?? '');
 
         if (!$q) {
-            $stmt = $pdo->prepare("SELECT id, name, code, category, uom, stock_qty, portion_weight, order_mode FROM items WHERE tenant_id = ? AND is_active = 1 ORDER BY category, name");
+            $stmt = $pdo->prepare("SELECT id, name, item_code AS code, group_name AS category, stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items WHERE tenant_id = ? AND is_active = 1 ORDER BY group_name, name");
             $stmt->execute([$tenantId]);
             $items = $stmt->fetchAll();
         } else {
             $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-            $stmt = $pdo->prepare("SELECT id, name, code, category, uom, stock_qty, portion_weight, order_mode FROM items WHERE tenant_id = ? AND is_active = 1 AND (name LIKE ? OR code LIKE ?) ORDER BY category, name");
+            $stmt = $pdo->prepare("SELECT id, name, item_code AS code, group_name AS category, stock_uom AS uom, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode FROM items WHERE tenant_id = ? AND is_active = 1 AND (name LIKE ? OR item_code LIKE ?) ORDER BY group_name, name");
             $stmt->execute([$tenantId, "%$escaped%", "%$escaped%"]);
             $items = $stmt->fetchAll();
         }
@@ -679,7 +679,7 @@ switch ($action) {
         if (!$recipe) jsonError('Recipe not found', 404);
 
         $stmt = $pdo->prepare("SELECT ri.id, ri.item_id, ri.qty, ri.uom, ri.is_primary,
-            i.name AS item_name, i.stock_qty, i.portion_weight, i.order_mode, i.category
+            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
             FROM kitchen_recipe_ingredients ri
             LEFT JOIN items i ON i.id = ri.item_id
             WHERE ri.recipe_id = ? ORDER BY ri.is_primary DESC, i.name");
@@ -760,7 +760,7 @@ switch ($action) {
             if ($recipeIds) {
                 $ph = implode(',', array_fill(0, count($recipeIds), '?'));
                 $bStmt = $pdo->prepare("SELECT ri.recipe_id, ri.item_id, ri.qty, ri.uom,
-                    i.name AS item_name, i.stock_qty, i.portion_weight, i.order_mode, i.category
+                    i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
                     FROM kitchen_recipe_ingredients ri
                     LEFT JOIN items i ON i.id = ri.item_id
                     WHERE ri.recipe_id IN ($ph)");
@@ -871,7 +871,7 @@ switch ($action) {
         $recipeIds = array_unique(array_column($dishes, 'recipe_id'));
         $ph = implode(',', array_fill(0, count($recipeIds), '?'));
         $iStmt = $pdo->prepare("SELECT ri.recipe_id, ri.item_id, ri.qty, ri.uom, ri.is_primary,
-            i.name AS item_name, i.stock_qty, i.portion_weight, i.order_mode, i.category
+            i.name AS item_name, 0 AS stock_qty, 0 AS portion_weight, 'direct_kg' AS order_mode, i.group_name AS category
             FROM kitchen_recipe_ingredients ri
             LEFT JOIN items i ON i.id = ri.item_id
             WHERE ri.recipe_id IN ($ph)
