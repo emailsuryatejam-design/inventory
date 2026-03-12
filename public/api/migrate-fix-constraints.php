@@ -272,6 +272,9 @@ runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_cash_entries (
     INDEX idx_shift (shift_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create pos_cash_entries table if missing");
 
+// ── 10. Ensure users.kitchen_id column exists ─────
+runSql($pdo, "ALTER TABLE users ADD COLUMN kitchen_id INT NULL DEFAULT NULL", "Add kitchen_id to users");
+
 // ── Debug: schema check ────────────────────────
 $debugTables = ['pos_voids', 'pos_discounts', 'pos_cash_entries', 'pos_shifts', 'pos_tabs', 'pos_tab_lines'];
 foreach ($debugTables as $dt) {

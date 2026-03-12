@@ -40,10 +40,15 @@ $action = $_GET['action'] ?? 'list';
 
 // Helper: get user's kitchen_id from the users table
 function getUserKitchenId($pdo, $userId) {
-    $stmt = $pdo->prepare("SELECT kitchen_id FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch();
-    return $row ? (int)$row['kitchen_id'] : 0;
+    try {
+        $stmt = $pdo->prepare("SELECT kitchen_id FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        return $row ? (int)$row['kitchen_id'] : 0;
+    } catch (Exception $e) {
+        // Column may not exist yet — return 0 (will use kitchen_id from request params)
+        return 0;
+    }
 }
 
 $kitchenId = getUserKitchenId($pdo, $userId);
