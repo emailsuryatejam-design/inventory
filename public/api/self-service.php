@@ -28,11 +28,6 @@ $userRole = $auth['role'] ?? '';
 
 $action = $_GET['action'] ?? '';
 
-// Debug: check auth values
-if ($action === 'debug_auth') {
-    jsonResponse(['userId' => $userId, 'tenantId' => $tenantId, 'auth_keys' => array_keys($auth), 'v' => 'user_id_fix_v2']);
-}
-
 // Resolve employee ID for current user
 function getMyEmployee($pdo, $userId, $tenantId) {
     static $emp = null;
@@ -671,4 +666,3 @@ case 'change_password':
 default:
     jsonError('Invalid action. Use: dashboard, profile, update_profile, save_bank, leave_balance, my_leave, request_leave, cancel_leave, my_loans, request_loan, my_attendance, check_in, check_out, my_allowances, my_documents, start_visit, end_visit, my_visits, my_id_card, change_password');
 }
-// deploy 1773338084
