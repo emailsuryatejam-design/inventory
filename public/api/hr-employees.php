@@ -205,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         'date_of_birth', 'gender', 'national_id', 'tax_pin', 'nssf_no', 'nhif_no',
         'bank_name', 'bank_branch', 'bank_account', 'basic_salary', 'hire_date',
         'termination_date', 'profile_photo', 'camp_id', 'region_id', 'shift_id',
+        'user_id', 'annual_leave_days',
     ];
 
     foreach ($allowedFields as $field) {
