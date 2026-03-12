@@ -87,6 +87,9 @@ const navSections = [
     items: [
       { path: '/app/pos', icon: Wine, label: 'Point of Sale', access: 'all', exclude: CHEF_ONLY },
       { path: '/app/bar-menu', icon: GlassWater, label: 'Bar Menu', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/bar-tabs', icon: ClipboardList, label: 'Tabs / Bills', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/bar-shifts', icon: Clock, label: 'Shifts', access: 'all', exclude: CHEF_ONLY },
+      { path: '/app/bar-reports', icon: BarChart3, label: 'Bar Reports', access: 'manager' },
     ],
   },
   // ── Payroll & HR App ──
