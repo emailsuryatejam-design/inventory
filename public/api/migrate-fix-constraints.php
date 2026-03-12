@@ -275,6 +275,129 @@ runSql($pdo, "CREATE TABLE IF NOT EXISTS pos_cash_entries (
 // ── 10. Ensure users.kitchen_id column exists ─────
 runSql($pdo, "ALTER TABLE users ADD COLUMN kitchen_id INT NULL DEFAULT NULL", "Add kitchen_id to users");
 
+// ── 11. Kitchen Requisitions module tables ─────
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    camp_id INT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NULL,
+    rounding_mode ENUM('half','whole','none') DEFAULT 'half',
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tenant (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchens table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS requisition_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL,
+    sort_order INT DEFAULT 0,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tenant (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create requisition_types table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_requisitions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    kitchen_id INT NOT NULL,
+    req_date DATE NOT NULL,
+    session_number INT DEFAULT 1,
+    guest_count INT DEFAULT 20,
+    meals VARCHAR(50) DEFAULT 'lunch',
+    supplement_number INT DEFAULT 0,
+    status ENUM('draft','submitted','processing','fulfilled','received','closed') DEFAULT 'draft',
+    has_dispute TINYINT(1) DEFAULT 0,
+    created_by INT NULL,
+    reviewed_by INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    INDEX idx_tenant_date (tenant_id, req_date, kitchen_id),
+    INDEX idx_status (status),
+    UNIQUE KEY uq_kitchen_date_session_supp (tenant_id, kitchen_id, req_date, session_number, supplement_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_requisitions table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_requisition_lines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requisition_id INT NOT NULL,
+    item_id INT NOT NULL,
+    item_name VARCHAR(200) NULL,
+    meal VARCHAR(50) DEFAULT 'lunch',
+    order_mode VARCHAR(20) DEFAULT 'per_portion',
+    portions INT DEFAULT 0,
+    portion_weight DECIMAL(10,3) DEFAULT 0,
+    required_kg DECIMAL(10,2) DEFAULT 0,
+    stock_qty DECIMAL(10,2) DEFAULT 0,
+    order_qty DECIMAL(10,2) DEFAULT 0,
+    fulfilled_qty DECIMAL(10,2) DEFAULT 0,
+    received_qty DECIMAL(10,2) NULL,
+    unused_qty DECIMAL(10,2) DEFAULT 0,
+    uom VARCHAR(20) DEFAULT 'kg',
+    status ENUM('pending','approved','rejected') DEFAULT 'pending',
+    store_notes VARCHAR(255) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_req (requisition_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_requisition_lines table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_recipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    cuisine VARCHAR(100) NULL,
+    servings INT DEFAULT 4,
+    prep_time INT DEFAULT 30,
+    created_by INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tenant (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_recipes table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_recipe_ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    item_id INT NOT NULL,
+    qty DECIMAL(10,3) NOT NULL,
+    uom VARCHAR(20) DEFAULT 'kg',
+    is_primary TINYINT(1) DEFAULT 0,
+    INDEX idx_recipe (recipe_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_recipe_ingredients table");
+
+runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_requisition_dishes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requisition_id INT NOT NULL,
+    recipe_id INT NOT NULL,
+    recipe_name VARCHAR(200) NULL,
+    recipe_servings INT DEFAULT 4,
+    scale_factor DECIMAL(10,3) DEFAULT 1,
+    guest_count INT DEFAULT 20,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_req (requisition_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_requisition_dishes table");
+
+// Insert default requisition types for tenants that have none
+$tenantsNoTypes = $pdo->query("SELECT DISTINCT t.id FROM tenants t WHERE t.id NOT IN (SELECT DISTINCT tenant_id FROM requisition_types)")->fetchAll(PDO::FETCH_COLUMN);
+if ($tenantsNoTypes) {
+    $rtInsert = $pdo->prepare("INSERT IGNORE INTO requisition_types (tenant_id, name, code, sort_order, is_active) VALUES (?, ?, ?, ?, 1)");
+    foreach ($tenantsNoTypes as $tid) {
+        $rtInsert->execute([$tid, 'Breakfast', 'breakfast', 1]);
+        $rtInsert->execute([$tid, 'Lunch', 'lunch', 2]);
+        $rtInsert->execute([$tid, 'Dinner', 'dinner', 3]);
+        $rtInsert->execute([$tid, 'Snacks', 'snacks', 4]);
+    }
+    $results[] = "OK: Created default requisition types for " . count($tenantsNoTypes) . " tenants";
+}
+
+// Insert default kitchens for tenants that have none
+$tenantsNoKitchens = $pdo->query("SELECT DISTINCT c.tenant_id, c.id as camp_id, c.name FROM camps c WHERE c.tenant_id NOT IN (SELECT DISTINCT tenant_id FROM kitchens)")->fetchAll(PDO::FETCH_ASSOC);
+if ($tenantsNoKitchens) {
+    $kInsert = $pdo->prepare("INSERT IGNORE INTO kitchens (tenant_id, camp_id, name, code, is_active) VALUES (?, ?, ?, 'MAIN', 1)");
+    foreach ($tenantsNoKitchens as $row) {
+        $kInsert->execute([$row['tenant_id'], $row['camp_id'], $row['name'] . ' Kitchen']);
+    }
+    $results[] = "OK: Created default kitchens for " . count($tenantsNoKitchens) . " tenants";
+}
+
 // ── Debug: schema check ────────────────────────
 $debugTables = ['pos_voids', 'pos_discounts', 'pos_cash_entries', 'pos_shifts', 'pos_tabs', 'pos_tab_lines'];
 foreach ($debugTables as $dt) {
