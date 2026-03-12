@@ -346,6 +346,11 @@ runSql($pdo, "CREATE TABLE IF NOT EXISTS kitchen_requisition_dishes (
     INDEX idx_req (requisition_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "Create kitchen_requisition_dishes table");
 
+// ── 11b. Ensure kitchen_recipes has all needed columns ─────
+runSql($pdo, "ALTER TABLE kitchen_recipes ADD COLUMN servings INT DEFAULT 4", "Add servings to kitchen_recipes");
+runSql($pdo, "ALTER TABLE kitchen_recipes ADD COLUMN prep_time INT DEFAULT 30", "Add prep_time to kitchen_recipes");
+runSql($pdo, "ALTER TABLE kitchen_recipes ADD COLUMN cuisine VARCHAR(100) NULL", "Add cuisine to kitchen_recipes");
+
 // Insert default requisition types for tenants that have none
 $tenantsNoTypes = $pdo->query("SELECT DISTINCT t.id FROM tenants t WHERE t.id NOT IN (SELECT DISTINCT tenant_id FROM requisition_types)")->fetchAll(PDO::FETCH_COLUMN);
 if ($tenantsNoTypes) {
